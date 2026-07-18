@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { group_id, name, session_date, location } = await req.json();
+    const { group_id, name, session_date, location, scoring_method, advanced_rules_enabled } = await req.json();
     if (!group_id) return Response.json({ error: 'group_id is required' }, { status: 400 });
 
     const group = await base44.asServiceRole.entities.Group.get(group_id);
@@ -46,9 +46,10 @@ Deno.serve(async (req) => {
       status: 'open',
       session_date: session_date || new Date().toISOString().slice(0, 10),
       location: (location || '').trim(),
-      // Freeze the scoring rules for the whole night from the group defaults.
-      advanced_rules_enabled: !!group.advanced_rules_default,
-      scoring_method: group.scoring_method_default === 'progressive' ? 'progressive' : 'classic',
+      // Scoring rules are chosen per-session at creation (falling back to the
+      // group defaults), then frozen for the whole night.
+      advanced_rules_enabled: advanced_rules_enabled != null ? !!advanced_rules_enabled : !!group.advanced_rules_default,
+      scoring_method: (scoring_method || group.scoring_method_default) === 'progressive' ? 'progressive' : 'classic',
       game_limit: null,
     });
 

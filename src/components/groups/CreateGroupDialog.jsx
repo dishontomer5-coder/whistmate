@@ -4,23 +4,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Loader2, Plus } from 'lucide-react';
 
 export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [scoringMethod, setScoringMethod] = useState('classic');
-  const [advancedRules, setAdvancedRules] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (open) {
-      setName(''); setDescription(''); setPlayerName('');
-      setScoringMethod('classic'); setAdvancedRules(false); setError('');
-    }
+    if (open) { setName(''); setDescription(''); setPlayerName(''); setError(''); }
   }, [open]);
 
   const handleSubmit = async () => {
@@ -35,8 +29,6 @@ export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
         name: name.trim(),
         description: description.trim(),
         player_name: playerName.trim(),
-        scoring_method_default: scoringMethod,
-        advanced_rules_default: advancedRules,
       });
       onOpenChange(false);
       if (onCreated) onCreated(res.data.group, res.data.groups);
@@ -52,7 +44,7 @@ export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading uppercase tracking-wide text-foreground">Create New Group</DialogTitle>
-          <DialogDescription>Start a new whist circle. You'll be the admin.</DialogDescription>
+          <DialogDescription>Start a new whist circle. You'll be the admin. You'll pick the scoring rules when you start each session.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -69,29 +61,6 @@ export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Your Display Name</Label>
             <Input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="How others will see you in this group" className="bg-background border-border" maxLength={30} />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Scoring Method</Label>
-            <div className="flex gap-2">
-              {['classic', 'progressive'].map((m) => (
-                <button key={m} type="button" onClick={() => setScoringMethod(m)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize ${scoringMethod === m ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                  {m}
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Classic = −10 per missed trick. Progressive = escalating penalty by miss size.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Advanced Rules</Label>
-              <p className="text-[11px] text-muted-foreground">Highest bidder picks trump suit + hierarchy.</p>
-            </div>
-            <Switch checked={advancedRules} onCheckedChange={setAdvancedRules} />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
