@@ -212,6 +212,11 @@
 > globally installed; use `npx base44@latest <cmd>` (reachable on VPN). Login is interactive (owner only).
 
 - [x] **P7-0:** Repo pushed to GitHub: `github.com/tomerdi-blip/israeli-whist` (private) — **superseded** by whistmate *(done Jul 18 2026)*
+- [ ] **P7-1b** *(BLOCKER — owner action)*: functions return 404 "not found or not deployed" — GitHub sync
+  copies function *files* into the app but does NOT register the endpoints. Fix: from `~/whistmate`,
+  `npx base44@latest login` → `npx base44@latest link` (select the WhistMate app) → `npx base44@latest deploy`
+  (deploys entities + functions + site). Confirmed via the live endpoint error + CLI `deploy` help. Re-run
+  `deploy` after every push that changes entities/functions until sync auto-deploys.
 - [x] **P7-1:** Owner created Base44 app "WhistMate" with **two-way GitHub sync** to `tomerdi-blip/whistmate`.
   Migrated the full implementation onto that repo (kept its `base44/config.jsonc` name "WhistMate" + Base44
   index.html favicon/manifest; kept our green/gold theme; rebranded visible UI to "WhistMate"). Verified in
