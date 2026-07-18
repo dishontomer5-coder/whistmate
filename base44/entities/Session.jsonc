@@ -1,0 +1,83 @@
+{
+  "name": "Session",
+  "type": "object",
+  "description": "A single meetup/night of Israeli Whist within a group. Contains many Games (rounds). Advanced-rules + scoring-method are frozen here at creation from the group defaults so a session's rules never change mid-night and historical rounds stay reproducible.",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "title": "Group ID",
+      "description": "FK to Group entity. Indexed (single + composite with created_date) for O(1) history/timeline rendering.",
+      "default": null,
+      "index": true
+    },
+    "name": {
+      "type": "string",
+      "title": "Session Name",
+      "default": "Whist Night"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "default": "open",
+      "title": "Status",
+      "description": "'open' = active meetup, rounds can be added. 'closed' = meetup ended, read-only. Indexed for the active-session lookup."
+    },
+    "session_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Session Date"
+    },
+    "location": {
+      "type": "string",
+      "title": "Location",
+      "default": ""
+    },
+    "advanced_rules_enabled": {
+      "type": "boolean",
+      "title": "Advanced Rules Enabled",
+      "default": false,
+      "description": "Frozen at creation from Group.advanced_rules_default. When true, the highest bidder assigns trump suit + card hierarchy each round."
+    },
+    "scoring_method": {
+      "type": "string",
+      "enum": [
+        "classic",
+        "progressive"
+      ],
+      "default": "classic",
+      "title": "Scoring Method",
+      "description": "Frozen at creation from Group.scoring_method_default. Governs the missed-contract penalty scheme for every round in this session."
+    },
+    "game_limit": {
+      "type": "number",
+      "title": "Game Limit",
+      "default": null,
+      "description": "Optional cap on the number of scored rounds in the session. Cancelled / everyone-falls rounds do NOT count toward this limit. Null = no limit."
+    }
+  },
+  "required": [
+    "group_id",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

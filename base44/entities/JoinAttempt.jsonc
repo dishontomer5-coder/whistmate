@@ -1,0 +1,35 @@
+{
+  "name": "JoinAttempt",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID",
+      "description": "FK to User entity. Indexed for rate-limit queries.",
+      "index": true
+    },
+    "invite_code": {
+      "type": "string",
+      "title": "Invite Code Attempted"
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

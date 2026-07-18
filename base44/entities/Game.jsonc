@@ -1,0 +1,112 @@
+{
+  "name": "Game",
+  "type": "object",
+  "description": "A single round/hand of Israeli Whist inside a Session: bid -> play -> results. (The night-level container is Session; this is one deal.) Cancelled / everyone-falls rounds are recorded but excluded from a session's game_limit and from scored totals.",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "title": "Session ID",
+      "description": "FK to Session entity. Indexed for the round-feed query within a session.",
+      "index": true
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Group ID",
+      "description": "FK to Group entity. Denormalized for group-scoped queries and cross-group global stats. Indexed.",
+      "default": null,
+      "index": true
+    },
+    "round_number": {
+      "type": "number",
+      "title": "Round Number",
+      "description": "1-based ordinal of this round within its session (counts all rounds incl. cancelled, for display order).",
+      "default": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "bidding",
+        "playing",
+        "complete",
+        "cancelled"
+      ],
+      "default": "bidding",
+      "title": "Status",
+      "description": "'bidding' = collecting the 4 contracts. 'playing' = contracts locked, hand in progress. 'complete' = results saved + scored. 'cancelled' = everyone-falls or manually voided; zero points, excluded from limits/totals."
+    },
+    "table_state": {
+      "type": "string",
+      "enum": [
+        "up",
+        "down"
+      ],
+      "default": null,
+      "title": "Table State",
+      "description": "Derived from the sum of the 4 bids: sum >= 14 -> 'up', sum <= 12 -> 'down'. (Sum = 13 is illegal and blocked at bid entry.) Governs the 0-bid success bonus."
+    },
+    "total_bids": {
+      "type": "number",
+      "title": "Total Bids",
+      "default": null,
+      "description": "Sum of the 4 contracts. Persisted for auditing the up/down derivation."
+    },
+    "trump_suit": {
+      "type": "string",
+      "enum": [
+        "spades",
+        "hearts",
+        "diamonds",
+        "clubs",
+        "notrump"
+      ],
+      "default": null,
+      "title": "Trump Suit",
+      "description": "Advanced rules only: the suit the highest bidder chose (or no-trump). Null when advanced rules are off."
+    },
+    "hierarchy": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "down_up"
+      ],
+      "default": null,
+      "title": "Card Hierarchy",
+      "description": "Advanced rules only: 'standard' = Ace high to 2 low; 'down_up' = Ace high, then 2,3..King low. Null when advanced rules are off."
+    },
+    "highest_bidder_player_id": {
+      "type": "string",
+      "title": "Highest Bidder Player ID",
+      "default": null,
+      "description": "FK to GroupMember: the player with the winning (highest) bid who assigns suit/hierarchy under advanced rules."
+    },
+    "everyone_falls": {
+      "type": "boolean",
+      "title": "Everyone Falls",
+      "default": false,
+      "description": "True when no player made their contract; the round is cancelled and all scores zeroed. Set by the scoring engine at settle."
+    }
+  },
+  "required": [
+    "session_id",
+    "group_id",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

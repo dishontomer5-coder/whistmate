@@ -1,0 +1,70 @@
+{
+  "name": "TableTalkNote",
+  "type": "object",
+  "properties": {
+    "author_user_id": {
+      "type": "string",
+      "title": "Author User ID"
+    },
+    "author_name": {
+      "type": "string",
+      "title": "Author Name"
+    },
+    "target_player_id": {
+      "type": "string",
+      "title": "Target Player ID"
+    },
+    "game_id": {
+      "type": "string",
+      "title": "Associated Game ID"
+    },
+    "game_name": {
+      "type": "string",
+      "title": "Game Name"
+    },
+    "game_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Game Date"
+    },
+    "note": {
+      "type": "string",
+      "title": "Note",
+      "minLength": 1
+    },
+    "is_anonymous": {
+      "type": "boolean",
+      "title": "Post Anonymously",
+      "default": false
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Group ID",
+      "description": "FK to Group entity. Indexed for group-scoped note feeds.",
+      "default": null,
+      "index": true
+    }
+  },
+  "required": [
+    "target_player_id",
+    "note"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "name": "RoundResult",
+  "type": "object",
+  "description": "One player's participation in one round (Game): their contract (bid), tricks actually won, any renege, and the computed score. Replaces poker's GamePlayer. Points are computed + persisted by the scoring engine when the round is settled.",
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "title": "Game (Round) ID",
+      "description": "FK to Game entity (the round). Indexed for per-round result queries.",
+      "index": true
+    },
+    "session_id": {
+      "type": "string",
+      "title": "Session ID",
+      "description": "FK to Session entity. Denormalized so session leaderboards aggregate without joining through Game.",
+      "default": null,
+      "index": true
+    },
+    "group_id": {
+      "type": "string",
+      "title": "Group ID",
+      "description": "FK to Group entity. Denormalized for group-scoped + cross-group global stats batch queries. Indexed.",
+      "default": null,
+      "index": true
+    },
+    "player_id": {
+      "type": "string",
+      "title": "Player ID",
+      "description": "FK to GroupMember entity. Indexed for cross-group global stats batch queries.",
+      "index": true
+    },
+    "player_name": {
+      "type": "string",
+      "title": "Player Name",
+      "description": "Denormalized display name at time of play."
+    },
+    "bid_order": {
+      "type": "number",
+      "title": "Bid Order",
+      "default": 0,
+      "description": "0-based seat/order in which this player bid. Determines who the final bidder is (the one constrained by the sum != 13 rule)."
+    },
+    "bid": {
+      "type": "number",
+      "title": "Bid (Contract)",
+      "default": null,
+      "description": "Tricks the player committed to take, 0-13. Null while the round is still collecting bids."
+    },
+    "tricks_won": {
+      "type": "number",
+      "title": "Tricks Won",
+      "default": null,
+      "description": "Tricks the player actually took, 0-13. The four players' tricks_won must sum to exactly 13. Null until results are entered."
+    },
+    "reneged": {
+      "type": "boolean",
+      "title": "Reneged",
+      "default": false,
+      "description": "True if the player failed to follow suit -> -100 penalty applied to this round's points."
+    },
+    "points": {
+      "type": "number",
+      "title": "Points",
+      "default": null,
+      "description": "Score for this player this round, computed by the scoring engine at settle. Null until the round is complete; 0 for a cancelled/everyone-falls round (before any renege penalty)."
+    }
+  },
+  "required": [
+    "game_id",
+    "player_id",
+    "player_name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
