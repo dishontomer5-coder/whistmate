@@ -9,8 +9,10 @@
 > Phase 8 (owner adjustments) DONE: profile score chart, "same players as last round", standings overall
 > score + session-over-session delta. Build GREEN (2534 modules) + lint clean. Frontend-only changes →
 > auto-sync deploys the site on push (NO base44 deploy needed unless base44/functions/** changes).
-> in_progress: none — awaiting next request. Optional polish P6-3 (awards showcase, updateRound edit UI).
+> in_progress: none — awaiting next request. P6-3 polish DONE (awards showcase + admin edit-past-round).
 > ⚠️ Reminder: `base44 deploy` is required after ANY change to base44/functions/** (sync deploys entities+site only).
+> ⚠️ Two-way sync is ACTIVE + confirmed: Base44 pushes commits back (e.g. "File changes" — added
+> vite.config `resolve.dedupe:['react','react-dom']`). ALWAYS `git pull --rebase` before push, or you'll be rejected.
 >
 > ⚠️ This repo two-way-syncs with Base44: edits made in the Base44 Builder land here as commits — pull
 > before starting a session, and keep changes here in sync (push after committing).
