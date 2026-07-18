@@ -202,8 +202,10 @@
 - [x] **P6-1:** Whist `Leaderboard` + `lib/standings.js` (avg/total score, wins) — shown on Home & SessionView *(done Jul 18 2026)*
 - [x] **P6-2:** `StatGrid` Performance (total/avg score, rounds, win rate, podiums) + Strategy (contract
   accuracy, 0-bid success, aggressiveness) + Awards (Greedy/Coward/Destroyer) *(done Jul 18 2026)*
-- [ ] **P6-3** *(polish, later)*: dedicated group Awards showcase + a score-over-time chart (timeline data
-  already returned by the stats fns); wire admin `updateRound` edit UI (currently summary+delete only).
+- [x] **P6-3** *(done Jul 19 2026)*: group **Awards showcase** on Home (`AwardsShowcase` + `computeAwardLeaders`
+  in standings.js — Greedy/Coward/Destroyer leaders, tap → player); score-over-time chart shipped in P8-1;
+  admin **edit-past-round** UI wired in `RoundView` (`renderEdit` → `updateRound`, with bid Σ≠13 + tricks Σ=13
+  validation, renege toggles, advanced trump/hierarchy). Frontend-only (updateRound already deployed). Build 2535 modules green, lint clean.
 
 ## Phase 7: Live backend + E2E (Jul 2026) — needs owner's Base44 login
 

@@ -5,11 +5,12 @@ import { Plus, RefreshCw, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SessionCard from '@/components/SessionCard';
 import Leaderboard from '@/components/Leaderboard';
+import AwardsShowcase from '@/components/AwardsShowcase';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import NoGroupState from '@/components/NoGroupState';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { buildStandings } from '@/lib/standings';
+import { buildStandings, computeAwardLeaders } from '@/lib/standings';
 
 export default function Home() {
   const { activeGroupId, activeGroup, loading: groupsLoading } = useActiveGroup();
@@ -20,6 +21,7 @@ export default function Home() {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [standings, setStandings] = useState([]);
+  const [awards, setAwards] = useState(null);
   const [roundCounts, setRoundCounts] = useState({});
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function Home() {
       const scoredSessionIds = new Set(results.filter((r) => r.points != null).map((r) => r.session_id));
       const latestSessionId = (sorted.find((s) => scoredSessionIds.has(s.id)) || {}).id || null;
       setStandings(buildStandings(results, {}, latestSessionId));
+      const efGames = new Set(rounds.filter((r) => r.everyone_falls).map((r) => r.id));
+      setAwards(computeAwardLeaders(results, efGames));
       const counts = {};
       rounds.forEach((r) => { counts[r.session_id] = (counts[r.session_id] || 0) + 1; });
       setRoundCounts(counts);
@@ -108,6 +112,9 @@ export default function Home() {
         </div>
         <Leaderboard players={standings.slice(0, 8)} sortBy="total" />
       </div>
+
+      {/* Awards */}
+      <AwardsShowcase awards={awards} />
 
       {/* Recent sessions */}
       {recentClosed.length > 0 && (
