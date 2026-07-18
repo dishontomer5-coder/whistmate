@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { ArrowLeft, MessageSquarePlus, Lock } from 'lucide-react';
 import StatGrid from '@/components/StatGrid';
+import ScoreChart from '@/components/ScoreChart';
 import TableTalkFeed from '@/components/TableTalkFeed';
 import WriteNoteDialog from '@/components/WriteNoteDialog';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,8 @@ export default function PlayerProfile() {
       </div>
 
       <StatGrid stats={stats} />
+
+      <ScoreChart timeline={stats.timeline} />
 
       {sorted.length === 0 ? (
         <EmptyState icon="♠" title="No Rounds Yet" description="This player hasn't played any rounds." />

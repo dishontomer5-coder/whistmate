@@ -41,7 +41,8 @@ Source spec: `~/Downloads/israeli_whist_gameapp_plan.md`. Reference code (read-o
 | 4 | Frontend nav & shells | CLOSED Jul 18 | Group → Session → History navigation; poker components removed; build green. |
 | 5 | Game logging flow | CLOSED Jul 18 | The mobile bid→play→results flow end to end (NewRound + RoundView). |
 | 6 | Stats, leaderboard, awards | CORE done Jul 18 (P6-3 polish open) | Whist metrics UI + badges (Leaderboard + StatGrid). |
-| 7 | Live Base44 backend + E2E | OPEN (attached to whistmate; E2E pending) | Connect the repo to a Base44 app, push, cloud-build, verify a real session end to end. |
+| 7 | Live Base44 backend + E2E | CLOSED Jul 19 (verified live) | Connect the repo to a Base44 app, push, cloud-build, verify a real session end to end. |
+| 8 | Owner adjustments (frontend) | CLOSED Jul 19 | Profile score chart; same-players-as-last-round; standings overall score + session-over-session delta. |
 
 Ordered by dependency and risk: scaffold → data → pure logic → server logic → UI shell → the
 flow that depends on all of it → stats → deploy. Scoring (Phase 2) is sequenced early and
@@ -245,9 +246,10 @@ standalone because it's the highest-risk domain logic and fully testable without
 
 ---
 
-## Phase 7: Live backend + E2E — OPEN (v1 — Jul 2026)
+## Phase 7: Live backend + E2E — CLOSED Jul 19 2026 (v1 — Jul 2026)
 
 > The app is attached to Base44 via a **two-way-synced GitHub repo**, and verified end-to-end on real data.
+> Owner ran `base44 deploy` (deploys functions — the sync alone doesn't) and confirmed group/session/games work live.
 
 ### Decisions
 
@@ -261,3 +263,21 @@ standalone because it's the highest-risk domain logic and fully testable without
   is gitignored (Base44 stores the link its side + `base44 link`), so nothing link-critical was in-repo.
 - **Decision (Jul 19 2026):** Product name = **WhistMate**; "Israeli Whist" kept only as the descriptive
   game name (hero subtitle). — Matches the owner-chosen Base44 app name.
+
+---
+
+## Phase 8: Owner adjustments — CLOSED Jul 19 2026 (frontend-only)
+
+> Three tweaks requested after the live E2E. All frontend-only — the GitHub two-way sync deploys the site,
+> so no `base44 deploy` was needed.
+
+### Decisions
+
+- **Decision (Jul 19 2026):** Profile score chart plots x = games played (round index), y = cumulative
+  total score — reuses the `timeline[].cumulative` the stats functions already return, so no backend change.
+- **Decision (Jul 19 2026):** "Session-over-session" delta = a player's **net points in the most recent
+  session that has scored rounds** (not a rank change). Computed client-side in `buildStandings` via a
+  `latestSessionId` arg; shown as a ↑/↓ badge next to the overall (total) score. Chosen for being simple,
+  live-updating during an open session, and directly answering "how much did my score move this session".
+- **Decision (Jul 19 2026):** Home standings switched from avg-score to **total (overall) score** as the
+  primary metric (avg kept in the subtitle) per owner request.

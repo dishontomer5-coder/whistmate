@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { formatScore } from '@/lib/format';
 import EmptyState from '@/components/EmptyState';
 
@@ -55,9 +56,18 @@ export default function Leaderboard({ players = [], sortBy = 'avg' }) {
                 </span>
               </div>
             </div>
-            <span className={`font-heading font-bold text-base flex-shrink-0 ml-2 ${isPositive ? 'text-primary' : 'text-destructive'}`}>
-              {formatScore(value)}
-            </span>
+            <div className="flex flex-col items-end flex-shrink-0 ml-2">
+              <span className={`font-heading font-bold text-base leading-none ${isPositive ? 'text-primary' : 'text-destructive'}`}>
+                {formatScore(value)}
+              </span>
+              {player.session_delta != null && player.session_delta !== 0 && (
+                <span className={`mt-0.5 flex items-center gap-0.5 text-[10px] font-medium ${player.session_delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                  title="Change in the latest session">
+                  {player.session_delta > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                  {formatScore(player.session_delta)}
+                </span>
+              )}
+            </div>
           </Link>
         );
       })}

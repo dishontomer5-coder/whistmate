@@ -7,6 +7,7 @@ import { User, LogIn, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatGrid from '@/components/StatGrid';
+import ScoreChart from '@/components/ScoreChart';
 import TableTalkFeed from '@/components/TableTalkFeed';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import NoGroupState from '@/components/NoGroupState';
@@ -113,7 +114,10 @@ export default function Profile() {
           <Button size="sm" variant="outline" className="border-border" onClick={loadProfile}>Try Again</Button>
         </div>
       ) : (
-        <StatGrid stats={stats} />
+        <>
+          <StatGrid stats={stats} />
+          <ScoreChart timeline={stats.timeline} />
+        </>
       )}
 
       {allPlayers.length > 0 && (

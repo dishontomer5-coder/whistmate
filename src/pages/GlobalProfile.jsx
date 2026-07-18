@@ -7,6 +7,7 @@ import { Globe, ArrowLeft, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GlobalProfileIcon from '@/components/GlobalProfileIcon';
 import StatGrid from '@/components/StatGrid';
+import ScoreChart from '@/components/ScoreChart';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { formatScore } from '@/lib/format';
 
@@ -109,6 +110,8 @@ export default function GlobalProfile() {
       </div>
 
       <StatGrid stats={stats} />
+
+      <ScoreChart timeline={stats.timeline} />
 
       {groupsBreakdown.length > 0 && (
         <div className="space-y-2">

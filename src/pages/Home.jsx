@@ -42,7 +42,10 @@ export default function Home() {
       );
       setSessions(sorted);
       setActiveSession(sorted.find((s) => s.status === 'open') || null);
-      setStandings(buildStandings(results));
+      // Most recent session that actually has scored rounds → drives the "this session" delta.
+      const scoredSessionIds = new Set(results.filter((r) => r.points != null).map((r) => r.session_id));
+      const latestSessionId = (sorted.find((s) => scoredSessionIds.has(s.id)) || {}).id || null;
+      setStandings(buildStandings(results, {}, latestSessionId));
       const counts = {};
       rounds.forEach((r) => { counts[r.session_id] = (counts[r.session_id] || 0) + 1; });
       setRoundCounts(counts);
@@ -100,10 +103,10 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <h2 className="font-heading text-lg font-bold text-foreground">Standings</h2>
           {standings.length > 0 && (
-            <span className="text-xs text-muted-foreground">by avg score</span>
+            <span className="text-xs text-muted-foreground">overall score · ▲ this session</span>
           )}
         </div>
-        <Leaderboard players={standings.slice(0, 8)} sortBy="avg" />
+        <Leaderboard players={standings.slice(0, 8)} sortBy="total" />
       </div>
 
       {/* Recent sessions */}

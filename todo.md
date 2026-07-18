@@ -4,13 +4,13 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Jul 19 2026): CANONICAL REPO IS NOW **tomerdi-blip/whistmate** (working dir ~/whistmate),
-> two-way-synced to the Base44 app "WhistMate". Implementation migrated here from the old scratch repo
-> (~/israeli-whist / tomerdi-blip/israeli-whist — now retired, do not use). Phases 1–6 DONE; whist app
-> builds GREEN (1916 modules) + lint clean + tests 36/36 & 5/5. Next = Phase 7 E2E: after Base44 cloud
-> builds this push, run a full session (group → session → round → bid/results → standings) and fix any
-> live-surfaced issues (entity .get/.filter shapes, function payloads, RLS). Optional polish P6-3
-> (awards showcase, timeline chart, updateRound edit UI). in_progress: P7-2 (E2E).
+> ▶ RESUME HERE (Jul 19 2026): CANONICAL REPO = **tomerdi-blip/whistmate** (~/whistmate), two-way-synced to
+> the Base44 app "WhistMate". Phases 1–7 DONE + verified LIVE by owner (group/session/games all worked).
+> Phase 8 (owner adjustments) DONE: profile score chart, "same players as last round", standings overall
+> score + session-over-session delta. Build GREEN (2534 modules) + lint clean. Frontend-only changes →
+> auto-sync deploys the site on push (NO base44 deploy needed unless base44/functions/** changes).
+> in_progress: none — awaiting next request. Optional polish P6-3 (awards showcase, updateRound edit UI).
+> ⚠️ Reminder: `base44 deploy` is required after ANY change to base44/functions/** (sync deploys entities+site only).
 >
 > ⚠️ This repo two-way-syncs with Base44: edits made in the Base44 Builder land here as commits — pull
 > before starting a session, and keep changes here in sync (push after committing).
@@ -223,8 +223,24 @@
   Migrated the full implementation onto that repo (kept its `base44/config.jsonc` name "WhistMate" + Base44
   index.html favicon/manifest; kept our green/gold theme; rebranded visible UI to "WhistMate"). Verified in
   ~/whistmate: build green (1916 modules), eslint clean, scoring 36/36, stats 5/5. Pushed → Base44 cloud-builds *(done Jul 19 2026)*
-- [ ] **P7-2:** E2E on the live app: sign in → create group (pick scoring method + advanced toggle) →
-  add ghost members / invite → start session → start round (pick 4) → bid (verify Σ≠13 block + UP/DOWN,
-  advanced trump/hierarchy) → results (verify Σ=13 gate, renege, everyone-falls) → check standings + Profile
-  stats + awards. Fix anything the live backend/RLS surfaces (esp. entity `.get()`/`.filter()` shapes,
-  function payloads). Then flip Phase 7 → CLOSED.
+- [x] **P7-2:** E2E verified LIVE by owner (Jul 19 2026) — created a group, a session, and several games;
+  all worked after `base44 deploy`. Phase 7 CLOSED.
+
+## Phase 8: Owner adjustments (Jul 2026) — frontend-only
+
+> Requested after the live E2E. All frontend-only → auto-sync deploys on push; no `base44 deploy` needed.
+
+- [x] **P8-1:** Profile score line chart — new `components/ScoreChart.jsx` (recharts): x = games played,
+  y = cumulative total score, 0 reference line, dark/gold theme. Added to Profile, PlayerProfile,
+  GlobalProfile (all consume the stats `timeline[].cumulative`) *(done Jul 19 2026)*
+- [x] **P8-2:** `NewRound` "Same players as last round" — loads the session's most-recent round, pre-fills
+  the 4 players in their original bid order (filtered to current roster); button shows only when a prior
+  4-player round exists *(done Jul 19 2026)*
+- [x] **P8-3:** Standings show OVERALL (total) score + session-over-session delta — `buildStandings` now
+  takes `latestSessionId` and returns per-player `session_delta` (net points in the most recent scored
+  session); `Leaderboard` renders a ↑/↓ badge next to the score; Home standings switched to `sortBy="total"`
+  (avg shown in subtitle) with the latest-session delta *(done Jul 19 2026)*
+
+> **Wave 8 verification (Jul 19 2026):** `npm run build` GREEN (2534 modules; recharts bundled), `eslint` clean.
+
+> **🎉 PHASE 8 COMPLETE (Jul 19 2026):** three owner adjustments shipped; frontend-only, auto-syncs on push.
