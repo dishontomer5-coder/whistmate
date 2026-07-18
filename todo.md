@@ -248,3 +248,11 @@
 > **Wave 8 verification (Jul 19 2026):** `npm run build` GREEN (2534 modules; recharts bundled), `eslint` clean.
 
 > **🎉 PHASE 8 COMPLETE (Jul 19 2026):** three owner adjustments shipped; frontend-only, auto-syncs on push.
+
+## Backlog
+
+- [ ] **AI "Ask about the game" chat** (owner request, Jul 19 2026): a rules-only assistant whose sole
+  context is `docs/whist-rules.md` (created — the WhistMate-specific rules + scoring KB + ready-to-paste
+  system prompt). Feature itself NOT built yet. Likely shape: a Base44 backend function that calls an LLM
+  with the system prompt + this doc as context (+ the user's question), and a simple chat UI. Keep the doc
+  the single source of truth; re-edit it (not the prompt) when rules change.
