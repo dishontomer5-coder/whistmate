@@ -10,9 +10,22 @@
 > Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE in code.
 > Build GREEN + lint clean (0 errors) + scoring 36/36 + stats 5/5 + `rules:check` in sync.
 > in_progress: none — awaiting next request.
-> 🔴 **OWNER ACTION PENDING** (nothing else is blocked): (1) `npx base44@latest login` then
-> `npx base44@latest deploy` — `base44/functions/askRules/**` changed, and sync does NOT deploy functions;
-> (2) `npm install` — installed @base44/sdk is 0.8.39, package.json wants ^0.8.41; (3) smoke-test /rules live.
+> ✅ DEPLOYED Aug 3 2026: all 29 functions (incl. `askRules`) + entities + site are live at
+> **https://whist-mate-pro.base44.app**. Only the owner's live smoke-test of /rules is outstanding.
+> ✅ CLI IS AUTHENTICATED on this machine (`npx base44@latest whoami` → dishontomer5@gmail.com) — the old
+> "not authed / whoami hangs" note was stale, an agent CAN deploy. `deploy` needs BOTH
+> `--app-id 6a5be77702d0c74b5a13cfea` (no base44/.app.jsonc → not linked) AND `--yes` (it refuses to
+> prompt non-interactively). Its PostHog telemetry errors in the output are harmless.
+> ⚠️ Local `npm install` is BLOCKED and deliberately left alone (owner's call, Aug 3): the global registry
+> is the internal mirror `npm.dev.wixpress.com`, which 404s on `axios@1.19.0` (transitive of
+> @base44/sdk 0.8.41). Harmless — node_modules has sdk 0.8.39, build is green, and package-lock resolves
+> every dep from registry.npmjs.org, which is why Base44's own cloud build installs 0.8.41 fine.
+> Don't "fix" it with `--registry=https://registry.npmjs.org` without asking — the mirror is a
+> supply-chain control. (Related: `.npmrc`'s `min-release-age=7` is NOT enforced — npm 11.9.0 reports it
+> as `Unknown project config`. Unresolved; owner was told.)
+> ⚠️ Base44 serves `index.html` with NO cache-control, so browsers heuristically cache it and keep loading
+> the OLD hashed bundle after a deploy. A frontend change that "didn't ship" is usually this — verify with
+> `curl -s <app-url> | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'` against local `dist/` before debugging code.
 > ⚠️ Reminder: `base44 deploy` is required after ANY change to base44/functions/** (sync deploys entities+site only).
 > ⚠️ Two-way sync is ACTIVE + confirmed BOTH ways: Base44 pushes commits back — the Builder authored the whole
 > `askRules` function + the RulesChat refactor and they arrived as "File changes" commits (Aug 3 2026).
@@ -286,8 +299,12 @@
   a doc edit propagates and `--check` catches staleness.
 
 > **Wave 9 verification (Aug 3 2026):** `npm run build` GREEN, `eslint --quiet` exit 0, scoring 36/36,
-> whist-stats 5/5, `npm run rules:check` in sync. NOT yet verified live — `askRules` needs
-> `npx base44@latest deploy` (owner login) before /rules can answer in production.
+> whist-stats 5/5, `npm run rules:check` in sync, no new typecheck errors (239 before and after — that
+> script is broadly failing at HEAD on pre-existing shadcn JSX prop typing; effectively dead).
+> DEPLOYED + verified live at the bundle level: the served `assets/index-*.js` is byte-identical to the
+> local build and contains both the `/rules` route and the "Ask About the Game" menu string. Still owed:
+> the owner asking a real question in the UI, including one off-book question to confirm the exact
+> "IDK bro 🤷" refusal survives in production.
 
 ## Backlog
 
