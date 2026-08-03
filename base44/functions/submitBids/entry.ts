@@ -20,8 +20,15 @@ Deno.serve(async (req) => {
 
     const round = await base44.asServiceRole.entities.Game.get(game_id);
     if (!round) return Response.json({ error: 'Round not found' }, { status: 404 });
-    if (round.status !== 'bidding') {
-      return Response.json({ error: 'Bids are already locked for this round' }, { status: 409 });
+    // 'playing' is allowed too: the app records bids AFTER the real auction, so a mistyped
+    // bid usually surfaces once play has started. Re-locking recomputes table_state, the
+    // trump record and the bid rows. Completed/cancelled rounds go through updateRound
+    // (group-admin only) — this path must not rewrite scored history.
+    if (round.status !== 'bidding' && round.status !== 'playing') {
+      return Response.json(
+        { error: 'This round is already scored — a group admin can fix it with Edit Round' },
+        { status: 409 },
+      );
     }
 
     if (user.role !== 'admin') {

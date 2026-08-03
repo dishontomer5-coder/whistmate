@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Loader2, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2, Pencil, Gavel, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -36,7 +36,39 @@ function TrumpCell({ owned, suit, onPick }) {
   );
 }
 
-function NumberPad({ value, onPick, max = 13, disabled = [] }) {
+// The two in-round phases are near-identical in layout (4 rows + a number pad), so they
+// carry distinct colour + icon: gold/gavel while bidding, emerald/clipboard while entering
+// results. Defined once here so a screen can't drift from its own accent.
+const PHASE = {
+  bidding: {
+    label: 'Bidding', step: '1 of 2', Icon: Gavel,
+    band: 'border-l-primary bg-primary/10 text-primary',
+    row: 'border-primary bg-primary/5',
+    pad: 'bg-primary text-primary-foreground',
+  },
+  results: {
+    label: 'Results', step: '2 of 2', Icon: ClipboardCheck,
+    band: 'border-l-emerald-500 bg-emerald-500/10 text-emerald-400',
+    row: 'border-emerald-500 bg-emerald-500/5',
+    pad: 'bg-emerald-500 text-background',
+  },
+};
+
+function PhaseBanner({ phase, roundNumber, badge }) {
+  const { label, step, Icon, band } = PHASE[phase];
+  return (
+    <div className={`flex items-center justify-between gap-2 rounded-lg border-l-4 px-3 py-2.5 ${band}`}>
+      <span className="flex items-baseline gap-2 min-w-0">
+        <Icon className="w-4 h-4 shrink-0 self-center" />
+        <h1 className="font-heading text-lg font-bold uppercase tracking-wide truncate">{label}</h1>
+        <span className="text-[10px] opacity-70 shrink-0 whitespace-nowrap">Round {roundNumber} · step {step}</span>
+      </span>
+      {badge}
+    </div>
+  );
+}
+
+function NumberPad({ value, onPick, max = 13, disabled = [], accent = PHASE.bidding.pad }) {
   return (
     <div className="grid grid-cols-7 gap-1.5">
       {Array.from({ length: max + 1 }, (_, n) => {
@@ -45,7 +77,7 @@ function NumberPad({ value, onPick, max = 13, disabled = [] }) {
         return (
           <button key={n} type="button" disabled={isDisabled} onClick={() => onPick(n)}
             className={`aspect-square rounded-lg font-heading font-bold text-lg transition-colors ${
-              active ? 'bg-primary text-primary-foreground'
+              active ? accent
               : isDisabled ? 'bg-secondary/40 text-muted-foreground/30 cursor-not-allowed line-through'
               : 'bg-secondary text-foreground hover:bg-secondary/70'
             }`}>
@@ -81,6 +113,7 @@ export default function RoundView() {
 
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editBids, setEditBids] = useState(false); // reopen locked bids mid-round
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
@@ -194,6 +227,7 @@ export default function RoundView() {
           hierarchy: advanced ? hierarchy : undefined,
           trump_owner_player_id: trump ? trumpOwnerId : undefined,
         });
+        setEditBids(false);
         await load();
       } catch (err) {
         setError(err.response?.data?.error || err.message || 'Failed to lock bids.');
@@ -202,21 +236,26 @@ export default function RoundView() {
 
     return (
       <>
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-xl font-bold text-foreground">Bidding · Round {round.round_number}</h1>
-          {liveTable && (
-            <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase ${
+        <PhaseBanner phase="bidding" roundNumber={round.round_number}
+          badge={liveTable && (
+            <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase shrink-0 ${
               liveTable === 'up' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
             }`}>{liveTable} · {bidTotal}</span>
-          )}
-        </div>
+          )} />
+
+        {editBids && (
+          <p className="text-xs text-muted-foreground">
+            Fixing the locked bids for this round. Saving re-derives up/down and the trump record; tricks
+            already typed in are untouched.
+          </p>
+        )}
 
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground text-right pr-2">trump</p>
           {results.map((r, i) => (
             <button key={r.id} onClick={() => setActiveIdx(i)}
               className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                activeIdx === i ? 'border-primary bg-primary/5' : 'border-border bg-card'
+                activeIdx === i ? PHASE.bidding.row : 'border-border bg-card'
               }`}>
               <span className="text-sm font-medium text-foreground">{i + 1}. {r.player_name}</span>
               <span className="flex items-center gap-3">
@@ -234,6 +273,11 @@ export default function RoundView() {
           <p className="text-xs text-muted-foreground">
             Bid for <span className="text-foreground font-medium">{results[activeIdx]?.player_name}</span>
             {disabledForActive.length > 0 && <span className="text-destructive"> · {disabledForActive[0]} blocked (would make Σ=13)</span>}
+            {/* All four in and nothing left to auto-advance to — say out loud that rows are
+                tappable, otherwise a typo looks unfixable. */}
+            {allBidsSet && disabledForActive.length === 0 && (
+              <span className="opacity-70"> · tap a player above to change their bid</span>
+            )}
           </p>
           <NumberPad value={bids[results[activeIdx]?.player_id]} disabled={disabledForActive}
             onPick={(n) => {
@@ -245,10 +289,29 @@ export default function RoundView() {
 
         {trumpOwnerId && renderTrumpPanel()}
 
+        {/* Before, an illegal total just greyed the button out with no reason given — easy to
+            hit now that bids can be edited after the fact. */}
+        {allBidsSet && !isBidSumLegal(bidVals.map(Number)) && (
+          <p className="text-xs text-destructive text-center">
+            The four bids total exactly 13, which isn't allowed — change one.
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button className="w-full" disabled={!canSubmit || saving} onClick={submit}>
-          {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Locking…</> : 'Lock Bids'}
-        </Button>
+        {editBids ? (
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 border-border" disabled={saving}
+              onClick={() => { setEditBids(false); setError(''); load(); }}>
+              Cancel
+            </Button>
+            <Button className="flex-1" disabled={!canSubmit || saving} onClick={submit}>
+              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : 'Save Bids'}
+            </Button>
+          </div>
+        ) : (
+          <Button className="w-full" disabled={!canSubmit || saving} onClick={submit}>
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Locking…</> : 'Lock Bids'}
+          </Button>
+        )}
       </>
     );
   };
@@ -275,25 +338,33 @@ export default function RoundView() {
 
     return (
       <>
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-xl font-bold text-foreground">Results · Round {round.round_number}</h1>
-          <span className={`text-xs px-2 py-1 rounded-full font-bold ${total === 13 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
-            {total} / 13 tricks
-          </span>
+        <PhaseBanner phase="results" roundNumber={round.round_number}
+          badge={
+            <span className={`text-xs px-2 py-1 rounded-full font-bold shrink-0 ${total === 13 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
+              {total} / 13 tricks
+            </span>
+          } />
+        <div className="flex items-center justify-between gap-2">
+          {round.table_state ? (
+            <p className="text-xs text-muted-foreground">
+              Table <span className="font-bold uppercase">{round.table_state}</span>
+              {round.trump_suit ? ` · trump ${formatSuit(round.trump_suit)}` : ''}
+              {round.trump_suit && trumpWinnerName ? ` · won by ${trumpWinnerName}` : ''}
+            </p>
+          ) : <span />}
+          {/* Bids are typed in after the table's real auction, so typos show up here. Any
+              member can fix them while the round is unscored. */}
+          <button type="button" onClick={() => { setError(''); setEditBids(true); }}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0">
+            <Pencil className="w-3 h-3" /> Edit bids
+          </button>
         </div>
-        {round.table_state && (
-          <p className="text-xs text-muted-foreground">
-            Table <span className="font-bold uppercase">{round.table_state}</span>
-            {round.trump_suit ? ` · trump ${formatSuit(round.trump_suit)}` : ''}
-            {round.trump_suit && trumpWinnerName ? ` · won by ${trumpWinnerName}` : ''}
-          </p>
-        )}
 
         <div className="space-y-2">
           {results.map((r, i) => (
             <button key={r.id} onClick={() => setActiveTrickIdx(i)}
               className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                activeTrickIdx === i ? 'border-primary bg-primary/5' : 'border-border bg-card'
+                activeTrickIdx === i ? PHASE.results.row : 'border-border bg-card'
               }`}>
               <span className="text-sm font-medium text-foreground text-left">
                 {r.player_name}
@@ -319,7 +390,7 @@ export default function RoundView() {
           <p className="text-xs text-muted-foreground">
             Tricks for <span className="text-foreground font-medium">{results[activeTrickIdx]?.player_name}</span>
           </p>
-          <NumberPad value={tricks[results[activeTrickIdx]?.player_id]}
+          <NumberPad value={tricks[results[activeTrickIdx]?.player_id]} accent={PHASE.results.pad}
             onPick={(n) => {
               setTricks((prev) => ({ ...prev, [results[activeTrickIdx].player_id]: n }));
               const nextUnset = results.findIndex((r, i) => i !== activeTrickIdx && tricks[r.player_id] == null);
@@ -501,7 +572,7 @@ export default function RoundView() {
         <ArrowLeft className="w-4 h-4" /> Session
       </button>
       {editing ? renderEdit()
-        : round.status === 'bidding' ? renderBidding()
+        : round.status === 'bidding' || (editBids && round.status === 'playing') ? renderBidding()
         : round.status === 'playing' ? renderResults()
         : renderSummary()}
     </div>

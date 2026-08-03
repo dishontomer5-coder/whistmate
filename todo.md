@@ -8,7 +8,8 @@
 > **~/Personal/whistmate** (the old ~/whistmate and ~/israeli-whist clones are gone), two-way-synced to
 > the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`, status ready).
 > Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE + DEPLOYED + owner-tested.
-> Phase 10 (trump winner tracking + suit-rank fix) DONE in code, NOT yet deployed/live-tested.
+> Phase 10 (trump winner tracking + suit-rank fix) DONE + DEPLOYED; owner's live round test outstanding.
+> Phase 11 (edit locked bids + phase colours) DONE in code.
 > Build GREEN + lint clean (0 errors) + scoring 36/36 + stats 5/5 + `rules:check` in sync.
 > in_progress: none — awaiting next request.
 > ✅ DEPLOYED Aug 3 2026: all 29 functions (incl. `askRules`) + entities + site are live at
@@ -339,6 +340,29 @@
 > SUIT_RANK tests), whist-stats 5/5, `rules:check` in sync, Game.jsonc parses, typecheck unchanged (239).
 > ⚠️ NOT verified at runtime: `submitBids`/`updateRound` are Deno and can't run locally, so the
 > trump_owner round-trip needs a live round after deploy. Functions changed → `base44 deploy` required.
+
+## Phase 11: Fix locked bids + tell the two in-round phases apart (Aug 2026)
+
+- [x] **P11-1** *(done Aug 3 2026)*: **edit bids after locking.** Bids are typed in *after* the table's
+  real auction, so typos surface once play starts — and there was no way back: the bidding screen was
+  gone at `status='playing'`, and admin Edit Round only exists on scored rounds. Now `submitBids` also
+  accepts a round in `playing` (re-locking recomputes table_state + the trump record), the Results screen
+  has an "Edit bids" button, and `RoundView` re-renders the bidding UI with Save/Cancel. Any member can
+  do it, same as locking — scored rounds still refuse and route to admin Edit Round (409). Cancel reloads
+  from the server; typed-but-unsaved tricks are untouched (they only persist via saveRoundResults).
+  Also: an illegal Σ=13 total now explains itself instead of silently grey-ing the button, and once all
+  four bids are in, the pad says rows are tappable (pre-lock editing worked but wasn't discoverable).
+- [x] **P11-2** *(done Aug 3 2026)*: **phases are now distinguishable.** Bidding and Results were the
+  same layout (4 rows + number pad) with only the title differing. Added `PHASE` (one config, so a
+  screen can't drift from its own accent) + `PhaseBanner`: gold + gavel + "step 1 of 2" for bidding,
+  emerald + clipboard + "step 2 of 2" for results, carrying the existing up/down and tricks badges. The
+  accent also drives the active row border and the number pad's selected key, so the colour reads even
+  when the banner is scrolled off. Deliberately reused existing palette colours (gold = primary CTA,
+  emerald = the tricks-complete badge already on that screen) rather than inventing new ones.
+
+> **Wave 11 verification (Aug 3 2026):** build GREEN, `eslint --quiet` exit 0, scoring 38/38,
+> whist-stats 5/5, `rules:check` in sync. ⚠️ Visual result NOT screenshot-verified, and the re-lock path
+> needs a live round (Deno can't run locally). `submitBids` changed → `base44 deploy` required.
 
 ## Backlog
 
