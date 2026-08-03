@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { game_id, bids, trump_suit, hierarchy } = await req.json();
+    const { game_id, bids, trump_suit, hierarchy, trump_owner_player_id } = await req.json();
     if (!game_id || !bids || typeof bids !== 'object') {
       return Response.json({ error: 'game_id and bids (map of player_id -> bid) are required' }, { status: 400 });
     }
@@ -52,12 +52,22 @@ Deno.serve(async (req) => {
     }
     const table_state = sum >= 14 ? 'up' : 'down';
 
-    // Highest bidder: max bid, ties broken by earliest bid_order (results already sorted).
+    // Top bidder by number alone. This is only a FALLBACK/default: at a live table equal
+    // numbers are settled by suit rank (clubs < diamonds < hearts < spades < notrump), and
+    // the app only records final bids, so it cannot derive who actually won the auction.
+    // The client sends the outcome as trump_owner_player_id.
     let hbIdx = 0;
     for (let i = 1; i < bidVals.length; i++) if (bidVals[i] > bidVals[hbIdx]) hbIdx = i;
-    const highest_bidder_player_id = results[hbIdx].player_id;
+    let highest_bidder_player_id = results[hbIdx].player_id;
+    if (trump_owner_player_id != null) {
+      if (!results.some((r) => r.player_id === trump_owner_player_id)) {
+        return Response.json({ error: 'trump_owner_player_id must be one of the four players in the round' }, { status: 400 });
+      }
+      highest_bidder_player_id = trump_owner_player_id;
+    }
 
-    // Advanced rules: require + validate suit/hierarchy; otherwise force null.
+    // Trump suit is recorded for EVERY session (the group wanted per-round trump history).
+    // Hierarchy stays an advanced-rules concept, and advanced sessions still require both.
     const session = await base44.asServiceRole.entities.Session.get(round.session_id);
     let trump = null;
     let hier = null;
@@ -67,6 +77,11 @@ Deno.serve(async (req) => {
       }
       trump = trump_suit;
       hier = hierarchy;
+    } else if (trump_suit != null) {
+      if (!SUITS.includes(trump_suit)) {
+        return Response.json({ error: `trump_suit must be one of: ${SUITS.join(', ')}` }, { status: 400 });
+      }
+      trump = trump_suit;
     }
 
     await Promise.all(results.map((r, i) =>

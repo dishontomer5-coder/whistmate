@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { game_id, bids, tricks, reneges, trump_suit, hierarchy } = await req.json();
+    const { game_id, bids, tricks, reneges, trump_suit, hierarchy, trump_owner_player_id } = await req.json();
     if (!game_id || !bids || !tricks) {
       return Response.json({ error: 'game_id, bids and tricks are required' }, { status: 400 });
     }
@@ -77,12 +77,22 @@ Deno.serve(async (req) => {
     }
 
     const table_state = bidTotal >= 14 ? 'up' : 'down';
+    // Fallback only — see submitBids: the auction winner can't be derived from final bids
+    // (equal numbers are settled by suit rank at the table), so the client sends it.
     let hbIdx = 0;
     for (let i = 1; i < bidVals.length; i++) if (bidVals[i] > bidVals[hbIdx]) hbIdx = i;
+    let highest_bidder_player_id = results[hbIdx].player_id;
+    if (trump_owner_player_id != null) {
+      if (!results.some((r) => r.player_id === trump_owner_player_id)) {
+        return Response.json({ error: 'trump_owner_player_id must be one of the four players in the round' }, { status: 400 });
+      }
+      highest_bidder_player_id = trump_owner_player_id;
+    }
 
     const session = await base44.asServiceRole.entities.Session.get(round.session_id);
     const scoringMethod = session && session.scoring_method === 'progressive' ? 'progressive' : 'classic';
 
+    // Trump recorded for every session; hierarchy stays advanced-only. Mirrors submitBids.
     let trump = null;
     let hier = null;
     if (session && session.advanced_rules_enabled) {
@@ -91,6 +101,11 @@ Deno.serve(async (req) => {
       }
       trump = trump_suit;
       hier = hierarchy;
+    } else if (trump_suit != null) {
+      if (!SUITS.includes(trump_suit)) {
+        return Response.json({ error: `trump_suit must be one of: ${SUITS.join(', ')}` }, { status: 400 });
+      }
+      trump = trump_suit;
     }
 
     const pre = results.map((r, i) => ({
@@ -117,7 +132,7 @@ Deno.serve(async (req) => {
     const updated = await base44.asServiceRole.entities.Game.update(game_id, {
       total_bids: bidTotal,
       table_state,
-      highest_bidder_player_id: results[hbIdx].player_id,
+      highest_bidder_player_id,
       trump_suit: trump,
       hierarchy: hier,
       everyone_falls: everyoneFalls,

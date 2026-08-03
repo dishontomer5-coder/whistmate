@@ -61,7 +61,7 @@
       ],
       "default": null,
       "title": "Trump Suit",
-      "description": "Advanced rules only: the suit the highest bidder chose (or no-trump). Null when advanced rules are off."
+      "description": "The trump the auction winner called (or no-trump). Recorded in every session, not just advanced ones; null when the table didn't record one. Required when advanced rules are on."
     },
     "hierarchy": {
       "type": "string",
@@ -77,7 +77,7 @@
       "type": "string",
       "title": "Highest Bidder Player ID",
       "default": null,
-      "description": "FK to GroupMember: the player with the winning (highest) bid who assigns suit/hierarchy under advanced rules."
+      "description": "FK to GroupMember: the player who WON THE AUCTION and called the trump, as recorded by the table on the bidding screen. Not derivable from the bids: equal numbers are settled by suit rank (clubs<diamonds<hearts<spades<notrump) in an auction the app never sees. Falls back to the highest bid number only when the client sends no explicit winner."
     },
     "everyone_falls": {
       "type": "boolean",

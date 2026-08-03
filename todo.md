@@ -7,7 +7,8 @@
 > ▶ RESUME HERE (Aug 3 2026): CANONICAL REPO = **tomerdi-blip/whistmate**, local clone
 > **~/Personal/whistmate** (the old ~/whistmate and ~/israeli-whist clones are gone), two-way-synced to
 > the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`, status ready).
-> Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE in code.
+> Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE + DEPLOYED + owner-tested.
+> Phase 10 (trump winner tracking + suit-rank fix) DONE in code, NOT yet deployed/live-tested.
 > Build GREEN + lint clean (0 errors) + scoring 36/36 + stats 5/5 + `rules:check` in sync.
 > in_progress: none — awaiting next request.
 > ✅ DEPLOYED Aug 3 2026: all 29 functions (incl. `askRules`) + entities + site are live at
@@ -306,8 +307,44 @@
 > the owner asking a real question in the UI, including one off-book question to confirm the exact
 > "IDK bro 🤷" refusal survives in production.
 
+## Phase 10: Trump winner tracking + the suit-rank rule fix (Aug 2026)
+
+> Found by the owner smoke-testing the rules chat: it answered that a 5♥/5♠ tie goes to whoever bid
+> first. The assistant was faithful to the rulebook — **the rulebook and the code were both wrong.**
+
+- [x] **P10-0** *(owner ruling, Aug 3 2026)*: real auction suit rank, low → high:
+  **♣ clubs < ♦ diamonds < ♥ hearts < ♠ spades < no-trump**. So 5♠ beats 5♥ and 5NT beats 5♠; it is
+  never settled by bid order. Pinned in `SUIT_RANK` (src/lib/scoring.js) + 2 tests so it can't regress.
+- [x] **P10-1** *(done Aug 3 2026)*: **record the auction, don't derive it.** The app only ever sees each
+  player's FINAL bid number, so it structurally cannot know who won an auction decided by suit — the
+  old `highestBidderIndex` bid-order tie-break was guessing. The table now marks the winner:
+  `submitBids` + `updateRound` accept `trump_owner_player_id` (validated ∈ the round's 4 players) and
+  store it as `Game.highest_bidder_player_id`; the bid-number max survives only as a fallback for
+  callers that send nothing. No entity migration — the field already existed; only its meaning is now
+  honest (descriptions updated). No scores affected: `highest_bidder_player_id` never fed scoring.
+- [x] **P10-2** *(done Aug 3 2026)*: **trump UI per the owner's mockup** — a trump cell on each player
+  row in `RoundView` (bidding AND admin-edit); tap it to mark the winner, then pick the suit in the
+  shared `renderTrumpPanel`. Suit glyph shows inline, ♥/♦ in red. Trump is now recordable in **every**
+  session (optional), not just advanced ones — gating it behind Advanced would have left the group's
+  non-advanced sessions with no trump history, which is the thing that was asked for. Advanced still
+  requires trump + hierarchy before locking bids, and pre-selects the top bidder as a one-tap default;
+  hierarchy stays advanced-only. Winner + suit now surface on the results header, the round summary
+  (glyph next to the winner's name), and the SessionView round feed.
+- [x] **P10-3** *(done Aug 3 2026)*: **rulebook corrected** — §2 now teaches the suit ranking and
+  explains that WhistMate records the auction's outcome rather than computing it; §3 splits "strongest
+  suit" into during-play (trump) vs during-the-auction (fixed rank); new FAQ entry for the 5♥-vs-5♠
+  question the owner actually asked; glossary gained a Suit rank row. Regenerated into `askRules`.
+
+> **Wave 10 verification (Aug 3 2026):** build GREEN, `eslint --quiet` exit 0, scoring **38/38** (2 new
+> SUIT_RANK tests), whist-stats 5/5, `rules:check` in sync, Game.jsonc parses, typecheck unchanged (239).
+> ⚠️ NOT verified at runtime: `submitBids`/`updateRound` are Deno and can't run locally, so the
+> trump_owner round-trip needs a live round after deploy. Functions changed → `base44 deploy` required.
+
 ## Backlog
 
+- [ ] **P10-4** *(offered, not built)*: now that the trump winner is recorded per round, a "trumps won"
+  stat / award becomes possible in `computePlayerStats` + `StatGrid` (e.g. who takes the most auctions,
+  and their contract accuracy when they do). Nothing consumes `highest_bidder_player_id` in stats yet.
 - [ ] **P9-4** *(optional polish)*: `askRules` has no rate limiting, and every question is a fresh
   InvokeLLM call carrying the full ~210-line rulebook in the prompt. Fine for a friends' group; revisit
   if usage (or cost) grows — cheapest wins would be a client-side answer for the canned suggestion chips,

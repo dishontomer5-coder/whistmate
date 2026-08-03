@@ -40,17 +40,27 @@ Each of the 4 players bids a number from **0 to 13** — the number of tricks th
 
 Why UP/DOWN matters: it changes the bonus for a successful **zero bid** (see §4).
 
-**Who "wins" the bid (the highest bidder):** the player with the **highest** bid. If two players bid the
-same highest number, WhistMate breaks the tie in favor of **whoever bid first** (bidding order). *(Some
-traditional variants break ties by suit rank instead; WhistMate uses bidding order.)*
+**Who "wins" the bid (the highest bidder):** the player with the **highest** bid — and when two players
+call the **same number**, the **suit decides it**, not who spoke first. Suit rank, lowest to highest:
 
-**Advanced rules (optional, set per session):** when a session has **Advanced Rules** on, the highest
-bidder then chooses, for that round:
-- a **trump suit** — Spades, Hearts, Diamonds, Clubs, or **No-Trump**; and
-- a **card hierarchy** — **Standard** or **Down-Up** (see §3).
+> **♣ clubs < ♦ diamonds < ♥ hearts < ♠ spades < no-trump**
 
-WhistMate records these and shows them on the phone during play. When Advanced Rules are **off**,
-WhistMate doesn't track a trump suit at all — it's purely a bid/trick/score tracker.
+So **5♠ beats 5♥**, and **5 no-trump beats 5♠**. (Alphabetical for the four suits, with no-trump on top —
+the same ranking bridge uses.) The winner of the auction sets the trump suit for the round.
+
+**What WhistMate records vs. what happens at the table.** The live auction — players raising each other
+until nobody outbids — happens at the table; WhistMate is not involved and never sees the losing calls.
+What you type into the app is each player's **final** bid, as a number. That means **the app cannot work
+out who won the auction on its own**: it doesn't know which suit anyone called. So WhistMate asks you to
+**mark the winner directly** — on the bidding screen you tap the trump slot next to whoever took it and
+pick the suit they called. That is the record of who won trump for the round.
+
+If someone asks "who is the highest bidder here?", the answer is whoever the table marked as the trump
+winner — and if two equal bids are in question, remember the suit ranking above settles it, not bid order.
+
+**Trump is recorded for every session.** Marking the trump winner and suit is available in all sessions
+(optional there). **Advanced Rules** (set per session) additionally require a **card hierarchy** —
+**Standard** or **Down-Up** (see §3) — and make the trump record mandatory before bids can be locked.
 
 ---
 
@@ -63,11 +73,14 @@ WhistMate doesn't play the cards, but here's how strength works so the assistant
   The trump suit is the one the **highest bidder chose** (Advanced Rules).
 - **No-Trump:** no suit is trump. Each trick is won by the highest card of the suit that was **led**
   (players must follow the led suit if they can).
-- **Basic games (Advanced Rules off):** WhistMate doesn't record a trump suit. Which suit is "strongest"
-  is whatever the group's house rules say for that game; the app just records tricks and scores.
+- **In the auction, suits are ranked** even before trump is settled: ♣ < ♦ < ♥ < ♠ < no-trump (§2). This
+  is what decides a contest between two equal numbers.
 
-So the short answer to *"what suit is the strongest?"* is: **the trump suit for that round** (chosen by
-the top bidder); with **No-Trump**, no suit is stronger and the led suit's highest card wins.
+So *"what suit is the strongest?"* has two correct answers depending on which moment is meant:
+1. **During play:** the **trump suit** of that round — the suit the auction winner called. A trump card
+   beats any non-trump card. Under **No-Trump**, no suit is stronger; the led suit's highest card wins.
+2. **During the auction:** the fixed ranking **♣ < ♦ < ♥ < ♠ < no-trump**, which is how a tie between
+   two players calling the same number is settled (5♠ beats 5♥).
 
 **Card hierarchy** (Advanced Rules — the order of card strength, high → low):
 - **Standard:** Ace (high), King, Queen, Jack, 10, 9, … 3, 2 (2 is lowest). The normal ranking.
@@ -166,9 +179,15 @@ Awards (group "hall of fame"):
 ## 6. FAQ (direct answers to common questions)
 
 **Q: What suit is the strongest?**
-The **trump suit** for that round — the suit the highest bidder chose (Advanced Rules). A trump card beats
-any non-trump card. With **No-Trump**, no suit is stronger; the highest card of the suit that was led wins
-the trick. In basic games WhistMate doesn't set a trump — that's up to the table's house rules.
+Two answers, depending on the moment. **During play:** the **trump suit** of that round — the suit the
+auction winner called; a trump card beats any non-trump card, and under **No-Trump** no suit is stronger
+(the led suit's highest card wins the trick). **In the auction:** suits have a fixed rank,
+**♣ clubs < ♦ diamonds < ♥ hearts < ♠ spades < no-trump**.
+
+**Q: One player bids 5♥ and another bids 5♠ — who wins, or is it a tie?**
+Not a tie: **5♠ wins**, because spades outrank hearts. The full order is ♣ < ♦ < ♥ < ♠ < no-trump, so a
+no-trump call beats every suit at the same number. It is never settled by who bid first. WhistMate doesn't
+compute this — the table resolves the auction and then marks the winner in the app (§2).
 
 **Q: What is "Progressive" scoring?**
 A missed-contract penalty scheme where the cost **per trick missed grows with the size of the miss**:
@@ -208,8 +227,9 @@ took. It handles all the scoring and stats.
 | Bid / contract | The number of tricks (0–13) a player promises to take. |
 | Trick | One round of four cards played; someone "takes" it. 13 per hand. |
 | UP / DOWN | The four bids total ≥14 (UP) or ≤12 (DOWN); never 13. |
-| Trump | The strongest suit for the round (chosen by the top bidder in Advanced games). |
-| No-Trump | No trump suit; the led suit's highest card wins each trick. |
+| Trump | The strongest suit for the round — the suit the auction winner called. Recorded per round. |
+| No-Trump | No trump suit; the led suit's highest card wins each trick. Outranks every suit in the auction. |
+| Suit rank | ♣ < ♦ < ♥ < ♠ < no-trump — settles two players calling the same number (5♠ beats 5♥). |
 | Standard / Down-Up | Card-strength order. Standard = A high…2 low. Down-Up = A high, then 2,3…King low. |
 | Made the contract | Took exactly the number of tricks you bid (0-bid: took 0). |
 | Everyone Falls | No player made their contract → round cancelled, all score 0. |

@@ -168,6 +168,13 @@ function RoundFeedItem({ round, results, editable }) {
             <div key={r.id} className="flex items-center justify-between text-sm">
               <span className="text-foreground truncate">
                 {r.player_name}
+                {/* Trump winner gets the suit inline, so a scan of the feed shows who took
+                    trump in each round without opening it. */}
+                {round.trump_suit && r.player_id === round.highest_bidder_player_id && (
+                  <span className={`ml-1.5 font-bold ${
+                    round.trump_suit === 'hearts' || round.trump_suit === 'diamonds' ? 'text-rose-500' : 'text-foreground'
+                  }`} title="Won the trump">{formatSuit(round.trump_suit)}</span>
+                )}
                 {r.reneged ? <span className="ml-1 text-destructive text-xs">(reneged)</span> : null}
               </span>
               <span className="flex items-center gap-3 flex-shrink-0">

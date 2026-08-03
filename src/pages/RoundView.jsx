@@ -11,6 +11,30 @@ import { formatScore, formatSuit } from '@/lib/format';
 
 const SUIT_LABEL = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣', notrump: 'NT' };
 const HIER_LABEL = { standard: 'Standard (A high → 2 low)', down_up: 'Down-Up (A,2,3…K)' };
+const RED_SUITS = new Set(['hearts', 'diamonds']);
+
+// The trump marker at the end of a player row. Tap it to record that this player won the
+// auction at the table — the app can't derive that, since equal bids are settled by suit
+// rank (♣<♦<♥<♠<NT) during an auction WhistMate never sees.
+function TrumpCell({ owned, suit, onPick }) {
+  const pick = (e) => { e.stopPropagation(); onPick(); };
+  const glyph = owned ? (suit ? SUIT_LABEL[suit] : '?') : '·';
+  const size = owned && suit === 'notrump' ? 'text-[11px]' : 'text-lg';
+  const tone = owned
+    ? (suit && RED_SUITS.has(suit) ? 'text-rose-500' : 'text-foreground')
+    : 'text-muted-foreground/40';
+  return (
+    <span
+      role="button" tabIndex={0} onClick={pick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') pick(e); }}
+      aria-label={owned ? `Won trump${suit ? `, ${suit}` : ''}` : 'Mark as trump winner'}
+      className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-bold transition-colors ${size} ${tone} ${
+        owned ? 'bg-primary/15 ring-1 ring-primary' : 'bg-secondary/50 hover:text-muted-foreground'
+      }`}>
+      {glyph}
+    </span>
+  );
+}
 
 function NumberPad({ value, onPick, max = 13, disabled = [] }) {
   return (
@@ -46,6 +70,7 @@ export default function RoundView() {
   // bidding state
   const [bids, setBids] = useState({});
   const [trump, setTrump] = useState(null);
+  const [trumpOwner, setTrumpOwner] = useState(null); // player_id who won the auction
   const [hierarchy, setHierarchy] = useState(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -74,6 +99,9 @@ export default function RoundView() {
       sorted.forEach((r) => { b[r.player_id] = r.bid ?? null; t[r.player_id] = r.tricks_won ?? null; g[r.player_id] = !!r.reneged; });
       setBids(b); setTricks(t); setReneges(g);
       setTrump(rnd.trump_suit || null); setHierarchy(rnd.hierarchy || null);
+      // Only treat the stored winner as a real choice once a suit exists — without one it's
+      // just the bid-number fallback, and showing it as chosen would be a lie.
+      setTrumpOwner(rnd.trump_suit ? (rnd.highest_bidder_player_id || null) : null);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to load round.');
     } finally {
@@ -89,7 +117,56 @@ export default function RoundView() {
   const allBidsSet = bidVals.every((v) => v != null);
   const bidTotal = bidVals.reduce((s, v) => s + (v || 0), 0);
   const liveTable = allBidsSet ? tableState(bidVals.map(Number)) : null;
+  // Top bidder by number = a DEFAULT for the trump marker, never the answer (see scoring.js).
   const hbIdx = allBidsSet ? highestBidderIndex(bidVals.map((v) => ({ bid: Number(v) }))) : -1;
+  // Advanced sessions must record a trump, so pre-select the top bidder there. Elsewhere it's
+  // opt-in: nothing is marked until someone taps a cell.
+  const trumpOwnerId = trumpOwner ?? (advanced && hbIdx >= 0 ? results[hbIdx]?.player_id ?? null : null);
+  const trumpOwnerName = results.find((r) => r.player_id === trumpOwnerId)?.player_name || '';
+  const trumpWinnerName = results.find((r) => r.player_id === round.highest_bidder_player_id)?.player_name || '';
+
+  // Tapping the marked player again clears the record — but only where trump is optional;
+  // advanced sessions require one, so there it just moves the marker.
+  const pickTrumpOwner = (playerId) => {
+    if (!advanced && trumpOwnerId === playerId) {
+      setTrumpOwner(null);
+      setTrump(null);
+      return;
+    }
+    setTrumpOwner(playerId);
+  };
+
+  // Who won the auction + what they called. Shared by the bidding and edit screens.
+  const renderTrumpPanel = () => (
+    <div className="rounded-lg border border-border bg-card p-3 space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Trump won by <span className="text-foreground font-medium">{trumpOwnerName || 'nobody yet'}</span>
+        {trumpOwnerName ? ' — suit called:' : ' — tap a player\'s trump slot first'}
+      </p>
+      <div className="flex gap-1.5">
+        {SUITS.map((s) => (
+          <button key={s} type="button" disabled={!trumpOwnerId}
+            onClick={() => setTrump(trump === s ? null : s)}
+            className={`flex-1 py-2 rounded-lg font-bold disabled:opacity-40 ${
+              trump === s ? 'bg-primary text-primary-foreground'
+              : `bg-secondary ${RED_SUITS.has(s) ? 'text-rose-400' : 'text-foreground'}`
+            }`}>
+            {SUIT_LABEL[s]}
+          </button>
+        ))}
+      </div>
+      {advanced && (
+        <div className="flex gap-1.5">
+          {HIERARCHIES.map((h) => (
+            <button key={h} type="button" onClick={() => setHierarchy(h)}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+              {HIER_LABEL[h]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   // ---- BIDDING ----
   const renderBidding = () => {
@@ -102,7 +179,9 @@ export default function RoundView() {
       if (forbidden >= 0 && forbidden <= 13) disabledForActive = [forbidden];
     }
 
-    const canSubmit = allBidsSet && isBidSumLegal(bidVals.map(Number)) && (!advanced || (trump && hierarchy));
+    const canSubmit = allBidsSet && isBidSumLegal(bidVals.map(Number))
+      && (!advanced || (trump && hierarchy))
+      && (!trump || !!trumpOwnerId); // a suit with no owner is half a record
 
     const submit = async () => {
       setSaving(true); setError('');
@@ -111,8 +190,9 @@ export default function RoundView() {
         results.forEach((r) => { bidMap[r.player_id] = Number(bids[r.player_id]); });
         await base44.functions.invoke('submitBids', {
           game_id: id, bids: bidMap,
-          trump_suit: advanced ? trump : undefined,
+          trump_suit: trump || undefined,
           hierarchy: advanced ? hierarchy : undefined,
+          trump_owner_player_id: trump ? trumpOwnerId : undefined,
         });
         await load();
       } catch (err) {
@@ -132,14 +212,19 @@ export default function RoundView() {
         </div>
 
         <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground text-right pr-2">trump</p>
           {results.map((r, i) => (
             <button key={r.id} onClick={() => setActiveIdx(i)}
               className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors ${
                 activeIdx === i ? 'border-primary bg-primary/5' : 'border-border bg-card'
               }`}>
               <span className="text-sm font-medium text-foreground">{i + 1}. {r.player_name}</span>
-              <span className="font-heading font-bold text-lg text-foreground w-8 text-center">
-                {bids[r.player_id] != null ? bids[r.player_id] : '—'}
+              <span className="flex items-center gap-3">
+                <span className="font-heading font-bold text-lg text-foreground w-8 text-center">
+                  {bids[r.player_id] != null ? bids[r.player_id] : '—'}
+                </span>
+                <TrumpCell owned={trumpOwnerId === r.player_id} suit={trump}
+                  onPick={() => pickTrumpOwner(r.player_id)} />
               </span>
             </button>
           ))}
@@ -158,29 +243,7 @@ export default function RoundView() {
             }} />
         </div>
 
-        {advanced && allBidsSet && (
-          <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Highest bidder <span className="text-foreground font-medium">{results[hbIdx]?.player_name}</span> chooses:
-            </p>
-            <div className="flex gap-1.5">
-              {SUITS.map((s) => (
-                <button key={s} onClick={() => setTrump(s)}
-                  className={`flex-1 py-2 rounded-lg font-bold ${trump === s ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                  {SUIT_LABEL[s]}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1.5">
-              {HIERARCHIES.map((h) => (
-                <button key={h} onClick={() => setHierarchy(h)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium ${hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                  {HIER_LABEL[h]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {trumpOwnerId && renderTrumpPanel()}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button className="w-full" disabled={!canSubmit || saving} onClick={submit}>
@@ -221,7 +284,8 @@ export default function RoundView() {
         {round.table_state && (
           <p className="text-xs text-muted-foreground">
             Table <span className="font-bold uppercase">{round.table_state}</span>
-            {round.trump_suit ? ` · ${formatSuit(round.trump_suit)}` : ''}
+            {round.trump_suit ? ` · trump ${formatSuit(round.trump_suit)}` : ''}
+            {round.trump_suit && trumpWinnerName ? ` · won by ${trumpWinnerName}` : ''}
           </p>
         )}
 
@@ -294,10 +358,24 @@ export default function RoundView() {
             {round.everyone_falls && <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Everyone fell</span>}
           </div>
         </div>
+        {round.trump_suit && (
+          <p className="text-xs text-muted-foreground">
+            Trump <span className={`font-bold ${RED_SUITS.has(round.trump_suit) ? 'text-rose-400' : 'text-foreground'}`}>{formatSuit(round.trump_suit)}</span>
+            {trumpWinnerName ? <> · won by <span className="text-foreground font-medium">{trumpWinnerName}</span></> : null}
+            {round.hierarchy ? ` · ${HIER_LABEL[round.hierarchy]}` : ''}
+          </p>
+        )}
         <div className="space-y-1.5">
           {results.map((r) => (
             <div key={r.id} className="flex items-center justify-between bg-card border border-border rounded-lg p-3 text-sm">
-              <span className="text-foreground">{r.player_name}{r.reneged ? <span className="ml-1 text-destructive text-xs">(reneged)</span> : null}</span>
+              <span className="text-foreground">
+                {r.player_name}
+                {round.trump_suit && r.player_id === round.highest_bidder_player_id && (
+                  <span className={`ml-1.5 font-bold ${RED_SUITS.has(round.trump_suit) ? 'text-rose-500' : 'text-foreground'}`}
+                    title="Won the trump">{SUIT_LABEL[round.trump_suit]}</span>
+                )}
+                {r.reneged ? <span className="ml-1 text-destructive text-xs">(reneged)</span> : null}
+              </span>
               <span className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">bid {r.bid} · won {r.tricks_won}</span>
                 <span className={`font-heading font-bold w-12 text-right ${(r.points ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatScore(r.points)}</span>
@@ -326,7 +404,7 @@ export default function RoundView() {
     const trickVals = results.map((r) => (tricks[r.player_id] == null ? NaN : Number(tricks[r.player_id])));
     const bidsOk = isBidSumLegal(bidVals);
     const tricksOk = isTricksTotalLegal(trickVals);
-    const advancedOk = !advanced || (trump && hierarchy);
+    const advancedOk = (!advanced || (trump && hierarchy)) && (!trump || !!trumpOwnerId);
     const bidTotal = bidVals.reduce((s, v) => s + (Number.isFinite(v) ? v : 0), 0);
     const trickTotal = trickVals.reduce((s, v) => s + (Number.isFinite(v) ? v : 0), 0);
     const canSave = bidsOk && tricksOk && advancedOk;
@@ -347,8 +425,9 @@ export default function RoundView() {
         });
         await base44.functions.invoke('updateRound', {
           game_id: id, bids: bidMap, tricks: tMap, reneges: gMap,
-          trump_suit: advanced ? trump : undefined,
+          trump_suit: trump || undefined,
           hierarchy: advanced ? hierarchy : undefined,
+          trump_owner_player_id: trump ? trumpOwnerId : undefined,
         });
         setEditing(false);
         await load();
@@ -374,11 +453,15 @@ export default function RoundView() {
             <div key={r.id} className="bg-card border border-border rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground">{r.player_name}</span>
-                <button type="button"
-                  onClick={() => setReneges((p) => ({ ...p, [r.player_id]: !p[r.player_id] }))}
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${reneges[r.player_id] ? 'bg-destructive/20 text-destructive' : 'bg-secondary text-muted-foreground'}`}>
-                  renege
-                </button>
+                <span className="flex items-center gap-2">
+                  <button type="button"
+                    onClick={() => setReneges((p) => ({ ...p, [r.player_id]: !p[r.player_id] }))}
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${reneges[r.player_id] ? 'bg-destructive/20 text-destructive' : 'bg-secondary text-muted-foreground'}`}>
+                    renege
+                  </button>
+                  <TrumpCell owned={trumpOwnerId === r.player_id} suit={trump}
+                    onPick={() => pickTrumpOwner(r.player_id)} />
+                </span>
               </div>
               <div className="flex gap-3">
                 <label className="flex-1 text-xs text-muted-foreground">
@@ -396,27 +479,7 @@ export default function RoundView() {
           ))}
         </div>
 
-        {advanced && (
-          <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-            <p className="text-xs text-muted-foreground">Trump + hierarchy</p>
-            <div className="flex gap-1.5">
-              {SUITS.map((s) => (
-                <button key={s} onClick={() => setTrump(s)}
-                  className={`flex-1 py-2 rounded-lg font-bold ${trump === s ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                  {SUIT_LABEL[s]}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1.5">
-              {HIERARCHIES.map((h) => (
-                <button key={h} onClick={() => setHierarchy(h)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium ${hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                  {HIER_LABEL[h]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {(trumpOwnerId || advanced) && renderTrumpPanel()}
 
         {!bidsOk && <p className="text-xs text-destructive">Bids must each be 0–13 and not sum to 13.</p>}
         {!tricksOk && <p className="text-xs text-destructive">Tricks must each be 0–13 and total exactly 13.</p>}

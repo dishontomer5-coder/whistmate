@@ -188,7 +188,22 @@ export function scoreRound(round, opts = {}) {
   return { tableState: ts, everyoneFalls, results };
 }
 
-/** Convenience: which player index has the highest bid (ties -> earliest bid_order). */
+/**
+ * Suit rank in the real auction, low -> high: clubs < diamonds < hearts < spades < notrump.
+ * At a live table, equal numbers are settled by suit (5♠ beats 5♥), so the auction winner
+ * is NOT derivable from the bid numbers this app records. WhistMate captures the *final*
+ * bids after the auction is over, so the winner is recorded explicitly instead — see
+ * `Game.highest_bidder_player_id`, set from the trump marker on the bidding screen.
+ * Kept here as the single definition of the order, for display and future stats.
+ */
+export const SUIT_RANK = { clubs: 0, diamonds: 1, hearts: 2, spades: 3, notrump: 4 };
+
+/**
+ * Which player index has the highest bid (ties -> earliest bid_order).
+ * NOTE: only a *default* for pre-selecting the trump winner in the UI. It cannot break a
+ * genuine tie, because the losing suit of a 5♥-vs-5♠ auction is never entered into the app.
+ * Never treat its output as the auction result — read the recorded winner instead.
+ */
 export function highestBidderIndex(players) {
   let best = -1;
   let bestBid = -Infinity;

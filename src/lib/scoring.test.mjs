@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   bidSum, tableState, isValidBid, isBidSumLegal, illegalLastBids, isTricksTotalLegal,
   progressiveRate, madeContract, contractPoints, scoreRound, highestBidderIndex,
+  SUIT_RANK, SUITS,
 } from './scoring.js';
 
 let pass = 0;
@@ -227,8 +228,25 @@ t('scoreRound throws on wrong player count', () => {
 t('highestBidderIndex picks max', () => {
   assert.equal(highestBidderIndex([{ bid: 4 }, { bid: 3 }, { bid: 5 }, { bid: 2 }]), 2);
 });
-t('highestBidderIndex ties -> earliest', () => {
+t('highestBidderIndex ties -> earliest (a DEFAULT only; the real tie is settled by suit)', () => {
   assert.equal(highestBidderIndex([{ bid: 5 }, { bid: 5 }, { bid: 3 }, { bid: 2 }]), 0);
+});
+
+// --- auction suit rank ------------------------------------------------------
+// Owner-confirmed order (Aug 2026): clubs < diamonds < hearts < spades < notrump.
+// The app records the auction's outcome rather than computing it, but this order is
+// what the rulebook teaches, so pin it down.
+t('SUIT_RANK orders clubs < diamonds < hearts < spades < notrump', () => {
+  const order = ['clubs', 'diamonds', 'hearts', 'spades', 'notrump'];
+  order.forEach((s, i) => {
+    if (i > 0) assert.ok(SUIT_RANK[s] > SUIT_RANK[order[i - 1]], `${s} must outrank ${order[i - 1]}`);
+  });
+  assert.equal(Object.keys(SUIT_RANK).length, SUITS.length);
+  SUITS.forEach((s) => assert.equal(typeof SUIT_RANK[s], 'number', `${s} missing a rank`));
+});
+t('SUIT_RANK: 5 spades beats 5 hearts, notrump beats spades', () => {
+  assert.ok(SUIT_RANK.spades > SUIT_RANK.hearts);
+  assert.ok(SUIT_RANK.notrump > SUIT_RANK.spades);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
