@@ -4,15 +4,21 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Jul 19 2026): CANONICAL REPO = **tomerdi-blip/whistmate** (~/whistmate), two-way-synced to
-> the Base44 app "WhistMate". Phases 1–7 DONE + verified LIVE by owner (group/session/games all worked).
-> Phase 8 (owner adjustments) DONE: profile score chart, "same players as last round", standings overall
-> score + session-over-session delta. Build GREEN (2534 modules) + lint clean. Frontend-only changes →
-> auto-sync deploys the site on push (NO base44 deploy needed unless base44/functions/** changes).
-> in_progress: none — awaiting next request. P6-3 polish DONE (awards showcase + admin edit-past-round).
+> ▶ RESUME HERE (Aug 3 2026): CANONICAL REPO = **tomerdi-blip/whistmate**, local clone
+> **~/Personal/whistmate** (the old ~/whistmate and ~/israeli-whist clones are gone), two-way-synced to
+> the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`, status ready).
+> Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE in code.
+> Build GREEN + lint clean (0 errors) + scoring 36/36 + stats 5/5 + `rules:check` in sync.
+> in_progress: none — awaiting next request.
+> 🔴 **OWNER ACTION PENDING** (nothing else is blocked): (1) `npx base44@latest login` then
+> `npx base44@latest deploy` — `base44/functions/askRules/**` changed, and sync does NOT deploy functions;
+> (2) `npm install` — installed @base44/sdk is 0.8.39, package.json wants ^0.8.41; (3) smoke-test /rules live.
 > ⚠️ Reminder: `base44 deploy` is required after ANY change to base44/functions/** (sync deploys entities+site only).
-> ⚠️ Two-way sync is ACTIVE + confirmed: Base44 pushes commits back (e.g. "File changes" — added
-> vite.config `resolve.dedupe:['react','react-dom']`). ALWAYS `git pull --rebase` before push, or you'll be rejected.
+> ⚠️ Two-way sync is ACTIVE + confirmed BOTH ways: Base44 pushes commits back — the Builder authored the whole
+> `askRules` function + the RulesChat refactor and they arrived as "File changes" commits (Aug 3 2026).
+> ALWAYS `git pull --rebase` before push, or you'll be rejected — and re-read files after pulling.
+> ⚠️ Rules knowledge has ONE source: `docs/whist-rules.md` → `npm run rules:gen` → askRules/entry.ts.
+> Never hand-edit `RULES_DOC`; `npm run rules:check` fails on drift (incl. drift pushed back by the Builder).
 >
 > ⚠️ This repo two-way-syncs with Base44: edits made in the Base44 Builder land here as commits — pull
 > before starting a session, and keep changes here in sync (push after committing).
@@ -249,10 +255,46 @@
 
 > **🎉 PHASE 8 COMPLETE (Jul 19 2026):** three owner adjustments shipped; frontend-only, auto-syncs on push.
 
+## Phase 9: AI "Ask about the game" chat (Aug 2026)
+
+> The Jul 19 backlog item, now built. Note the unusual provenance: **the Base44 Builder authored P9-1**
+> and it reached this repo through the two-way sync as "File changes" commits — not written here.
+
+- [x] **P9-1** *(built in the Base44 Builder; pulled Aug 3 2026)*: `base44/functions/askRules` — Deno fn,
+  auth-gated (401 without a user), inlines the rulebook as the LLM's ONLY knowledge, `SYSTEM_PROMPT`
+  forces the exact refusal line "IDK bro 🤷 — that's not in the WhistMate rulebook." for anything
+  off-book, last-8-message history window, calls `asServiceRole.integrations.Core.InvokeLLM`.
+  `src/pages/RulesChat.jsx` = full-screen chat UI (suggestion chips, typing dots) calling
+  `base44.functions.invoke("askRules")`. An earlier draft built the prompt client-side; the refactor moved
+  the rules + prompt server-side (right call — the rulebook is no longer shipped in the JS bundle).
+- [x] **P9-2** *(done Aug 3 2026)*: **nav entry** — `/rules` was registered but unreachable (no link
+  anywhere) AND was inside the `Layout` shell, which both nested a second header and, because `/rules`
+  wasn't in `GLOBAL_ROUTES`, bounced group-less users to /home. Fixed: route moved OUT of `Layout`
+  (it's full-screen with its own safe-area header/composer), `HamburgerMenu` gained an "Ask About the
+  Game" item (group-agnostic → belongs there, not in either bottom nav; visible in both the global and
+  group shells), and `RulesChat` gained a back arrow (`history.length > 1 ? -1 : '/home'`) plus its own
+  signed-out guard → /login, since it no longer inherits the shell's.
+- [x] **P9-3** *(done Aug 3 2026)*: **single-source rules pipeline** — the rulebook existed TWICE
+  (docs/whist-rules.md + inlined `RULES_DOC`, with a "keep this in sync by hand" comment) and the
+  behavior prompt existed a THIRD time as a stale "ready-to-paste" block in doc §0. Now:
+  `docs/whist-rules.md` is the only source; `scripts/gen-rules-doc.mjs` splices §1–§7 into
+  `askRules/entry.ts` between `BEGIN/END GENERATED RULES_DOC` markers (§0 stripped — it's maintainer
+  notes, not game knowledge; template-literal chars escaped). `npm run rules:gen` regenerates,
+  `npm run rules:check` exits 1 on drift. Doc §0 rewritten to describe the pipeline and point at
+  `SYSTEM_PROMPT` in the function as the prompt's only home. Verified: the generator reproduced the
+  existing inline text byte-for-byte (the two copies were still in sync), and a round-trip test confirmed
+  a doc edit propagates and `--check` catches staleness.
+
+> **Wave 9 verification (Aug 3 2026):** `npm run build` GREEN, `eslint --quiet` exit 0, scoring 36/36,
+> whist-stats 5/5, `npm run rules:check` in sync. NOT yet verified live — `askRules` needs
+> `npx base44@latest deploy` (owner login) before /rules can answer in production.
+
 ## Backlog
 
-- [ ] **AI "Ask about the game" chat** (owner request, Jul 19 2026): a rules-only assistant whose sole
-  context is `docs/whist-rules.md` (created — the WhistMate-specific rules + scoring KB + ready-to-paste
-  system prompt). Feature itself NOT built yet. Likely shape: a Base44 backend function that calls an LLM
-  with the system prompt + this doc as context (+ the user's question), and a simple chat UI. Keep the doc
-  the single source of truth; re-edit it (not the prompt) when rules change.
+- [ ] **P9-4** *(optional polish)*: `askRules` has no rate limiting, and every question is a fresh
+  InvokeLLM call carrying the full ~210-line rulebook in the prompt. Fine for a friends' group; revisit
+  if usage (or cost) grows — cheapest wins would be a client-side answer for the canned suggestion chips,
+  or caching identical questions.
+- [ ] **P0-4** *(carried from Phase 0)*: prune unused poker npm deps (stripe, three, react-leaflet,
+  jspdf/html2canvas, react-quill?) — the whist surface is now known, so this is finally actionable.
+  The bundle is ~1.04 MB (305 kB gzip) and trips vite's chunk-size warning.

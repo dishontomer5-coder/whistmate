@@ -1,7 +1,10 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.38";
 
 // ── The assistant's ONLY knowledge: docs/whist-rules.md (inlined; Deno can't read repo files). ──
-// Keep this in sync with docs/whist-rules.md. To teach the assistant new rules, edit both.
+// To teach the assistant new rules: edit docs/whist-rules.md, then `npm run rules:gen`.
+// Never hand-edit the block below — the generator overwrites it and `npm run rules:check` fails on drift.
+// <<< BEGIN GENERATED RULES_DOC — do not edit by hand; run `npm run rules:gen` >>>
+// Source: docs/whist-rules.md (§0 stripped — it documents the pipeline, not the game).
 const RULES_DOC = `# WhistMate — Israeli Whist Rules & Scoring (AI reference)
 
 > **Purpose.** This document is the **sole knowledge source** for the in-app "Ask about the game"
@@ -214,6 +217,7 @@ took. It handles all the scoring and stats.
 | Classic / Progressive | The missed-contract penalty scheme (flat −10 vs. escalating). |
 | Session | One whist night; contains many rounds ("games"). |
 | Round / game | A single deal: bid → play → results → score. |`;
+// <<< END GENERATED RULES_DOC >>>
 
 const IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook.";
 

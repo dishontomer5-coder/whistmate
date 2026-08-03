@@ -51,11 +51,13 @@ const AuthenticatedApp = () => {
       <Route path="/join" element={<Join />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      {/* Full-screen chat: renders its own header + composer (safe-area insets), so it
+          sits outside the Layout shell rather than nesting a second header inside it. */}
+      <Route path="/rules" element={<RulesChat />} />
       <Route element={<Layout />}>
         <Route path="/home" element={<HomeGlobal />} />
         <Route path="/account" element={<Account />} />
         <Route path="/activity" element={<Activity />} />
-        <Route path="/rules" element={<RulesChat />} />
         <Route path="/" element={<Home />} />
         <Route path="/session/new" element={<NewSession />} />
         <Route path="/session/:id" element={<SessionView />} />

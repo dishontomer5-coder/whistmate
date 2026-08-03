@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,6 +18,8 @@ const SUGGESTIONS = [
 ];
 
 export default function RulesChat() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([
     { role: "assistant", text: "Ask me anything about Israeli Whist rules — bidding, scoring, trump, the works." },
   ]);
@@ -47,16 +51,33 @@ export default function RulesChat() {
     }
   };
 
+  // `askRules` requires an authenticated caller (401 otherwise), and this route sits
+  // outside the Layout shell, so it guards itself.
+  if (!user) return <Navigate to="/login" replace />;
+
+  // No bottom nav on this full-screen route — the header's back arrow is the way out.
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/home');
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+          <button
+            onClick={goBack}
+            aria-label="Back"
+            className="-ml-1 w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="font-heading text-lg font-semibold leading-tight">WhistMate Rules</h1>
+          <div className="min-w-0">
+            <h1 className="font-heading text-lg font-semibold leading-tight truncate">WhistMate Rules</h1>
             <p className="text-xs text-muted-foreground">Game rules assistant</p>
           </div>
         </div>

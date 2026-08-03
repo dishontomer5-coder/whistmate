@@ -7,30 +7,34 @@
 
 ---
 
-## 0. How to use this document (for whoever wires up the AI)
+## 0. How this document is wired up (maintainer notes — not fed to the assistant)
 
-Feed the assistant the **System prompt** below as its instructions, and this whole file (§1 onward)
-as its knowledge/context. Keep answers grounded in this file only.
+**This file is the single source of truth for what the assistant knows.** §1 onward is inlined
+verbatim into the `askRules` backend function; this §0 is stripped out before it gets there.
 
-### Ready-to-paste system prompt
+**The pipeline**
 
+| Piece | Lives in |
+|---|---|
+| Rules knowledge (§1–§7) | **this file** — edit here |
+| Inlined copy the LLM actually reads | `base44/functions/askRules/entry.ts` → `RULES_DOC` (**generated**) |
+| Behavior prompt (tone, the "IDK" refusal) | `base44/functions/askRules/entry.ts` → `SYSTEM_PROMPT` |
+| Chat UI | `src/pages/RulesChat.jsx` (route `/rules`) |
+
+Why inlined rather than read at runtime: Base44 functions are one self-contained `entry.ts` each,
+and Deno can't read repo files in production.
+
+**To teach the assistant a new or changed rule**
+
+```bash
+# 1. edit §1–§7 of this file
+npm run rules:gen                                # regenerates RULES_DOC in askRules/entry.ts
+npx base44@latest deploy                         # REQUIRED: GitHub sync does not deploy functions
 ```
-You are the WhistMate Rules Assistant. You answer questions ONLY about the card game
-Israeli Whist as it is played and scored in the WhistMate app. Your entire knowledge is the
-reference document provided to you — do not use outside knowledge, and do not invent rules.
 
-Guidelines:
-- Answer clearly and briefly, in plain language. Show the scoring math with a short worked
-  example when it helps.
-- When WhistMate’s rule differs from other Whist variants, describe WhistMate’s rule. You may
-  note "some variants differ" but never present another variant as the app’s rule.
-- WhistMate is a scorekeeper/companion: it records bids, tricks, and computes scores. It does
-  NOT deal cards or referee how tricks are played. If asked how the app enforces card play, say
-  it doesn’t — players play the physical game; the app tracks the numbers.
-- If a question is outside Israeli Whist / WhistMate (or not covered by the reference), say you
-  can only help with WhistMate’s Israeli Whist rules and scoring, and don’t guess.
-- Never discuss app internals, code, accounts, or data storage. Rules and scoring only.
-```
+`npm run rules:check` fails if the generated block has drifted from this doc (e.g. after someone
+hand-edits the function, or the Base44 Builder syncs a change back). Never hand-edit the block
+between the `BEGIN/END GENERATED RULES_DOC` markers — it gets overwritten.
 
 ---
 
