@@ -31,6 +31,27 @@ async function readOnlyGroup(base44, groupId) {
   return null;
 }
 
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
+// What two player names are compared by: no surrounding spaces, no letter case.
+const nameKey = (name) => String(name || '').trim().toLowerCase();
+
 Deno.serve(async (req) => {
   // Hoisted above try so the catch block can reference it (P1-2)
   let playerName = '';
@@ -69,13 +90,12 @@ Deno.serve(async (req) => {
     const readOnly = await readOnlyGroup(base44, group_id);
     if (readOnly) return readOnly;
 
-    // v3: Enforce (group_id, player_name) uniqueness at application level
-    const existingWithName = await base44.asServiceRole.entities.GroupMember.filter({
-      group_id,
-      player_name: player_name.trim()
-    });
-    if (existingWithName.length > 0) {
-      return Response.json({ error: `A member named "${player_name.trim()}" already exists in this group` }, { status: 409 });
+    // A player name is unique within a group whatever its letter case or surrounding
+    // spaces ("Dan", "dan " and "DAN" are one name) — checked against the whole roster,
+    // not one page of it. joinGroupByCode and renameMember apply the same rule.
+    const roster = await fetchAll(base44.asServiceRole.entities.GroupMember, { group_id });
+    if (roster.some((m) => nameKey(m.player_name) === nameKey(playerName))) {
+      return Response.json({ error: `A member named "${playerName}" already exists in this group` }, { status: 409 });
     }
 
     // Create ghost member (user_id=null, claimed=false)

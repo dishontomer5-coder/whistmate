@@ -23,7 +23,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-2.
+> in_progress: P13-4 (fix round 1; wave 1 = foundation + stats/backend running, wave 2 = structure, round flow, onboarding/admin next).
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -37,6 +37,10 @@
 > global registry is an internal mirror) and deliberately left alone — owner's call; don't "fix" it with
 > `--registry` without asking. So prefer Base44's cloud build for the site (push `main`) over
 > `deploy --build` from this machine. (`.npmrc`'s `min-release-age=7` is still not enforced by npm 11.)
+> ⚠️ **When `npx base44@latest …` hangs**, the npm registry (the internal mirror) is unreachable — npx
+> stalls looking up "latest" before the CLI starts. Run the cached copy directly instead, e.g.
+> `~/.npm/_npx/<hash>/node_modules/.bin/base44` (pick the newest: `ls ~/.npm/_npx/*/node_modules/base44`,
+> v0.3.6 on Nov 19 2026). Same commands, same login.
 > ⚠️ CLI facts (base44@latest, Nov 18 2026): `--app-id <id>` is a GLOBAL option and is required (no
 > `base44/.app.jsonc` → not linked); `deploy` needs `--yes` when non-interactive and builds only with
 > `--build`; `functions deploy [names...]`, `functions list`, `entities push`, `site deploy` exist;
@@ -502,10 +506,123 @@
 
 ### 13b. Review and fix rounds
 
-- [ ] 🔄 **P13-2:** review round 1 — the six reviewers, independently, with screenshots.
-- [ ] **P13-3:** triage round 1 — reproduce, de-duplicate, rate; list every finding here as a task.
-  P13-F1 (the Sessions / History tabs and the trophy icon) is already known.
-- [ ] **P13-4:** fix every blocker and major from round 1, and the cheap minors.
+- [x] **P13-2** *(done Nov 19 2026)*: **review round 1.** Six independent reviewers, each alone in a
+  private sandbox instance, driving the app through `sandbox/browse.mjs` (150–340 browser commands
+  each), none reading the source or each other. Every verdict: **"PUBLISH: yes, after fixes"**.
+
+  | Reviewer | Blocker | Major | Minor | Idea |
+  |---|---|---|---|---|
+  | Newcomer | 0 | 5 | 13 | 1 |
+  | Scorekeeper | 0 | 6 | 10 | 3 |
+  | Returning player | 0 | 9 | 13 | 3 |
+  | Visual designer | 0 | 7 | 18 | 3 |
+  | Whist player | 0 | 7 | 12 | 2 |
+  | QA tester | 0 | 5 | 18 | 3 |
+  | **Total (138)** | **0** | **39** | **84** | **15** |
+
+  What held up: scoring (the Whist player checked 100 player scores over 25 rounds against the
+  rulebook — no difference), server-side permissions, double-tap safety, validation messages, the
+  landing and About pages. The two defects already known were both found independently (the
+  Sessions/History tabs — P13-F1; the invite link lost through sign-in), which says the reviewers'
+  recall is good. Raw findings (outside the repo, temporary): the session scratchpad,
+  `review/r1/<reviewer>/findings.json`.
+- [x] **P13-3** *(done Nov 19 2026)*: **triage of round 1.** An independent reproducer re-ran the
+  findings on a reset sandbox and traced each to file and line: the 138 findings are **86 distinct
+  problems** — 30 with a major member, 47 minor, 9 ideas; verdicts: 80 confirmed, 3
+  confirmed with a correction, 3 by design, 0 not reproduced, 0 sandbox artifacts; 29 of the 30 major
+  clusters reproduced in the browser (the 30th is the store icon). It also found eight things no
+  reviewer reported. The lead's 66 rulings assign every cluster an owner; the list below is the
+  work. Owners: foundation (shared pieces, wave 1), stats/backend (wave 1), then structure, round
+  flow and onboarding/admin in parallel (wave 2).
+
+- [ ] **P13-R1-C01** *(major · onboarding/admin · ruling 28, 47)*: Sign-in and sign-up never return to where the person was going (invite link, deep links)
+- [ ] **P13-R1-C02** *(major · onboarding/admin · ruling 29)*: The invite page (/join) is bare: no group name, only 'Sign In'; signed in it is a dialog over an empty screen
+- [ ] **P13-R1-C03** *(major · onboarding/admin · ruling 30, 33)*: A new group gives no lead to adding players; Members is the last block in Admin, below the Danger Zone
+- [ ] **P13-R1-C04** *(major · round flow · ruling 26)*: Scores and table terms are not explained where they are shown (points, UP/DOWN, renege, everyone falls, hierar
+- [ ] **P13-R1-C05** *(minor · round flow · ruling 25)*: 'Progressive' is described as escalating, but misses of 1-4 tricks cost a flat 5 each (half of Classic)
+- [ ] **P13-R1-C06** *(major · round flow · ruling 20)*: RENEGE: one tap on a small unexplained pill costs a player 100 points, with no confirmation
+- [ ] **P13-R1-C07** *(idea · round flow · ruling 19)*: Idea: show made / missed, the points and an everyone-falls warning before Save Round
+- [ ] **P13-R1-C08** *(major · stats/backend · ruling 9)*: Wins, win rate and podiums count the session that is still open
+- [ ] **P13-R1-C09** *(major · round flow · ruling 16)*: A started round cannot be discarded or re-seated, and it silently removes Close Session
+- [ ] **P13-R1-C10** *(major · round flow · ruling 14)*: Round entry does not fit: Lock Bids lands exactly behind the tab bar once a trump winner is marked; short phon
+- [ ] **P13-R1-C11** *(minor · round flow · ruling 14)*: At 320 px: step title cut to 'R…', number pad below the fold, action rows past the gutter, History line wraps 
+- [ ] **P13-R1-C12** *(minor · round flow · ruling 21, 22)*: Advanced rules: Lock Bids stays disabled with no reason, the card-order choice has no heading, and it is not s
+- [ ] **P13-R1-C13** *(major · round flow · ruling 17)*: 'Edit bids' wipes the tricks (and renege marks) already typed, although the notice says they are untouched
+- [ ] **P13-R1-C14** *(major · round flow · ruling 17)*: Unlocked bids and unsaved tricks vanish without warning when the round screen is left or reloaded
+- [ ] **P13-R1-C15** *(major · round flow · ruling 18)*: Bidding order: the app assumes row 1 bids first, the cursor jumps to the first empty row, and 'Same players' r
+- [ ] **P13-R1-C16** *(idea · round flow · ruling 18)*: Idea: one tap to start a round with an unchanged table
+- [ ] **P13-R1-C17** *(major · structure · ruling 3, 44)*: A page from one group is shown under another group's header, with that group's admin buttons and 'Player Not F
+- [ ] **P13-R1-C18** *(major · structure · ruling 3)*: After leaving a group, the browser Back button is stuck on Your Groups
+- [ ] **P13-R1-C19** *(major · structure · ruling 1)*: Group tabs: label and icon do not match the content ('Sessions' = standings and awards, trophy = the session l
+- [ ] **P13-R1-C20** *(major · structure · ruling 4)*: On phones the header arrow leaves the group, has no label, and sits above a second back arrow
+- [ ] **P13-R1-C21** *(major · structure · ruling 4)*: In-page Back links are fixed destinations: player -> History, session -> group home, About -> Your Groups
+- [ ] **P13-R1-C22** *(major · structure + stats/backend · ruling 5, 13)*: 'My best night' and 'who won' cannot be found: History and closed sessions do not name a winner, a profile has
+- [ ] **P13-R1-C23** *(minor · round flow · ruling 24)*: Closing a session: button at the very bottom, browser confirm box, no closing summary, no way to reopen
+- [ ] **P13-R1-C24** *(major · structure + stats/backend · ruling 6, 13)*: Round history: only on a second 'me' page, cut at 50 rows without saying so, and no row names its session
+- [ ] **P13-R1-C25** *(major · structure · ruling 6)*: Notes are buried: a note tapped in Activity opens the top of a long player page; the note box sits below 50 ro
+- [ ] **P13-R1-C26** *(minor · structure · ruling 6)*: Profile tiles: the explanation bubble covers the number it explains; 5/3/3 tiles leave holes in the two-column
+- [ ] **P13-R1-C27** *(minor · structure · ruling 6)*: 'View another player' is a blank box at the bottom of the profile
+- [ ] **P13-R1-C28** *(minor · structure · ruling 6)*: One note, two dates (Activity prints the day it was written next to the session's name); round rows dated diff
+- [ ] **P13-R1-C29** *(minor · stats/backend · ruling 66)*: Activity: my own note raises the 'new' badge; Activity exists only outside a group and lists notes only
+- [ ] **P13-R1-C30** *(minor · structure + onboarding/admin · ruling 2, 32)*: Account and identity: sign-up never asks a name, My Account shows 'User' with nothing to edit; three pages cal
+- [ ] **P13-R1-C31** *(minor · onboarding/admin · ruling 31)*: After claiming a player nothing confirms who you are now, and the joiner is told no way to undo it
+- [ ] **P13-R1-C32** *(minor · onboarding/admin · ruling 32)*: Password reset: success is not confirmed, and a used link leads nowhere
+- [ ] **P13-R1-C33** *(minor · every implementer · ruling Words)*: Names drift: WHIST / WhistMate / Israeli Whist; 'games' for rounds and for sessions; three names for a note
+- [ ] **P13-R1-C34** *(minor · round flow · ruling Words)*: Developer wording on the game screens (Σ=13, 're-derives', 'Table UP · trump No-Trump', 'Network Error')
+- [ ] **P13-R1-C35** *(minor · onboarding/admin · ruling 51)*: Members: 'Remove' does three different things and explains none; 'Unclaimed', 'ghost', 'soft-deletes' wording
+- [ ] **P13-R1-C36** *(minor · round flow · ruling 25)*: No game-limit option when starting a session, although the server and the rulebook have one
+- [ ] **P13-R1-C37** *(major · stats/backend + structure · ruling 10)*: Awards: a profile shows a number under every award whether or not the player holds it; The Destroyer names one
+- [ ] **P13-R1-C38** *(minor · structure + stats/backend · ruling 7)*: The small ▲ number in the standings: 'this session' is whichever session last had a scored round, open or clos
+- [ ] **P13-R1-C39** *(minor · stats/backend + structure · ruling 12)*: 0-BID SUCCESS shows 0% for a player who never bid zero
+- [ ] **P13-R1-C40** *(major · foundation · ruling 38)*: Hebrew free text (notes, session names, locations) is laid out left-to-right
+- [ ] **P13-R1-C41** *(major · foundation · ruling 38, 65)*: A Hebrew name inside an English line is reordered: 'Bid for 4 · נועה blocked', and row labels read 'יוסי .1'
+- [ ] **P13-R1-C42** *(major · foundation + round flow · ruling 15, 39)*: Tap targets are under 44 px (keypad 42, main buttons 36 high, RENEGE 19 high, header arrow 16)
+- [ ] **P13-R1-C43** *(major · foundation · ruling 37)*: Colour meanings collide: UP is red and DOWN green beside ↑ green / ↓ red; gold is used for positive, zero and 
+- [ ] **P13-R1-C44** *(minor · foundation · ruling 22)*: Suit symbols: picker order differs from the rulebook's ranking, and red suits lose their colour in places
+- [ ] **P13-R1-C45** *(major · foundation · ruling 37)*: Red text is too dim on navy (about 3.0-3.9:1)
+- [ ] **P13-R1-C46** *(major · onboarding/admin · ruling 34)*: Group Admin breaks sideways: 364 px wide at 320 px, and Remove -> Confirm / Cancel pushes Cancel off a 390 px 
+- [ ] **P13-R1-C47** *(major · onboarding/admin + round flow · ruling 35, 48)*: Destructive actions are confirmed in four different ways, and Archive, Regenerate Code and app-level Make Admi
+- [ ] **P13-R1-C48** *(owner decision (reported as major) — NOT fixing: the owner's artwork and the owner's decision; an alternative icon drawn from the in-app mark will be offered)*: The store icon (painted jester, 'Whist' ribbon) and the app (flat yellow spade tile, 'WHISTMATE') do not look 
+- [ ] **P13-R1-C49** *(minor · foundation · ruling 39)*: Dialogs on phones are a square edge-to-edge band with touching buttons; claim rows 4 px narrower than 'I'm a n
+- [ ] **P13-R1-C50** *(minor · foundation · ruling 8)*: The 'page not found' screen is a white generic template
+- [ ] **P13-R1-C51** *(minor · foundation · ruling 40)*: Type: many sizes with real information at 9-11 px, and three page-title styles
+- [ ] **P13-R1-C52** *(minor · foundation · ruling 39)*: Gold is used for everything at once (logo, buttons, selected options, scores, badges, links, status)
+- [ ] **P13-R1-C53** *(minor · foundation · ruling 39)*: Form controls: near-invisible input outline, two input heights, three label styles, invisible off-switch, blac
+- [ ] **P13-R1-C54** *(minor · foundation · ruling 39)*: Buttons: three heights and casings; a touched 'Regenerate Code' stays white-on-gold; Save Settings gives no co
+- [ ] **P13-R1-C55** *(minor · foundation · ruling 42)*: One player, three avatar styles; a Hebrew yod initial looks like an empty circle
+- [ ] **P13-R1-C56** *(minor · foundation · ruling 41)*: Two card styles and three badge styles on one screen
+- [ ] **P13-R1-C57** *(minor · foundation · ruling 41)*: Empty and error states come in several looks; a new session shows two at once; a missing session offers 'Try A
+- [ ] **P13-R1-C58** *(minor · onboarding/admin · ruling 32)*: Sign-in screens have no breathing room on short screens
+- [ ] **P13-R1-C59** *(minor — NOT fixing: the app is made for phones; the desktop column works and nothing breaks)*: Desktop: a 640 px phone column with the tab bar stretched across the window; the rules page alone is full widt
+- [ ] **P13-R1-C60** *(idea — NOT fixing: idea — a restyle beyond "improve within the identity")*: Idea: a little more 'card table' in the look
+- [ ] **P13-R1-C61** *(minor · round flow · ruling 22)*: Trump control is a faint dot; a winner marked without a suit is dropped silently
+- [ ] **P13-R1-C62** *(minor — NOT fixing: BY DESIGN — the app records what the table decided; it cannot see the auction)*: The trump record accepts a winner who did not bid highest, and pre-fills the first of several tied bidders
+- [ ] **P13-R1-C63** *(minor · round flow · ruling 23)*: Fixing a saved round is a detour: two 'Edit round' taps, keyboard fields instead of the pad, no return to the 
+- [ ] **P13-R1-C64** *(minor · round flow · ruling 59)*: A plain player cannot fix a wrongly scored round and is not told who can
+- [ ] **P13-R1-C65** *(minor — NOT fixing: BY DESIGN — an everyone-falls round was played and scored zero; it stays a round played)*: Cancelled ('everyone falls') rounds still count as rounds played and lower the average and contract accuracy
+- [ ] **P13-R1-C66** *(minor · onboarding/admin · ruling 43)*: The real assistant answered a Hebrew question in English
+- [ ] **P13-R1-C67** *(minor · onboarding/admin · ruling 43)*: The assistant's refusal is 'IDK bro' and a dead end; one answer left out the other progressive tiers
+- [ ] **P13-R1-C68** *(minor · round flow · ruling 25)*: Every new session is named 'Whist Night', and the session card shows 'Advanced' but not the scoring method
+- [ ] **P13-R1-C69** *(idea — NOT fixing: idea)*: Idea: fill in the fourth player's tricks automatically and dim impossible numbers
+- [ ] **P13-R1-C70** *(idea · round flow · ruling 27)*: Idea: show what the last round did to each player without scrolling
+- [ ] **P13-R1-C71** *(idea — NOT fixing: idea)*: Idea: compare two players side by side
+- [ ] **P13-R1-C72** *(idea — NOT fixing: idea)*: Idea: a 'podium' of three means little at a table of four
+- [ ] **P13-R1-C73** *(major · round flow · ruling 45)*: New Session ignores the group's default scoring and Advanced setting after a reload or direct open
+- [ ] **P13-R1-C74** *(major · onboarding/admin · ruling 46)*: Admin errors appear far from the control that caused them, and a successful save shows nothing
+- [ ] **P13-R1-C75** *(minor · stats/backend · ruling 50)*: Two players can have the same name in different letter case
+- [ ] **P13-R1-C76** *(minor · round flow · ruling 49)*: Starting a session while one is open throws the form away and jumps to the open session without a word
+- [ ] **P13-R1-C77** *(minor · round flow · ruling 52)*: After a round is deleted the Start Round button shows the wrong number
+- [ ] **P13-R1-C78** *(minor · round flow + stats/backend · ruling 54, 63)*: Session name, location and date accept anything; a blank date is saved as the day before (shortly after midnig
+- [ ] **P13-R1-C79** *(minor · every implementer · ruling 53)*: An archived group still offers every write action; they fail only at the last step
+- [ ] **P13-R1-C80** *(minor · onboarding/admin · ruling 55)*: After deleting a group the admin stays on /admin and sees 'ADMINS ONLY' for a different group
+- [ ] **P13-R1-C81** *(minor · onboarding/admin · ruling 56)*: The App Admin dashboard frame is drawn for signed-out visitors and ordinary users
+- [ ] **P13-R1-C82** *(minor · onboarding/admin · ruling 57)*: Admin list keeps a member's e-mail after Unclaim; deleting a note that is already gone fails silently
+- [ ] **P13-R1-C83** *(minor · every implementer · ruling 60)*: Controls with no accessible name; toggles that expose no state
+- [ ] **P13-R1-C84** *(minor · stats/backend · ruling 58)*: Tied players are given different ranks - and two tied leaders are both credited with a win
+- [ ] **P13-R1-C85** *(idea — NOT fixing: idea — needs live updates to matter)*: Idea: Save Round does not notice that the bids were changed by someone else
+- [ ] **P13-R1-C86** *(idea — NOT fixing: idea — a real double tap is already safe)*: Idea: Create Group has no server-side guard against a duplicate request
+
+- [ ] 🔄 **P13-4:** fix every blocker and major from round 1, and the cheap minors.
 - [ ] **P13-5:** verify round 1's fixes — the QA tester re-walks each changed flow, before and after
   screenshots; build, lint and all tests green.
 - [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
@@ -571,10 +688,9 @@
   fields: data.role"), other self-updates (the `groups` cache) still accepted, admin restored through
   `exec --privileged`. The live app had 6 users and exactly 1 app admin, so the hole had not been used.
   A guard in the access test fails if the field rule is ever removed.
-- [ ] **P13-B13** *(owner — soon)*: confirm that SIGN-UP still works on the live app with the role rule
-  in place (a fresh e-mail in a private window). It could not be tested by the agent: sign-up needs a
-  real mailbox, and the platform rejects made-up domains. If sign-up fails, the rule is the first
-  suspect — loosen nothing; tell the agent.
+- [x] **P13-B13** *(done Nov 19 2026 — by the owner)*: sign-up still works on the live app with the
+  role field rule in place. The owner created a fresh account ("it felt normal") and reached the
+  create-or-join-a-group screen; the server then showed 7 users, 1 app admin, 6 plain users.
 
 ### 13d. Ship
 

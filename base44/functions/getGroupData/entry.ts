@@ -9,11 +9,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 //   group            { group_id, include_results? } -> { sessions, rounds, results }
 //   session          { session_id }                 -> { session, rounds, results }
 //   round            { round_id }                   -> { round, session, results }
-//   player           { player_id }                  -> { player, results, rounds }  (latest scored rounds)
+//   player           { player_id }                  -> { player, results, rounds, sessions, total_rows, limit }
+//                    results = the player's latest `limit` scored rows, newest first, out of total_rows;
+//                    rounds = their Game records; sessions = { [session_id]: { id, name, session_date, status } }
 //   shared_sessions  { player_id }                  -> { sessions }  (nights the caller and that player both played)
 
 const PAGE = 500; // the entity store caps one filter() at 500 rows
-const PLAYER_HISTORY_LIMIT = 50;
+const PLAYER_HISTORY_LIMIT = 200; // rows of round history sent for one player (the response says how many exist)
 
 // Cursor pagination past the page cap — mirrors src/lib/fetch-all.js / computeGlobalStats.
 // The $lte cursor + seen-set handles rows sharing a created_date (bulkCreate).
@@ -125,20 +127,35 @@ Deno.serve(async (req) => {
         if (!member) return deny(404, 'Player not found');
         const gate = await authorize(base44, user, member.group_id);
         if (gate.response) return gate.response;
-        const rows = await fetchAll(db.RoundResult, { player_id: member.id });
+        // The group's rounds and sessions come in a few pages each, instead of one read
+        // by id per row of the history.
+        const [rows, groupRounds, groupSessions] = await Promise.all([
+          fetchAll(db.RoundResult, { player_id: member.id }),
+          fetchAll(db.Game, { group_id: member.group_id }),
+          fetchAll(db.Session, { group_id: member.group_id }),
+        ]);
         // Scored rows only, newest first. RoundResult rows are created with their round,
         // so their own created_date orders them the same way the rounds are ordered.
-        const results = rows
+        const scored = rows
           .filter((r) => r.group_id === member.group_id && r.points != null)
-          .sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())
-          .slice(0, PLAYER_HISTORY_LIMIT);
-        const roundIds = [...new Set(results.map((r) => r.game_id))];
-        const rounds = (await Promise.all(roundIds.map((id) => db.Game.get(id).catch(() => null))))
-          .filter((g) => g && g.group_id === member.group_id);
+          .sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+        // Never a silent cut: total_rows says how many there are, limit how many are sent.
+        const results = scored.slice(0, PLAYER_HISTORY_LIMIT);
+        const roundIds = new Set(results.map((r) => r.game_id));
+        const rounds = groupRounds.filter((g) => roundIds.has(g.id));
+        // The session of every row sent, by id — so each row can say which night it was.
+        const sessionIds = new Set(results.map((r) => r.session_id));
+        const sessions = {};
+        for (const s of groupSessions) {
+          if (sessionIds.has(s.id)) sessions[s.id] = { id: s.id, name: s.name, session_date: s.session_date, status: s.status };
+        }
         return Response.json({
           player: { id: member.id, name: member.player_name, group_id: member.group_id },
           results,
           rounds,
+          sessions,
+          total_rows: scored.length,
+          limit: PLAYER_HISTORY_LIMIT,
         });
       }
 

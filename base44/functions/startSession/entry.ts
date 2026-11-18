@@ -32,6 +32,35 @@ function parseGameLimit(value) {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 99 ? value : NaN;
 }
 
+// The session name and the place: nothing, null or blank -> '' (not given); a text ->
+// that text without surrounding spaces; longer than MAX_TEXT characters, or not a text at
+// all -> null, which the caller refuses.
+const MAX_TEXT = 60;
+function parseText(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  return text.length <= MAX_TEXT ? text : null;
+}
+
+// The session date: nothing, null or blank -> '' (not given, the caller falls back to
+// today). Otherwise it must be YYYY-MM-DD, a day that exists (not 2026-02-30), from
+// MIN_DATE to MAX_DATE -> that string. Anything else -> null, which the caller refuses.
+const MIN_DATE = '2000-01-01';
+const MAX_DATE = '2100-12-31';
+function parseSessionDate(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  if (text === '') return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!m) return null;
+  const day = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  // A day that does not exist rolls over (Feb 30 -> Mar 2) and no longer reads the same.
+  if (day.toISOString().slice(0, 10) !== text) return null;
+  return text >= MIN_DATE && text <= MAX_DATE ? text : null;
+}
+
 // Start a new whist Session (a meetup/night) in a group. Session/Game/RoundResult
 // create RLS is platform-admin only — sessions are created through this function,
 // which enforces group membership + the group lifecycle and freezes the scoring
@@ -47,6 +76,20 @@ Deno.serve(async (req) => {
     const gameLimit = parseGameLimit(game_limit);
     if (Number.isNaN(gameLimit)) {
       return Response.json({ error: 'game_limit must be a whole number between 1 and 99' }, { status: 400 });
+    }
+    // A session cannot be edited afterwards, so what goes in is checked here as well as
+    // in the form: short texts, and a date that exists.
+    const sessionName = parseText(name);
+    if (sessionName === null) {
+      return Response.json({ error: `The session name can be at most ${MAX_TEXT} characters` }, { status: 400 });
+    }
+    const sessionLocation = parseText(location);
+    if (sessionLocation === null) {
+      return Response.json({ error: `The place can be at most ${MAX_TEXT} characters` }, { status: 400 });
+    }
+    const sessionDate = parseSessionDate(session_date);
+    if (sessionDate === null) {
+      return Response.json({ error: `The date must be a real date between ${MIN_DATE} and ${MAX_DATE}, as YYYY-MM-DD` }, { status: 400 });
     }
 
     // Any member of the group may start a session (app admins allowed for support).
@@ -83,10 +126,13 @@ Deno.serve(async (req) => {
 
     const session = await base44.asServiceRole.entities.Session.create({
       group_id,
-      name: (name || '').trim() || 'Whist Night',
+      name: sessionName || 'Whist Night',
       status: 'open',
-      session_date: session_date || new Date().toISOString().slice(0, 10),
-      location: (location || '').trim(),
+      // No date sent: today's date in UTC — the server does not know the scorer's time
+      // zone, so late in the evening west of UTC or just after midnight east of it this
+      // is not the local day. The form always sends the local date.
+      session_date: sessionDate || new Date().toISOString().slice(0, 10),
+      location: sessionLocation,
       // Scoring rules are chosen per-session at creation (falling back to the
       // group defaults), then frozen for the whole night.
       advanced_rules_enabled: advanced_rules_enabled != null ? !!advanced_rules_enabled : !!group.advanced_rules_default,

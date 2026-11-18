@@ -45,12 +45,10 @@ export default function Home() {
       );
       setSessions(sorted);
       setActiveSession(sorted.find((s) => s.status === 'open') || null);
-      // Most recent session that actually has scored rounds → drives the "this session" delta.
-      const scoredSessionIds = new Set(results.filter((r) => r.points != null).map((r) => r.session_id));
-      const latestSessionId = (sorted.find((s) => scoredSessionIds.has(s.id)) || {}).id || null;
-      setStandings(buildStandings(results, {}, latestSessionId));
-      const efGames = new Set(rounds.filter((r) => r.everyone_falls).map((r) => r.id));
-      setAwards(computeAwardLeaders(results, efGames));
+      // Wins count closed sessions only, so the standings need the sessions; they also pick
+      // the session the small figure beside a total refers to (delta_session on each row).
+      setStandings(buildStandings(results, {}, { sessions: sess }));
+      setAwards(computeAwardLeaders(results, rounds));
       const counts = {};
       rounds.forEach((r) => { counts[r.session_id] = (counts[r.session_id] || 0) + 1; });
       setRoundCounts(counts);

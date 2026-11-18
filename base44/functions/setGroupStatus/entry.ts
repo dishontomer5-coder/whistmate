@@ -19,6 +19,24 @@ async function hintedMemberRow(base44, user, groupId) {
   return null;
 }
 
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -51,6 +69,18 @@ Deno.serve(async (req) => {
     // archived group is made active again. The group does have to exist.
     const group = await base44.asServiceRole.entities.Group.get(group_id).catch(() => null);
     if (!group) return Response.json({ error: 'Group not found' }, { status: 404 });
+
+    // An archived group is read-only, so a session left open in it could never be closed
+    // (closeSession is refused like every other write). Archiving therefore waits until
+    // the open session is closed. Un-archiving and deleting are not held up by it.
+    // Every session is read, and the status is checked in memory: the compound
+    // {group_id, status} index can read stale right after a write.
+    if (status === 'archived') {
+      const sessions = await fetchAll(base44.asServiceRole.entities.Session, { group_id });
+      if (sessions.some((s) => s.status === 'open')) {
+        return Response.json({ error: 'Close the open session first' }, { status: 409 });
+      }
+    }
 
     await base44.asServiceRole.entities.Group.update(group_id, { status });
 

@@ -49,7 +49,7 @@ export default function SessionView() {
       Object.values(byRound).forEach((arr) => arr.sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0)));
       setResultsByRound(byRound);
       setRounds([...rnds].sort((a, b) => (b.round_number ?? 0) - (a.round_number ?? 0)));
-      setStandings(buildStandings(results));
+      setStandings(buildStandings(results, {}, { sessions: [sess] })); // a win needs the session to be closed
     } catch (err) {
       console.error(err);
       setNotFound(err.response?.status === 404);

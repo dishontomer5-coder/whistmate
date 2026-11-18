@@ -17,8 +17,10 @@ export default function Leaderboard({ players = [], sortBy = 'avg' }) {
 
   return (
     <div className="space-y-2">
-      {sorted.map((player, index) => {
+      {sorted.map((player) => {
         const value = player[metricKey] ?? 0;
+        // Tied players share a rank (#2, #2, #4): the place of the first row with this value.
+        const rank = sorted.findIndex((p) => (p[metricKey] ?? 0) === value) + 1;
         return (
           <Link
             key={player.player_id}
@@ -27,7 +29,7 @@ export default function Leaderboard({ players = [], sortBy = 'avg' }) {
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className="font-heading font-bold text-sm text-muted-foreground flex-shrink-0 w-6">
-                #{index + 1}
+                #{rank}
               </span>
               <PlayerAvatar name={player.player_name} />
               <div className="min-w-0">

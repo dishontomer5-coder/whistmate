@@ -323,11 +323,23 @@ await check('getGroupData player + stats + roster (Maya)', async () => {
   const player = await fn('getGroupData', mayaToken, { scope: 'player', player_id: member('Dan').id });
   assert.equal(player.status, 200);
   assert.deepEqual(player.data.player, { id: member('Dan').id, name: 'Dan', group_id: thursday.id });
-  assert.equal(player.data.results.length, 50);
+  // The whole round history comes back (it used to stop at 50 rows without saying so): Dan has
+  // fewer than the 200-row limit, and the response says how many there are.
+  const dansRounds = groupData.results.filter((r) => r.player_id === member('Dan').id && r.points != null).length;
+  assert.ok(dansRounds > 50 && dansRounds < 200, `Dan has ${dansRounds} scored rounds`);
+  assert.equal(player.data.results.length, dansRounds);
+  assert.equal(player.data.total_rows, dansRounds);
   assert.ok(player.data.results.every((r) => r.player_id === member('Dan').id && r.points != null));
+  assert.ok(player.data.results.every((r) => player.data.sessions[r.session_id]?.name), 'a round-history row without its session');
   const stats = await fn('computePlayerStats', mayaToken, { player_id: member('Dan').id, group_id: thursday.id });
   assert.equal(stats.status, 200);
-  assert.equal(stats.data.performance.rounds_played, groupData.results.filter((r) => r.player_id === member('Dan').id && r.points != null).length);
+  assert.equal(stats.data.performance.rounds_played, dansRounds);
+  // A win is a closed session finished first: the open session is in Dan's list, not in his record.
+  const dansNights = stats.data.sessions;
+  assert.equal(dansNights[0].session_id, openSession.id);
+  assert.equal(dansNights[0].status, 'open');
+  assert.equal(stats.data.performance.sessions_played, dansNights.filter((n) => n.status === 'closed').length);
+  assert.equal(stats.data.performance.wins, dansNights.filter((n) => n.status === 'closed' && n.rank === 1).length);
   const roster = await fn('getGroupMembers', mayaToken, { group_id: thursday.id });
   assert.equal(roster.data.my_role, 'admin');
   assert.equal(roster.data.members.length, 7);
