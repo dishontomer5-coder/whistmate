@@ -30,3 +30,8 @@ dist-ssr
 .env
 .vite
 base44/.app.jsonc
+sandbox/.dist
+sandbox/.browse
+
+# Agent worktrees (local scratch)
+.claude/worktrees

@@ -438,6 +438,17 @@ this trail.
   skill. Each practice carries the WhistMate lesson behind it. Options considered: a doc in this repo /
   a shared online doc / a skill straight away.
 
+- **Decision (Nov 18 2026):** The sandbox is a **fake backend running the real function code** —
+  `sandbox/server.mjs` serves a build of the frontend and implements the Base44 REST API the app
+  calls, executing the real `base44/functions/*/entry.ts` against a seeded in-memory store (the same
+  stub technique as `scripts/functions-access.test.mjs`), honouring each entity's `rls` block. —
+  `base44 dev` gives no control over sign-in, seeding or one-instance-per-reviewer; a separate Base44
+  test app needs a verified e-mail per test user, which agents cannot receive. Reviewers drive it
+  through `sandbox/browse.mjs`, a dependency-free headless-Chrome driver. What it cannot show: the
+  real LLM (answers are simulated; real answers were sampled from the live `askRules` on Nov 18 2026
+  for the Whist-player reviewer), e-mail delivery, Google sign-in, realtime updates, and whatever
+  Base44's hosting injects. Options considered: `base44 dev` / a Base44 test app / fake backend.
+
 ### Must not change
 
 - **Scoring results.** `src/lib/scoring.test.mjs` stays green with its assertions untouched.

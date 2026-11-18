@@ -11,7 +11,7 @@
     "user_id": {
       "type": "string",
       "title": "User ID",
-      "description": "FK to User entity. Nullable \u2014 null means ghost member (unclaimed profile). Indexed for membership lookup.",
+      "description": "FK to User entity. Nullable — null means ghost member (unclaimed profile). Indexed for membership lookup.",
       "default": null,
       "index": true
     },
@@ -55,32 +55,11 @@
     "role"
   ],
   "rls": {
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
+    "create": false,
     "read": {
-      "$or": [
-        {
-          "data.user_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "data.user_id": "{{user.id}}"
     },
-    "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    }
+    "update": false,
+    "delete": false
   }
 }

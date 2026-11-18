@@ -23,7 +23,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-1.
+> in_progress: P13-2.
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -483,14 +483,26 @@
 
 ### 13a. Sandbox
 
-- [ ] 🔄 **P13-1:** a place where every reviewer can be signed in and nothing real is touched — a local
-  sandbox, a fake backend, or a separate Base44 test app, whichever is easiest — seeded with realistic
-  data (several groups, many sessions, 150+ rounds, Hebrew and English names, a round in play, an
-  archived group, notes). Record how to start it and how to sign in.
+- [x] **P13-1** *(done Nov 19 2026)*: **the sandbox.** `sandbox/server.mjs` serves a build of the
+  frontend and implements the Base44 REST API the app calls, running the REAL `base44/functions`
+  against a seeded in-memory store and honouring every entity's `rls` block; `sandbox/seed.mjs` seeds
+  through the real functions (Thursday Whist: 7 members incl. two unclaimed Hebrew-named players, 14
+  closed sessions + one open with a round in play, 164 rounds, both scoring methods, advanced rules,
+  zero bids, reneges, everyone-falls, notes; Family Table; an archived and a soft-deleted group; 8
+  users, password `whist123`, tokens `sbx-<name>`); `sandbox/smoke.mjs` checks it over HTTP;
+  `sandbox/browse.mjs` is a dependency-free headless-Chrome driver for the reviewers. Start:
+  `node sandbox/server.mjs --port 4600`; sign in via the form or `/?access_token=sbx-maya`; everything
+  else is in `sandbox/README.md` and `GET /__sandbox/info`. Simulated: the LLM, e-mail, Google,
+  realtime, hosting extras. — why this design: plan.md Phase 13.
+
+> **Wave 13a verification (Nov 19 2026):** `node sandbox/smoke.mjs` → **28 passed, 0 failed** (own
+> run, after the backend merge and the entity change below); the lead opened the sandbox signed in as
+> the demo admin in headless Chrome — groups list, group home, history, session, round in play all
+> render seeded data at 390 px with no console errors and no horizontal overflow.
 
 ### 13b. Review and fix rounds
 
-- [ ] **P13-2:** review round 1 — the six reviewers, independently, with screenshots.
+- [ ] 🔄 **P13-2:** review round 1 — the six reviewers, independently, with screenshots.
 - [ ] **P13-3:** triage round 1 — reproduce, de-duplicate, rate; list every finding here as a task.
   P13-F1 (the Sessions / History tabs and the trophy icon) is already known.
 - [ ] **P13-4:** fix every blocker and major from round 1, and the cheap minors.
@@ -501,13 +513,59 @@
 
 ### 13c. Security and the guide
 
-- [ ] **P13-7:** P12-9 — no backend function trusts the user-writable `user.groups` cache: apply the
-  hint-not-proof check to the 18 write functions and extend `scripts/functions-access.test.mjs` to
-  cover every one of them.
+- [x] **P13-7** *(done Nov 19 2026 — closes P12-9)*: **no backend function trusts the user-writable
+  membership cache.** The 18 write functions each carry `hintedMemberRow`: the cache only points at a
+  `GroupMember` row, which is re-read by id and counts only if it is the caller's, in that group; role
+  and name come from the row. The access test went from 89 to 383 checks, 114 of which fail against the
+  old code; it now classifies every function folder as read or write and fails on an unclassified one.
 - [ ] **P13-8:** `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
   kind (structure and navigation, flows, states, wording, visual design, phones, accessibility, data
   access and privacy, accountability, testing, shipping), each practice with the WhistMate lesson
   behind it.
+
+### 13e. Backend findings (new, found by the backend implementer while doing P13-7, Nov 18 2026)
+
+> Reproduced in the access-test harness on the P13-7 branch. Rulings are the lead's; the same
+> implementer is fixing them on that branch with tests.
+
+- [x] **P13-B1** *(done Nov 19 2026 — the target must be in `group_id` for every role change (404, no row returned); no demotion, removal or unclaim may leave a group without an admin who has an account.)* *(blocker)*: `updateMemberRole` checks that the target belongs to the group only when
+  promoting — any signed-in user can demote a member of ANOTHER group whose id they know, and a plain
+  member can leave their own group with no admin. Fix: target must be in `group_id` for every change;
+  the last-admin guard covers every demotion.
+- [x] **P13-B2** *(done Nov 19 2026 — an unscored round can be deleted by any member; a scored one only by a group admin or app admin (403 "Only a group admin can delete a scored round").)* *(major)*: `deleteRound` lets any member delete any round, scored ones in closed
+  sessions included, while the UI offers it to admins only. Ruling: an unscored round (bidding /
+  playing) — any member; a scored round — group admin or app admin.
+- [x] **P13-B3** *(done Nov 19 2026 — one rule in 18 write functions — archived → 403 "This group is archived — it is read-only", deleted → 404 — checked after membership; exceptions: un-archiving, the app-admin tools, leaving an archived group yourself, app-admin note moderation.)* *(major)*: archived and soft-deleted groups are still writable through most write
+  functions. Ruling: not `active` = read-only everywhere (403 "This group is archived — it is
+  read-only"; deleted → 404), except un-archiving, the app-admin tools, leaving the group yourself,
+  and app-admin note moderation.
+- [x] **P13-B4** *(done Nov 19 2026 — `cleanupOrphans` and `listAllGroupsWithStats` page every "all rows" read by cursor and refuse (500) rather than guess if a read cannot be completed.)* *(major, data loss at scale)*: `cleanupOrphans` decides from one 500-row page of
+  members, so past 500 member rows it deletes valid notes; `listAllGroupsWithStats` undercounts the
+  same way. Fix: cursor pagination.
+- [x] **P13-B5** *(done Nov 19 2026 — `renameMember` pages its name sweep; the same single-page assumption was removed from the last-admin guards, `startRound`, `previewGroupByCode`, `getGroupMembers`, `getActivityFeed`.)* *(minor)*: `renameMember` renames only the first 500 results of a player.
+- [x] **P13-B6** *(done Nov 19 2026 — unknown ids are 404 with a specific message in every write function.)* *(minor)*: unknown ids give 500 instead of 404 in eleven write functions.
+- [x] **P13-B7** *(done Nov 19 2026 — `round_number` is the highest existing number plus one.)* *(minor)*: `startRound` numbers a round `rounds.length + 1`, so deleting a round makes
+  the next number repeat.
+- [x] **P13-B8** *(done Nov 19 2026 — at most five hinted rows are re-read per call, in all 24 functions that read the cache.)* *(minor, hardening)*: the cache-hint loop re-reads one row per cache entry — bound it
+  to five hinted ids per call.
+- [x] **P13-B10** *(major, new — found by the sandbox builder; done Nov 19 2026)*: profile stats
+  undercounted once a player's sessions held more than one page of results (`computePlayerStats`,
+  `computeGlobalStats` asked for thousands of rows in one query) — so a profile disagreed with the group
+  home. Both now page by cursor.
+- [x] **P13-B11** *(major, new — found by the sandbox builder; backend done Nov 19 2026)*: a session's
+  game limit could never be set (`startSession` always stored null) although `startRound` enforces it
+  and the rulebook describes it. `startSession` now accepts `game_limit` (1–99, or none). The New
+  Session screen does not offer it yet — that is a frontend task for the fix round.
+- [x] **P13-B12** *(done Nov 19 2026)*: data entities are closed to EVERY browser caller. `Group`,
+  `Session`, `Game`, `RoundResult`, `TableTalkNote`, `JoinAttempt`: every rule is the literal `false`
+  (was "app admin only", and `Group` update/delete was "its creator"); `GroupMember`: read your own
+  rows, write nothing. Only service-role functions touch them, so no entity rule rests on `user.role`.
+- [ ] **P13-B9** *(to verify — owner, on the live app)*: every app-admin bypass assumes a user cannot set their own `role`
+  through `auth.updateMe`. The SDK's own typings say `updateMe({ role: 'admin' })` is allowed; the
+  platform docs are silent on who may do it. Could not be tested without a second, non-admin account
+  on the live app. After P13-B12 the data entities no longer depend on it, but the functions' app-admin
+  bypass and the platform's own user list still do. If the owner's check shows a plain user CAN promote
+  themselves: add a server-side allow-list for app admins (a secret) to every function.
 
 ### 13d. Ship
 

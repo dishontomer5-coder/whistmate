@@ -1423,11 +1423,14 @@ const stripJsonComments = (src) => {
   }
   return out;
 };
-const ADMIN_ONLY = { user_condition: { role: 'admin' } };
-for (const name of ['Group', 'Session', 'Game', 'RoundResult', 'TableTalkNote']) {
-  await t(`entity ${name}: read is app-admin only (never open)`, async () => {
+// Data entities are closed to EVERY browser caller — `false`, not "app admin only" — so the
+// lock does not rest on the user record's `role` field (P13-B9). Only service-role
+// functions read or write them.
+const CLOSED_ENTITIES = ['Group', 'Session', 'Game', 'RoundResult', 'TableTalkNote', 'JoinAttempt'];
+for (const name of CLOSED_ENTITIES) {
+  await t(`entity ${name}: read is closed to every browser caller`, async () => {
     const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', `${name}.jsonc`), 'utf8')));
-    assert.deepEqual(schema.rls.read, ADMIN_ONLY);
+    assert.equal(schema.rls.read, false);
   });
 }
 await t('no entity lets everyone read or write', async () => {
@@ -1437,18 +1440,28 @@ await t('no entity lets everyone read or write', async () => {
   }
 });
 // Group and game data are only ever touched through service-role functions, so the
-// browser gets nothing: every rule on them names the app admin and nothing else.
+// browser gets nothing: every rule on them is the literal `false`.
 section = 'P13 review fixes';
-await t('entities Group, Session, Game, RoundResult, TableTalkNote: every rule, on every operation, is app-admin only', async () => {
+await t('data entities: every rule, on every operation, is closed (false)', async () => {
   const offenders = [];
-  for (const name of ['Group', 'Session', 'Game', 'RoundResult', 'TableTalkNote']) {
+  for (const name of CLOSED_ENTITIES) {
     const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', `${name}.jsonc`), 'utf8')));
     const rules = schema.rls || {};
     for (const op of new Set(['create', 'read', 'update', 'delete', ...Object.keys(rules)])) {
-      if (JSON.stringify(rules[op]) !== JSON.stringify(ADMIN_ONLY)) offenders.push(`${name} rls.${op}: ${JSON.stringify(rules[op])}`);
+      if (rules[op] !== false) offenders.push(`${name} rls.${op}: ${JSON.stringify(rules[op])}`);
     }
   }
   assert.deepEqual(offenders, []);
+});
+await t('GroupMember: a browser caller reads only their own rows and writes nothing', async () => {
+  const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', 'GroupMember.jsonc'), 'utf8')));
+  assert.deepEqual(schema.rls, { create: false, read: { 'data.user_id': '{{user.id}}' }, update: false, delete: false });
+});
+await t('no entity rule depends on the user record\'s role field', async () => {
+  for (const file of readdirSync(path.join(ROOT, 'base44/entities'))) {
+    const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', file), 'utf8')));
+    assert.ok(!JSON.stringify(schema.rls || {}).includes('user_condition'), `${file} has a rule that trusts user.role`);
+  }
 });
 section = 'static guards';
 await t('the frontend never reads game data entities directly', async () => {
