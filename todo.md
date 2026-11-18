@@ -23,7 +23,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-2.
+> in_progress: P13-3 (triage), with fix wave 1 (foundation + stats) already running.
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -502,9 +502,34 @@
 
 ### 13b. Review and fix rounds
 
-- [ ] 🔄 **P13-2:** review round 1 — the six reviewers, independently, with screenshots.
-- [ ] **P13-3:** triage round 1 — reproduce, de-duplicate, rate; list every finding here as a task.
-  P13-F1 (the Sessions / History tabs and the trophy icon) is already known.
+- [x] **P13-2** *(done Nov 19 2026)*: **review round 1.** Six independent reviewers, each alone in a
+  private sandbox instance, driving the app through `sandbox/browse.mjs` (150–340 browser commands
+  each), none reading the source or each other. Every verdict: **"PUBLISH: yes, after fixes"**.
+
+  | Reviewer | Blocker | Major | Minor | Idea |
+  |---|---|---|---|---|
+  | Newcomer | 0 | 5 | 13 | 1 |
+  | Scorekeeper | 0 | 6 | 10 | 3 |
+  | Returning player | 0 | 9 | 13 | 3 |
+  | Visual designer | 0 | 7 | 18 | 3 |
+  | Whist player | 0 | 7 | 12 | 2 |
+  | QA tester | 0 | 5 | 18 | 3 |
+  | **Total (138)** | **0** | **39** | **84** | **15** |
+
+  What held up: scoring (the Whist player checked 100 player scores over 25 rounds against the
+  rulebook — no difference), server-side permissions, double-tap safety, validation messages, the
+  landing and About pages. The two defects already known were both found independently (the
+  Sessions/History tabs — P13-F1; the invite link lost through sign-in), which says the reviewers'
+  recall is good. Raw findings (outside the repo, temporary): the session scratchpad,
+  `review/r1/<reviewer>/findings.json`.
+- [ ] 🔄 **P13-3:** triage round 1. An independent "reproducer" is re-running every finding on a fresh
+  sandbox, clustering duplicates and tracing each to its cause in the code (`triage-verified.json`).
+  The lead's rulings — 61 of them, one per cluster of findings, with an owner each — are written
+  (`review/r1/RULINGS.md` in the scratchpad; the decisions that outlive this phase are logged in
+  plan.md). Main themes: tabs become Standings / Sessions / Players; the group comes from the page,
+  not from memory; a win is a CLOSED session; round entry becomes a focused screen with a sticky
+  action and nothing typed is ever lost; a started round can be discarded; an invitation survives
+  sign-in; one confirmation dialog; Hebrew text keeps its direction; colour means one thing.
 - [ ] **P13-4:** fix every blocker and major from round 1, and the cheap minors.
 - [ ] **P13-5:** verify round 1's fixes — the QA tester re-walks each changed flow, before and after
   screenshots; build, lint and all tests green.
