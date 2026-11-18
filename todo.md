@@ -37,6 +37,10 @@
 > global registry is an internal mirror) and deliberately left alone — owner's call; don't "fix" it with
 > `--registry` without asking. So prefer Base44's cloud build for the site (push `main`) over
 > `deploy --build` from this machine. (`.npmrc`'s `min-release-age=7` is still not enforced by npm 11.)
+> ⚠️ **When `npx base44@latest …` hangs**, the npm registry (the internal mirror) is unreachable — npx
+> stalls looking up "latest" before the CLI starts. Run the cached copy directly instead, e.g.
+> `~/.npm/_npx/<hash>/node_modules/.bin/base44` (pick the newest: `ls ~/.npm/_npx/*/node_modules/base44`,
+> v0.3.6 on Nov 19 2026). Same commands, same login.
 > ⚠️ CLI facts (base44@latest, Nov 18 2026): `--app-id <id>` is a GLOBAL option and is required (no
 > `base44/.app.jsonc` → not linked); `deploy` needs `--yes` when non-interactive and builds only with
 > `--build`; `functions deploy [names...]`, `functions list`, `entities push`, `site deploy` exist;
@@ -598,8 +602,7 @@
   A guard in the access test fails if the field rule is ever removed.
 - [x] **P13-B13** *(done Nov 19 2026 — by the owner)*: sign-up still works on the live app with the
   role field rule in place. The owner created a fresh account ("it felt normal") and reached the
-  create-or-join-a-group screen. (A server-side look at the new account's role was attempted and
-  dropped: `exec --privileged` hung twice that hour.)
+  create-or-join-a-group screen; the server then showed 7 users, 1 app admin, 6 plain users.
 
 ### 13d. Ship
 
