@@ -3,6 +3,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const RATE_LIMIT_MAX_ATTEMPTS = 10;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes — shared window with joinGroupByCode
 
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
 // Step 1 of the claim-by-code join flow (plan.md §11): validates the invite
 // code and returns what the joiner needs to pick an identity — the group info
 // and its unclaimed players. Possession of the code is the trust boundary.
@@ -35,12 +53,15 @@ Deno.serve(async (req) => {
     }
     const group = groups[0];
 
-    // Archived/deleted groups are read-only — no new members (§11.1 principle 5)
+    // A group that is not active is read-only — no new members (§11.1 principle 5):
+    // deleted -> 404, archived -> 403, the same answers every write gives
+    if (group.status === 'deleted') return Response.json({ error: 'Group not found' }, { status: 404 });
     if ((group.status || 'active') !== 'active') {
-      return Response.json({ error: 'This group is not accepting new members' }, { status: 403 });
+      return Response.json({ error: 'This group is archived — it is read-only' }, { status: 403 });
     }
 
-    const members = await base44.asServiceRole.entities.GroupMember.filter({ group_id: group.id });
+    // The whole roster: the joiner picks from every unclaimed player, not the first page
+    const members = await fetchAll(base44.asServiceRole.entities.GroupMember, { group_id: group.id });
     const alreadyMember = members.some(m => m.user_id === user.id);
 
     const unclaimedPlayers = members

@@ -10,13 +10,18 @@ const MAX_NOTES = 50;
 
 // Same rule as getGroupData: only a real GroupMember row owned by the caller counts.
 // The user-record cache (user.groups) is a hint for read-after-write lag (P7-9), and a
-// hinted row is re-read by id because a user can write their own record.
+// hinted row is re-read by id because a user can write their own record. At most
+// MAX_HINTS different rows are re-read, so a stuffed cache buys no extra reads.
+const MAX_HINTS = 5;
 async function membershipIn(base44, user, groupId) {
   const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
   const direct = rows.find((m) => m.group_id === groupId);
   if (direct) return direct;
+  const tried = new Set();
   for (const hint of (user.groups || [])) {
-    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(hint.member_id);
     const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
     if (row && row.user_id === user.id && row.group_id === groupId) return row;
   }

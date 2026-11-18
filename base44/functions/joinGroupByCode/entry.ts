@@ -7,10 +7,15 @@ const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 // a user can write their own record. It only rides out read-after-write lag (P7-9) — the
 // GroupMember row it points at is re-read by id and counts only if it really belongs to
 // the caller and to this group. Role and player_name come from that row, never the cache.
+// At most MAX_HINTS different rows are re-read, so a stuffed cache buys no extra reads.
+const MAX_HINTS = 5;
 async function hintedMemberRow(base44, user, groupId) {
   if (!groupId) return null;
+  const tried = new Set();
   for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
-    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(hint.member_id);
     const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
     if (row && row.user_id === user.id && row.group_id === groupId) return row;
   }
@@ -92,9 +97,11 @@ Deno.serve(async (req) => {
 
     const group = groups[0];
 
-    // Archived/deleted groups are read-only — no new members (§11.1 principle 5)
+    // A group that is not active is read-only — no new members (§11.1 principle 5):
+    // deleted -> 404, archived -> 403, the same answers every other write gives
+    if (group.status === 'deleted') return Response.json({ error: 'Group not found' }, { status: 404 });
     if ((group.status || 'active') !== 'active') {
-      return Response.json({ error: 'This group is not accepting new members' }, { status: 403 });
+      return Response.json({ error: 'This group is archived — it is read-only' }, { status: 403 });
     }
 
     // Check if user is already a member
@@ -117,7 +124,7 @@ Deno.serve(async (req) => {
     // name and game history are preserved. Unclaimed status is re-verified HERE
     // so a concurrent claim of the same player loses with a 409 (§11.2)
     if (claim_member_id) {
-      const target = await base44.asServiceRole.entities.GroupMember.get(claim_member_id);
+      const target = await base44.asServiceRole.entities.GroupMember.get(claim_member_id).catch(() => null);
       if (!target || target.group_id !== group.id) {
         return Response.json({ error: 'Player not found in this group' }, { status: 404 });
       }

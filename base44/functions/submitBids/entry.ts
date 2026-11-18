@@ -4,12 +4,29 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // a user can write their own record. It only rides out read-after-write lag (P7-9) — the
 // GroupMember row it points at is re-read by id and counts only if it really belongs to
 // the caller and to this group. Role and player_name come from that row, never the cache.
+// At most MAX_HINTS different rows are re-read, so a stuffed cache buys no extra reads.
+const MAX_HINTS = 5;
 async function hintedMemberRow(base44, user, groupId) {
   if (!groupId) return null;
+  const tried = new Set();
   for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
-    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(hint.member_id);
     const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
     if (row && row.user_id === user.id && row.group_id === groupId) return row;
+  }
+  return null;
+}
+
+// A group that is not active is read-only: archived -> 403, deleted or gone -> 404.
+// Resolves to the response to send back, or to null when the group can be written to.
+async function readOnlyGroup(base44, groupId) {
+  if (!groupId) return null; // a record that belongs to no group has no status to honour
+  const group = await base44.asServiceRole.entities.Group.get(groupId).catch(() => null);
+  if (!group || group.status === 'deleted') return Response.json({ error: 'Group not found' }, { status: 404 });
+  if ((group.status || 'active') !== 'active') {
+    return Response.json({ error: 'This group is archived — it is read-only' }, { status: 403 });
   }
   return null;
 }
@@ -32,7 +49,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'game_id and bids (map of player_id -> bid) are required' }, { status: 400 });
     }
 
-    const round = await base44.asServiceRole.entities.Game.get(game_id);
+    const round = await base44.asServiceRole.entities.Game.get(game_id).catch(() => null);
     if (!round) return Response.json({ error: 'Round not found' }, { status: 404 });
     // 'playing' is allowed too: the app records bids AFTER the real auction, so a mistyped
     // bid usually surfaces once play has started. Re-locking recomputes table_state, the
@@ -56,6 +73,9 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
       }
     }
+
+    const readOnly = await readOnlyGroup(base44, round.group_id);
+    if (readOnly) return readOnly;
 
     const results = (await base44.asServiceRole.entities.RoundResult.filter({ game_id }))
       .sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0));

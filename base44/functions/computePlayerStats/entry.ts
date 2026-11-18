@@ -1,5 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// How many cache-hinted member rows are re-read by id at the most — a user can write
+// their own cache, and stuffing it must not buy one request any number of reads.
+const MAX_HINTS = 5;
+
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
 // Per-player whist stats for a group. Aggregation MIRRORS src/lib/whist-stats.js
 // (Deno can't import src/) — keep in sync.
 Deno.serve(async (req) => {
@@ -30,11 +52,16 @@ Deno.serve(async (req) => {
       const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
       let isMember = rows.some((m) => m.group_id === groupId);
       if (!isMember) {
-        // The user-record cache is only a hint for read-after-write lag: the hinted row
-        // is re-read by id and must really be the caller's.
-        const hint = (user.groups || []).find((g) => g && g.group_id === groupId && g.member_id);
-        const row = hint ? await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null) : null;
-        isMember = !!row && row.user_id === user.id && row.group_id === groupId;
+        // The user-record cache is only a hint for read-after-write lag: a hinted row
+        // is re-read by id and must really be the caller's. At most MAX_HINTS are tried.
+        const tried = new Set();
+        for (const hint of (user.groups || [])) {
+          if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+          if (tried.size >= MAX_HINTS) break;
+          tried.add(hint.member_id);
+          const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
+          if (row && row.user_id === user.id && row.group_id === groupId) { isMember = true; break; }
+        }
       }
       if (!isMember) return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
     }
@@ -48,18 +75,7 @@ Deno.serve(async (req) => {
     };
 
     // All of this player's round results (paginated past the 500-row page cap).
-    const PAGE = 500;
-    const myRows = [];
-    const seen = new Set();
-    let cursor = null;
-    for (let guard = 0; guard < 40; guard++) {
-      const q = cursor ? { player_id: playerId, created_date: { $lte: cursor } } : { player_id: playerId };
-      const page = await base44.asServiceRole.entities.RoundResult.filter(q, '-created_date', PAGE);
-      const fresh = page.filter((r) => !seen.has(r.id));
-      fresh.forEach((r) => { seen.add(r.id); myRows.push(r); });
-      if (page.length < PAGE || fresh.length === 0) break;
-      cursor = page[page.length - 1].created_date;
-    }
+    const myRows = await fetchAll(base44.asServiceRole.entities.RoundResult, { player_id: playerId });
     // Group scope + only scored rows (points set on complete/cancelled rounds).
     const scoped = myRows.filter((r) => (!groupId || r.group_id === groupId) && r.points != null && r.bid != null && r.tricks_won != null);
     if (scoped.length === 0) return Response.json(empty);
@@ -84,10 +100,11 @@ Deno.serve(async (req) => {
 
     // --- win/podium via per-session ranking mirror ---
     const sessionIds = [...new Set(scoped.map((r) => r.session_id).filter(Boolean))];
+    // EVERY result of those sessions, all players — one filter() returns a single page
+    // (500 rows, about 125 rounds), and a ranking made from part of a night is wrong.
     let sessionRows = [];
     if (sessionIds.length > 0) {
-      sessionRows = await base44.asServiceRole.entities.RoundResult.filter(
-        { session_id: { $in: sessionIds } }, '-created_date', 5000);
+      sessionRows = await fetchAll(base44.asServiceRole.entities.RoundResult, { session_id: { $in: sessionIds } });
     }
     const bySession = {};
     sessionRows.forEach((r) => {

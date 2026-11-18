@@ -1,6 +1,7 @@
-// Who-can-do-what tests for the backend functions: the read path (P12-1) and every
-// function that writes (P13-7).
+// Who-can-do-what tests for the backend functions: the read path (P12-1), every function
+// that writes (P13-7), and the Phase 13 review fixes (read-only groups, paging, 404s...).
 // Run with:  node scripts/functions-access.test.mjs      (dependency-free, Node >= 22.15)
+//            ACCESS_TEST_VERBOSE=1 also lists the checks that pass, by section.
 //
 // The functions run on Base44 (Deno) and can't be called locally, so this loads the REAL
 // entry.ts files and runs them against an in-memory stand-in for the Base44 backend:
@@ -21,6 +22,20 @@ const laggingUsers = new Set(); // users whose membership query returns nothing 
 let currentUser = null;         // who the next request is signed in as (null = signed out)
 let seq = 0;
 let writeCalls = 0;             // create/update/delete calls (and auth.updateMe) made by the current request
+let getCalls = [];              // 'Entity:id' for every get() made by the current request
+
+// One page of rows, the way the platform hands them out: 50 unless a limit is given (the
+// SDK's documented default), never more than 500 (the cap measured in P12-5).
+const DEFAULT_PAGE = 50;
+const MAX_PAGE = 500;
+const page = (rows, sort, limit, skip) => {
+  const desc = sort.startsWith('-');
+  const key = desc ? sort.slice(1) : sort;
+  return rows
+    .sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0) * (desc ? -1 : 1))
+    .slice(skip, skip + Math.min(limit, MAX_PAGE))
+    .map((row) => ({ ...row }));
+};
 
 const matches = (row, query) => Object.entries(query).every(([key, want]) => {
   const have = row[key];
@@ -35,18 +50,15 @@ const matches = (row, query) => Object.entries(query).every(([key, want]) => {
 });
 
 const entity = (name) => ({
-  async filter(query = {}, sort = '-created_date', limit = 500) {
+  async filter(query = {}, sort = '-created_date', limit = DEFAULT_PAGE, skip = 0) {
     if (name === 'GroupMember' && query.user_id && laggingUsers.has(query.user_id)) return [];
-    const desc = sort.startsWith('-');
-    const key = desc ? sort.slice(1) : sort;
-    return db[name]
-      .filter((row) => matches(row, query))
-      .sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0) * (desc ? -1 : 1))
-      .slice(0, Math.min(limit, 500)) // the platform caps one page at 500 rows
-      .map((row) => ({ ...row }));
+    return page(db[name].filter((row) => matches(row, query)), sort, limit, skip);
   },
-  async list() { return db[name].map((row) => ({ ...row })); },
+  async list(sort = '-created_date', limit = DEFAULT_PAGE, skip = 0) {
+    return page([...db[name]], sort, limit, skip);
+  },
   async get(id) {
+    getCalls.push(`${name}:${id}`);
     const row = db[name].find((r) => r.id === id);
     if (!row) throw new Error(`${name} ${id} not found`);
     return { ...row };
@@ -117,34 +129,39 @@ registerHooks({
 // functions that exist to read but also write the caller's own user record or the join
 // rate-limit log (getMyGroups, getActivityFeed, previewGroupByCode).
 // Each write function lists the kinds of caller it must be checked against (see check()).
+// The last two kinds are the group it acts on being archived, and being deleted: a group
+// that is not active is read-only, with a few named exceptions.
 const READ_FUNCTIONS = [
   'askRules', 'computeGlobalStats', 'computePlayerStats', 'getGroupData', 'getGroupMembers',
   'getPlayerNotes', 'listAllGroupsWithStats',
 ];
-const MEMBERS_ONLY = ['signed out', 'outsider', 'forged cache', 'honest lag', 'allowed'];
+const NOT_ACTIVE = ['archived group', 'deleted group'];
+const MEMBERS_ONLY = ['signed out', 'outsider', 'forged cache', 'honest lag', 'allowed', ...NOT_ACTIVE];
 const ADMINS_ONLY = [...MEMBERS_ONLY, 'plain member', 'forged admin'];
 const WRITE_FUNCTIONS = {
-  // any member of the group
-  startRound: MEMBERS_ONLY, submitBids: MEMBERS_ONLY, saveRoundResults: MEMBERS_ONLY, deleteRound: MEMBERS_ONLY,
+  // any member of the group (deleteRound: a scored round needs a group admin)
+  startRound: MEMBERS_ONLY, submitBids: MEMBERS_ONLY, saveRoundResults: MEMBERS_ONLY,
+  deleteRound: [...MEMBERS_ONLY, 'plain member', 'forged admin'],
   startSession: MEMBERS_ONLY, closeSession: MEMBERS_ONLY, createNote: MEMBERS_ONLY,
   // group admins only
   updateRound: ADMINS_ONLY, deleteNote: ADMINS_ONLY, addGhostMember: ADMINS_ONLY, removeMember: ADMINS_ONLY,
   renameMember: ADMINS_ONLY, unclaimMember: ADMINS_ONLY, updateMemberRole: ADMINS_ONLY,
   updateGroupSettings: ADMINS_ONLY, setGroupStatus: ADMINS_ONLY, regenerateInviteCode: ADMINS_ONLY,
   // the invite code is the key
-  joinGroupByCode: ['signed out', 'outsider', 'forged cache', 'forged admin', 'honest lag', 'allowed'],
-  previewGroupByCode: ['signed out', 'outsider', 'forged cache', 'allowed'],
-  // any signed-in user, about themselves
+  joinGroupByCode: ['signed out', 'outsider', 'forged cache', 'forged admin', 'honest lag', 'allowed', ...NOT_ACTIVE],
+  previewGroupByCode: ['signed out', 'outsider', 'forged cache', 'allowed', ...NOT_ACTIVE],
+  // any signed-in user, about themselves — no group is written to, so no group status applies
   createGroup: ['signed out', 'forged cache', 'allowed'],
   getMyGroups: ['signed out', 'forged cache', 'forged admin', 'honest lag', 'allowed'],
   getActivityFeed: ['signed out', 'forged cache', 'honest lag', 'allowed'],
   // app admins only
-  purgeGroup: ['signed out', 'outsider', 'forged cache', 'forged admin', 'allowed'],
-  cleanupOrphans: ['signed out', 'outsider', 'forged cache', 'forged admin', 'allowed'],
+  purgeGroup: ['signed out', 'outsider', 'forged cache', 'forged admin', 'allowed', ...NOT_ACTIVE],
+  cleanupOrphans: ['signed out', 'outsider', 'forged cache', 'forged admin', 'allowed', ...NOT_ACTIVE],
 };
 
 const FUNCTIONS_DIR = path.join(ROOT, 'base44/functions');
 const FUNCTION_FOLDERS = readdirSync(FUNCTIONS_DIR).filter((name) => statSync(path.join(FUNCTIONS_DIR, name)).isDirectory()).sort();
+const source = (name) => readFileSync(path.join(FUNCTIONS_DIR, name, 'entry.ts'), 'utf8');
 
 const handlers = {};
 let captured = null;
@@ -157,12 +174,14 @@ for (const name of FUNCTION_FOLDERS) {
 }
 
 // Runs one request. `me` is the caller's user record afterwards (functions can write it
-// through auth.updateMe); `writes` counts the write calls the request made.
+// through auth.updateMe); `writes` counts the write calls the request made, and `gets`
+// lists its reads by id ('Entity:id').
 async function call(name, user, body = {}) {
   currentUser = user ? structuredClone(user) : null;
   writeCalls = 0;
+  getCalls = [];
   const res = await handlers[name](new Request('http://test.local/', { method: 'POST', body: JSON.stringify(body) }));
-  return { status: res.status, data: await res.json(), me: currentUser, writes: writeCalls };
+  return { status: res.status, data: await res.json(), me: currentUser, writes: writeCalls, gets: getCalls };
 }
 
 // --- fixtures -----------------------------------------------------------------
@@ -235,9 +254,13 @@ const forgers = {
 // --- test runner ----------------------------------------------------------------
 let pass = 0;
 let fail = 0;
+// ACCESS_TEST_VERBOSE=1 also lists the checks that pass, each with the section it belongs
+// to — used to show which checks a given version of the functions fails.
+const VERBOSE = !!process.env.ACCESS_TEST_VERBOSE;
+let section = 'P12 read path';
 async function t(label, fn) {
-  try { await fn(); pass++; }
-  catch (e) { fail++; console.error(`FAIL: ${label}\n      ${e.message}`); }
+  try { await fn(); pass++; if (VERBOSE) console.log(`PASS [${section}]: ${label}`); }
+  catch (e) { fail++; console.error(`FAIL${VERBOSE ? ` [${section}]` : ''}: ${label}\n      ${e.message}`); }
 }
 // A check on a write function, filed under the kind of caller it covers (WRITE_FUNCTIONS).
 const coverage = {};
@@ -482,6 +505,7 @@ await t('createNote ignores a session from another group', async () => {
 // GroupMember row to re-read by id — and that row must be the caller's, in that group.
 // Role and player name come from the row, never from the cache.
 // =========================================================================================
+section = 'P13-7 write path';
 
 // More of Group A, used by the write checks only.
 db.GroupMember.push(
@@ -583,9 +607,9 @@ const GROUP_WRITES = {
     verify: () => assert.equal(row('Game', 'rA2-2').status, 'complete'),
   },
   deleteRound: {
-    body: { game_id: 'rA1-1' },
+    body: { game_id: 'rA2-2' }, // a round still in play: any member may undo it (a scored one: see further down)
     done: ['Game -1', 'RoundResult -4'], outsider: NOT_A_MEMBER, appAdmin: true,
-    verify: () => assert.equal(row('Game', 'rA1-1'), undefined),
+    verify: () => assert.equal(row('Game', 'rA2-2'), undefined),
   },
   startSession: {
     setup: () => { row('Session', 'sA2').status = 'closed'; },
@@ -925,15 +949,16 @@ await check('renameMember', 'allowed', 'a member renames themselves without bein
 }
 
 // --- purgeGroup, cleanupOrphans: app admins only ---------------------------------------------------
+const APP_ADMIN_ONLY = 'App admin only';
+// One of each kind of orphan: a session and a round with no group, and a note about nobody.
+const orphans = () => {
+  db.Session.push({ id: 'sLost', group_id: null, name: 'Lost', status: 'closed', created_date: at(950) });
+  db.Game.push({ id: 'rLost', group_id: null, session_id: 'sLost', round_number: 1, status: 'complete', created_date: at(951) });
+  db.RoundResult.push({ id: 'rLost-r0', game_id: 'rLost', group_id: null, player_id: 'mGone', points: 10, created_date: at(951) });
+  db.TableTalkNote.push({ id: 'nLost', group_id: 'gA', target_player_id: 'mGone', note: 'About nobody', created_date: at(952) });
+};
+const inGroupA = (name) => base.rows[name].filter((r) => r.group_id === 'gA').length;
 {
-  const APP_ADMIN_ONLY = 'App admin only';
-  const orphans = () => {
-    db.Session.push({ id: 'sLost', group_id: null, name: 'Lost', status: 'closed', created_date: at(950) });
-    db.Game.push({ id: 'rLost', group_id: null, session_id: 'sLost', round_number: 1, status: 'complete', created_date: at(951) });
-    db.RoundResult.push({ id: 'rLost-r0', game_id: 'rLost', group_id: null, player_id: 'mGone', points: 10, created_date: at(951) });
-    db.TableTalkNote.push({ id: 'nLost', group_id: 'gA', target_player_id: 'mGone', note: 'About nobody', created_date: at(952) });
-  };
-  const inGroupA = (name) => base.rows[name].filter((r) => r.group_id === 'gA').length;
   const appAdminOnly = {
     purgeGroup: {
       fn: writer('purgeGroup', { group_id: 'gA' }),
@@ -963,9 +988,429 @@ await check('renameMember', 'allowed', 'a member renames themselves without bein
     await fn.allows('allowed', 'app admin', root, done, verify);
   }
 }
+// =========================================================================================
+// The Phase 13 review fixes. Every check from here to the static guards fails against
+// the functions as they were at commit 360803f — the behaviour each one pins is new.
+// =========================================================================================
+section = 'P13 review fixes';
+
+const READ_ONLY = 'This group is archived — it is read-only';
+const GROUP_GONE = 'Group not found';
+const MEMBER_GONE = 'Member not found in this group';
+const LAST_ADMIN = 'Promote another member first.';
+const outcome = (res) => [res.status, res.data.error];
+const groupStatus = (status) => () => { row('Group', 'gA').status = status; };
+// The two ways a group is not active, as [status, kind of check, what a write gets back].
+const GROUP_STATES = [['archived', 'archived group', [403, READ_ONLY]], ['deleted', 'deleted group', [404, GROUP_GONE]]];
+// 520 more players in Group A, all newer than its real members — who are then no longer
+// on the first page of the roster (50 rows by default, 500 at the most).
+const bigGroupA = () => {
+  for (let i = 0; i < 520; i++) {
+    db.GroupMember.push({ id: `mExtra${i}`, group_id: 'gA', user_id: null, role: 'player', player_name: `Extra ${i}`, claimed: false, claim_token: null, created_date: at(2000 + i) });
+  }
+};
+// Group B grows past a page of members, sessions and rounds, all newer than Group A's.
+const bigGroupB = () => {
+  for (let i = 0; i < 520; i++) {
+    db.GroupMember.push({ id: `mB${i}`, group_id: 'gB', user_id: null, role: 'player', player_name: `B ${i}`, claimed: false, claim_token: null, created_date: at(3000 + i) });
+    db.Session.push({ id: `sB-x${i}`, group_id: 'gB', name: `B night ${i}`, status: 'closed', session_date: '2026-08-01', created_date: at(3000 + i) });
+    db.Game.push({ id: `rB-x${i}`, group_id: 'gB', session_id: `sB-x${i}`, round_number: 1, status: 'complete', everyone_falls: false, created_date: at(3000 + i) });
+  }
+};
+
+// --- updateMemberRole: only this group's members, and never the last admin with an account ----
+await check('updateMemberRole', 'outsider', 'the member must be in the caller’s own group, whatever the new role (404, no foreign row)', async () => {
+  const snap = fresh();
+  for (const [memberId, role] of [['mAlice', 'player'], ['mBob', 'player'], ['mBob', 'admin']]) {
+    const res = await call('updateMemberRole', carol, { group_id: 'gB', member_id: memberId, role }); // Carol admins Group B
+    assert.deepEqual(outcome(res), [404, MEMBER_GONE]);
+    assert.equal(res.data.member, undefined);
+  }
+  assert.deepEqual(changes(snap), []);
+  // A plain member of Group A makes a throwaway group to be an admin of.
+  const own = (await call('createGroup', bob, { name: 'Throwaway', player_name: 'Bob' })).data.group.id;
+  const afterCreating = freeze();
+  for (const memberId of ['mAlice', 'mHana', 'mCarol']) {
+    assert.deepEqual(outcome(await call('updateMemberRole', bob, { group_id: own, member_id: memberId, role: 'player' })), [404, MEMBER_GONE]);
+  }
+  assert.deepEqual(changes(afterCreating), []);
+});
+await check('updateMemberRole', 'allowed', 'a group always keeps an admin who has an account', async () => {
+  // Two admins with accounts: one may demote the other, but then not step down too.
+  fresh();
+  assert.equal((await call('updateMemberRole', alice, { group_id: 'gA', member_id: 'mHana', role: 'player' })).status, 200);
+  assert.deepEqual(outcome(await call('updateMemberRole', alice, { group_id: 'gA', member_id: 'mAlice', role: 'player' })), [400, `Cannot demote the last admin. ${LAST_ADMIN}`]);
+  // The only other admin is a player nobody has claimed (old data): that one does not count.
+  const snap = fresh(() => { Object.assign(row('GroupMember', 'mHana'), { user_id: null, claimed: false }); });
+  assert.deepEqual(outcome(await call('updateMemberRole', alice, { group_id: 'gA', member_id: 'mAlice', role: 'player' })), [400, `Cannot demote the last admin. ${LAST_ADMIN}`]);
+  assert.deepEqual(changes(snap), []);
+});
+
+// --- deleteRound: a round in play can be undone by any member; a scored one is history --------
+{
+  const SCORED = 'Only a group admin can delete a scored round';
+  const scored = { game_id: 'rA1-1' };
+  await check('deleteRound', 'plain member', 'scored round: plain member -> 403, nothing written; group admin and app admin -> 200', async () => {
+    const snap = fresh();
+    for (const user of [bob, yael]) {
+      const res = await call('deleteRound', user, scored);
+      assert.deepEqual(outcome(res), [403, SCORED]);
+      assert.equal(res.writes, 0, 'a write was attempted');
+    }
+    assert.deepEqual(changes(snap), []);
+    for (const user of [alice, root]) {
+      const before = fresh();
+      assert.equal((await call('deleteRound', user, scored)).status, 200);
+      assert.deepEqual(changes(before), ['Game -1', 'RoundResult -4']);
+    }
+  });
+  await check('deleteRound', 'honest lag', 'scored round: when the membership query lags, the role still comes from the row', async () => {
+    const snap = fresh();
+    assert.deepEqual(outcome(await call('deleteRound', frank, scored)), [403, SCORED]);
+    assert.deepEqual(changes(snap), []);
+    assert.equal((await call('deleteRound', hana, scored)).status, 200);
+  });
+  await check('deleteRound', 'forged admin', 'scored round: a cache forged to say admin -> 403, nothing written', async () => {
+    for (const user of [bobForged, frankForged]) {
+      const snap = fresh();
+      assert.deepEqual(outcome(await call('deleteRound', user, scored)), [403, SCORED]);
+      assert.deepEqual(changes(snap), []);
+    }
+  });
+  await check('deleteRound', 'plain member', 'a round being played is not scored yet; an everyone-falls (cancelled) round is', async () => {
+    const snap = fresh(() => { lockBids(); row('Game', 'rA1-2').status = 'cancelled'; });
+    assert.deepEqual(outcome(await call('deleteRound', bob, { game_id: 'rA1-2' })), [403, SCORED]);
+    assert.deepEqual(changes(snap), []);
+    assert.equal((await call('deleteRound', bob, { game_id: 'rA2-2' })).status, 200); // status 'playing'
+  });
+}
+
+// --- a group that is not active is read-only ----------------------------------------------------
+for (const [name, c] of Object.entries(GROUP_WRITES)) {
+  if (name === 'setGroupStatus') continue; // the way back to active: its own check below
+  // Everyone who could otherwise do it: one whose membership query works, one whose query
+  // lags, and the app admin where they get through today (except to moderate a note).
+  const entitled = c.plain ? [alice, hana] : [bob, frank];
+  if (c.appAdmin && name !== 'deleteNote') entitled.push(root);
+  for (const [status, kind, refusal] of GROUP_STATES) {
+    await check(name, kind, `${status} group -> ${refusal[0]} for everyone who could otherwise do it, nothing written; the rest keep their usual 403`, async () => {
+      const snap = fresh(() => { if (c.setup) c.setup(); row('Group', 'gA').status = status; });
+      for (const user of entitled) {
+        const res = await call(name, user, c.body);
+        assert.deepEqual(outcome(res), refusal);
+        assert.equal(res.writes, 0, 'a write was attempted');
+      }
+      assert.deepEqual(outcome(await call(name, dave, c.body)), [403, c.outsider]);
+      if (c.plain) assert.deepEqual(outcome(await call(name, bob, c.body)), [403, c.plain]);
+      assert.deepEqual(changes(snap), []);
+
+      if (name === 'removeMember') {
+        // The one thing a member can still do in an archived group is leave it.
+        const leaving = await call('removeMember', yael, { group_id: 'gA', member_id: 'mYael' });
+        if (status === 'archived') assert.equal(leaving.status, 200);
+        else assert.deepEqual(outcome(leaving), refusal);
+        assert.deepEqual(changes(snap), status === 'archived' ? ['GroupMember -1'] : []);
+      }
+      if (name === 'deleteNote') {
+        // The author is refused like anyone else; an app admin can still moderate.
+        assert.deepEqual(outcome(await call('deleteNote', yael, c.body)), refusal);
+        assert.deepEqual(changes(snap), []);
+        assert.equal((await call('deleteNote', root, c.body)).status, 200);
+        assert.deepEqual(changes(snap), ['TableTalkNote -1']);
+      }
+    });
+  }
+}
+for (const [status, kind, refusal] of GROUP_STATES) {
+  await check('joinGroupByCode', kind, `${status} group -> ${refusal[0]}: nobody joins it or claims a player in it`, async () => {
+    for (const body of [{ invite_code: 'AAAAAA', player_name: 'Newcomer' }, { invite_code: 'AAAAAA', claim_member_id: 'mDan' }]) {
+      const snap = fresh(groupStatus(status));
+      assert.deepEqual(outcome(await call('joinGroupByCode', dave, body)), refusal);
+      assert.deepEqual(changes(snap), ['JoinAttempt +1']);
+    }
+  });
+  await check('previewGroupByCode', kind, `${status} group -> ${refusal[0]}: nothing about it is shown`, async () => {
+    fresh(groupStatus(status));
+    const res = await call('previewGroupByCode', dave, { invite_code: 'AAAAAA' });
+    assert.deepEqual(outcome(res), refusal);
+    assert.ok(!carriesGroupAData(res.data));
+  });
+  // The exceptions. Each is shown next to a write that IS refused, by the same caller.
+  await check('setGroupStatus', kind, `${status} group: read-only until a group admin sets it active again, here`, async () => {
+    fresh(groupStatus(status));
+    const settings = GROUP_WRITES.updateGroupSettings.body;
+    assert.deepEqual(outcome(await call('updateGroupSettings', alice, settings)), refusal);
+    assert.deepEqual(outcome(await call('setGroupStatus', bob, { group_id: 'gA', status: 'active' })), [403, GROUP_WRITES.setGroupStatus.plain]);
+    assert.equal((await call('setGroupStatus', alice, { group_id: 'gA', status: 'active' })).status, 200);
+    assert.equal(row('Group', 'gA').status, 'active');
+    assert.equal((await call('updateGroupSettings', alice, settings)).status, 200);
+  });
+  await check('purgeGroup', kind, `${status} group: read-only for the app admin too, who can still purge it`, async () => {
+    fresh(groupStatus(status));
+    assert.deepEqual(outcome(await call('renameMember', root, GROUP_WRITES.renameMember.body)), refusal);
+    assert.equal((await call('purgeGroup', root, { group_id: 'gA' })).status, 200);
+    assert.equal(row('Group', 'gA'), undefined);
+    assert.ok(!db.GroupMember.some((m) => m.group_id === 'gA'));
+  });
+  await check('cleanupOrphans', kind, `${status} group: read-only for the app admin too, who can still clean up orphans`, async () => {
+    const snap = fresh(() => { orphans(); row('Group', 'gA').status = status; });
+    assert.deepEqual(outcome(await call('renameMember', root, GROUP_WRITES.renameMember.body)), refusal);
+    assert.equal((await call('cleanupOrphans', root, {})).status, 200);
+    assert.deepEqual(changes(snap), ['Session -1', 'Game -1', 'RoundResult -1', 'TableTalkNote -1']);
+  });
+}
+
+// --- more rows than one page: nothing is decided, counted or swept from the first page alone ---
+await check('cleanupOrphans', 'allowed', 'past one page of rows, every orphan is found and no valid note is deleted', async () => {
+  const snap = fresh(() => { orphans(); bigGroupB(); });
+  const res = await call('cleanupOrphans', root, {});
+  assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+  assert.deepEqual(res.data, { sessions_deleted: 1, rounds_deleted: 1, results_deleted: 1, notes_deleted: 1 });
+  assert.deepEqual(changes(snap), ['Session -1', 'Game -1', 'RoundResult -1', 'TableTalkNote -1']);
+  assert.equal(row('TableTalkNote', 'nLost'), undefined);
+});
+await t('listAllGroupsWithStats: app admin only, and every member, session and round is counted, past one page', async () => {
+  fresh(bigGroupB);
+  assert.equal((await call('listAllGroupsWithStats', null, {})).status, 401);
+  assert.deepEqual(outcome(await call('listAllGroupsWithStats', alice, {})), [403, APP_ADMIN_ONLY]);
+  const res = await call('listAllGroupsWithStats', root, {});
+  assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+  assert.equal(res.writes, 0);
+  const stats = Object.fromEntries(res.data.groups.map((g) => [g.id, g]));
+  const count = (name, group) => db[name].filter((r) => r.group_id === group).length;
+  for (const group of ['gA', 'gB', 'gD']) {
+    assert.deepEqual(
+      [stats[group].player_count, stats[group].total_sessions, stats[group].total_rounds],
+      [count('GroupMember', group), count('Session', group), count('Game', group)],
+      `counts for ${group}`,
+    );
+  }
+  assert.equal(stats.gA.scored_rounds, db.Game.filter((g) => g.group_id === 'gA' && g.status === 'complete').length);
+});
+await check('renameMember', 'allowed', 'the new name reaches every round result of the player, past one page', async () => {
+  fresh(() => { for (let n = 131; n <= 530; n++) addRound({ id: `rA1-${n}`, group: 'gA', session: 'sA1', number: n, seats: SEATS }); });
+  const results = () => db.RoundResult.filter((r) => r.player_id === 'mDan');
+  assert.ok(results().length > 500);
+  assert.equal((await call('renameMember', alice, { group_id: 'gA', member_id: 'mDan', player_name: 'Danny' })).status, 200);
+  assert.equal(results().filter((r) => r.player_name !== 'Danny').length, 0, 'results left with the old name');
+});
+await check('renameMember', 'allowed', 'a new name is checked against the whole roster, past one page', async () => {
+  const snap = fresh(bigGroupA);
+  assert.deepEqual(outcome(await call('renameMember', alice, { group_id: 'gA', member_id: 'mZed', player_name: 'bob' })),
+    [409, 'A member named "bob" already exists in this group']);
+  assert.deepEqual(changes(snap), []);
+});
+await check('updateMemberRole', 'allowed', 'the last-admin guard counts every admin, past one page of the roster', async () => {
+  fresh(bigGroupA);
+  assert.equal((await call('updateMemberRole', alice, { group_id: 'gA', member_id: 'mAlice', role: 'player' })).status, 200); // Hana is still an admin
+  fresh(() => { bigGroupA(); row('GroupMember', 'mHana').role = 'player'; });
+  assert.deepEqual(outcome(await call('updateMemberRole', alice, { group_id: 'gA', member_id: 'mAlice', role: 'player' })), [400, `Cannot demote the last admin. ${LAST_ADMIN}`]);
+});
+await check('unclaimMember', 'allowed', 'the last-admin guard counts every admin with an account, past one page of the roster', async () => {
+  fresh(bigGroupA);
+  assert.equal((await call('unclaimMember', alice, { group_id: 'gA', member_id: 'mHana' })).status, 200); // Alice is still an admin
+  // An admin nobody has claimed does not count: the app admin cannot unclaim the last real one.
+  const snap = fresh(() => { bigGroupA(); Object.assign(row('GroupMember', 'mHana'), { user_id: null, claimed: false }); });
+  assert.deepEqual(outcome(await call('unclaimMember', root, { group_id: 'gA', member_id: 'mAlice' })), [400, `Cannot unclaim the last admin. ${LAST_ADMIN}`]);
+  assert.deepEqual(changes(snap), []);
+});
+await check('removeMember', 'allowed', 'the last-admin guard counts every admin with an account, past one page of the roster', async () => {
+  fresh(bigGroupA);
+  assert.equal((await call('removeMember', alice, { group_id: 'gA', member_id: 'mHana' })).status, 200); // Alice is still an admin
+  const snap = fresh(() => { bigGroupA(); Object.assign(row('GroupMember', 'mHana'), { user_id: null, claimed: false }); });
+  assert.deepEqual(outcome(await call('removeMember', alice, { group_id: 'gA', member_id: 'mAlice' })), [400, `Cannot remove the last admin. ${LAST_ADMIN}`]);
+  assert.deepEqual(changes(snap), []);
+});
+await check('startRound', 'allowed', 'each seat is read by id, so a roster past one page still seats its older members', async () => {
+  const snap = fresh(() => { finishOpenRound(); bigGroupA(); });
+  const res = await call('startRound', bob, GROUP_WRITES.startRound.body);
+  assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+  assert.deepEqual(changes(snap), ['Game +1', 'RoundResult +4']);
+  assert.deepEqual(res.data.results.map((r) => r.player_name), ['Alice', 'Bob', 'Ghost', 'Dan']);
+  const foreign = await call('startRound', bob, { session_id: 'sA2', player_ids: ['mAlice', 'mBob', 'mGhost', 'mCarol'] });
+  assert.deepEqual(outcome(foreign), [400, 'Some players are not members of this group']);
+});
+await check('previewGroupByCode', 'allowed', 'the whole roster is read, past one page', async () => {
+  fresh(bigGroupA);
+  const res = await call('previewGroupByCode', dave, { invite_code: 'AAAAAA' });
+  assert.equal(res.data.unclaimed_players.length, 3 + 520);
+  assert.equal(res.data.existing_names.length, db.GroupMember.filter((m) => m.group_id === 'gA').length);
+  assert.equal((await call('previewGroupByCode', bob, { invite_code: 'AAAAAA' })).data.already_member, true);
+});
+await t('getGroupMembers: the whole roster comes back, past one page', async () => {
+  fresh(bigGroupA);
+  const res = await call('getGroupMembers', bob, { group_id: 'gA' });
+  assert.equal(res.data.members.length, db.GroupMember.filter((m) => m.group_id === 'gA').length);
+});
+await t('getGroupMembers: a group admin gets every claimed member’s email, past one page of users', async () => {
+  fresh(() => {
+    ['Alice', 'Bob', 'Frank', 'Hana', 'Yael'].forEach((name, i) => db.User.push({ id: `u${name}`, email: `${name.toLowerCase()}@example.com`, role: 'user', created_date: at(i) }));
+    for (let i = 0; i < 520; i++) db.User.push({ id: `uCrowd${i}`, email: `crowd${i}@example.com`, role: 'user', created_date: at(4000 + i) });
+  });
+  const res = await call('getGroupMembers', alice, { group_id: 'gA' });
+  assert.deepEqual(
+    res.data.members.filter((m) => m.user_id).map((m) => m.email).sort(),
+    ['alice@example.com', 'bob@example.com', 'frank@example.com', 'hana@example.com', 'yael@example.com'],
+  );
+  assert.ok((await call('getGroupMembers', bob, { group_id: 'gA' })).data.members.every((m) => !('email' in m)));
+});
+await check('getActivityFeed', 'allowed', 'the players written about are named, past one page of members', async () => {
+  fresh(bigGroupA);
+  const res = await call('getActivityFeed', alice, {});
+  assert.ok(res.data.notes.length > 0);
+  assert.deepEqual([...new Set(res.data.notes.map((n) => n.target_player_name))], ['Bob']);
+});
+{
+  // A long night in Group A that Bob won in its first five rounds — rounds that fall off the
+  // newest page of results (500 rows = 125 rounds).
+  const longNight = () => {
+    db.Session.push({ id: 'sLong', group_id: 'gA', name: 'Long Night', status: 'closed', session_date: '2026-07-20', created_date: at(5000) });
+    for (let n = 1; n <= 140; n++) {
+      const created = at(5000 + n);
+      db.Game.push({ id: `rLong-${n}`, group_id: 'gA', session_id: 'sLong', round_number: n, status: 'complete', everyone_falls: false, created_date: created });
+      SEATS.forEach(([playerId, playerName], i) => db.RoundResult.push({
+        id: `rLong-${n}-r${i}`, game_id: `rLong-${n}`, session_id: 'sLong', group_id: 'gA', player_id: playerId, player_name: playerName,
+        bid_order: i, bid: 3, tricks_won: 3, reneged: false, created_date: created,
+        points: n <= 5 ? (playerId === 'mBob' ? 200 : 0) : (playerId === 'mAlice' ? 1 : 0),
+      }));
+    }
+  };
+  // Bob played two nights: Big Night (everyone level, so everyone is first) and the long one.
+  const bobsRecord = (res) => [res.data.performance.sessions_played, res.data.performance.wins, res.data.performance.podiums];
+  await t('computePlayerStats: nights, wins and podiums are counted over every result, past one page', async () => {
+    fresh(longNight);
+    const res = await call('computePlayerStats', alice, { player_id: 'mBob', group_id: 'gA' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(bobsRecord(res), [2, 2, 2]);
+  });
+  await t('computeGlobalStats: nights, wins and podiums are counted over every result, past one page', async () => {
+    fresh(longNight);
+    const res = await call('computeGlobalStats', bob, {});
+    assert.equal(res.status, 200);
+    assert.deepEqual(bobsRecord(res), [2, 2, 2]);
+  });
+}
+
+// --- an id that does not exist is a 404 with a name, never a 500 ---------------------------------
+{
+  const seats = GROUP_WRITES.startRound.body.player_ids;
+  const UNKNOWN = [
+    ['startRound', 'session', alice, { session_id: 'nope', player_ids: seats }, 'Session not found'],
+    ['closeSession', 'session', alice, { session_id: 'nope' }, 'Session not found'],
+    ['submitBids', 'round', alice, { game_id: 'nope', bids: {} }, 'Round not found'],
+    ['saveRoundResults', 'round', alice, { game_id: 'nope', tricks: {} }, 'Round not found'],
+    ['updateRound', 'round', alice, { game_id: 'nope', bids: {}, tricks: {} }, 'Round not found'],
+    ['deleteRound', 'round', alice, { game_id: 'nope' }, 'Round not found'],
+    ['startSession', 'group (app admin)', root, { group_id: 'nope' }, GROUP_GONE],
+    ['updateGroupSettings', 'group (app admin)', root, { group_id: 'nope', updates: { name: 'x' } }, GROUP_GONE],
+    ['setGroupStatus', 'group (app admin)', root, { group_id: 'nope', status: 'archived' }, GROUP_GONE],
+    ['purgeGroup', 'group (app admin)', root, { group_id: 'nope' }, GROUP_GONE],
+    ['removeMember', 'member', alice, { group_id: 'gA', member_id: 'nope' }, MEMBER_GONE],
+    ['unclaimMember', 'member', alice, { group_id: 'gA', member_id: 'nope' }, MEMBER_GONE],
+    ['updateMemberRole', 'member to promote', alice, { group_id: 'gA', member_id: 'nope', role: 'admin' }, MEMBER_GONE],
+    ['updateMemberRole', 'member to demote', alice, { group_id: 'gA', member_id: 'nope', role: 'player' }, MEMBER_GONE],
+    ['joinGroupByCode', 'player to claim', dave, { invite_code: 'AAAAAA', claim_member_id: 'nope' }, 'Player not found in this group'],
+  ];
+  for (const [name, what, user, body, message] of UNKNOWN) {
+    await t(`${name}: unknown ${what} -> 404 "${message}", not a 500`, async () => {
+      const snap = fresh();
+      assert.deepEqual(outcome(await call(name, user, body)), [404, message]);
+      assert.deepEqual(changes(snap).filter((change) => !change.startsWith('JoinAttempt')), []);
+    });
+  }
+  await t('startSession, createNote: a non-member gets the same 403 whether the group exists or not', async () => {
+    fresh();
+    for (const group of ['gA', 'nope']) {
+      assert.deepEqual(outcome(await call('startSession', dave, { group_id: group })), [403, NOT_A_MEMBER]);
+      assert.deepEqual(outcome(await call('createNote', dave, { group_id: group, target_player_id: 'mBob', note: 'Hello' })), [403, NOT_A_MEMBER]);
+    }
+  });
+}
+
+// --- startRound: round numbers never repeat -------------------------------------------------------
+await check('startRound', 'allowed', 'a new round is numbered after the highest one, even when a middle round was deleted', async () => {
+  fresh(() => { finishOpenRound(); addRound({ id: 'rA2-3', group: 'gA', session: 'sA2', number: 3, seats: SEATS }); });
+  assert.equal((await call('deleteRound', alice, { game_id: 'rA2-2' })).status, 200);
+  const res = await call('startRound', bob, GROUP_WRITES.startRound.body);
+  assert.equal(res.status, 200);
+  assert.equal(res.data.round.round_number, 4);
+  assert.deepEqual(db.Game.filter((g) => g.session_id === 'sA2').map((g) => g.round_number).sort(), [1, 3, 4]);
+});
+
+// --- startSession: a night can be given a game limit ----------------------------------------------
+{
+  const GAME_LIMIT = 'game_limit must be a whole number between 1 and 99';
+  const closeOpenNight = () => { row('Session', 'sA2').status = 'closed'; };
+  const start = (limit) => call('startSession', alice, limit === undefined ? { group_id: 'gA' } : { group_id: 'gA', game_limit: limit });
+  await check('startSession', 'allowed', 'game_limit: a whole number from 1 to 99 is stored as a number; absent, null or empty means no limit', async () => {
+    for (const [given, stored] of [[5, 5], ['7', 7], [1, 1], [99, 99], [undefined, null], [null, null], ['', null]]) {
+      fresh(closeOpenNight);
+      const res = await start(given);
+      assert.equal(res.status, 200, `game_limit ${JSON.stringify(given)} got ${res.status}: ${res.data.error}`);
+      assert.strictEqual(res.data.session.game_limit, stored, `game_limit ${JSON.stringify(given)}`);
+      assert.strictEqual(row('Session', res.data.session.id).game_limit, stored);
+    }
+  });
+  for (const bad of [0, 100, 2.5, 'abc', -3, '2.5', true, [3]]) {
+    await t(`startSession: game_limit ${JSON.stringify(bad)} -> 400, no session is started`, async () => {
+      const snap = fresh(closeOpenNight);
+      assert.deepEqual(outcome(await start(bad)), [400, GAME_LIMIT]);
+      assert.deepEqual(changes(snap), []);
+    });
+  }
+  await t('startSession + startRound: with game_limit 2 a third scored round is refused; an everyone-falls round does not count', async () => {
+    fresh(closeOpenNight);
+    const session = (await start(2)).data.session;
+    const seats = GROUP_WRITES.startRound.body.player_ids; // Alice, Bob, Ghost, Dan — bidding 4, 4, 3, 3
+    const play = async (tricks) => {
+      const started = await call('startRound', bob, { session_id: session.id, player_ids: seats });
+      if (started.status !== 200) return started;
+      const game_id = started.data.round.id;
+      await call('submitBids', bob, { game_id, bids: { mAlice: 4, mBob: 4, mGhost: 3, mDan: 3 } });
+      return call('saveRoundResults', bob, { game_id, tricks: Object.fromEntries(seats.map((id, i) => [id, tricks[i]])) });
+    };
+    const scored = [4, 4, 3, 2];        // three of the four make their bid
+    const everyoneFalls = [5, 5, 2, 1]; // nobody does: the round is cancelled
+    assert.equal((await play(scored)).data.round.status, 'complete');
+    assert.equal((await play(everyoneFalls)).data.round.status, 'cancelled');
+    assert.equal((await play(scored)).data.round.status, 'complete'); // the second scored round
+    assert.deepEqual(outcome(await play(scored)), [409, 'Session game limit (2) reached']);
+    assert.equal(db.Game.filter((g) => g.session_id === session.id).length, 3);
+  });
+}
+
+// --- a stuffed cache buys no extra reads ------------------------------------------------------------
+await t('a cache stuffed with 500 entries causes at most 5 hinted re-reads, in every function that reads the cache', async () => {
+  const stuffed = {
+    id: 'uEve', role: 'user',
+    groups: Array.from({ length: 500 }, (_, i) => ({ group_id: 'gA', member_id: `mStuffed${i}`, role: 'admin', player_name: 'Eve' })),
+  };
+  // A request per function that gets as far as looking at the cache.
+  const cases = {
+    ...GROUP_WRITES,
+    joinGroupByCode: { body: { invite_code: 'AAAAAA', player_name: 'Newcomer' } },
+    getGroupData: { body: { scope: 'group', group_id: 'gA' } },
+    getPlayerNotes: { body: { player_id: 'mBob' } },
+    getGroupMembers: { body: { group_id: 'gA' } },
+    computePlayerStats: { body: { player_id: 'mBob' } },
+    getActivityFeed: { body: {} },
+    getMyGroups: { body: {} },
+  };
+  const readsTheCache = FUNCTION_FOLDERS.filter((name) => source(name).split('\n').some((line) => /user\??\.groups/.test(line) && !/^\s*\/\//.test(line)));
+  const offenders = [];
+  for (const name of readsTheCache) {
+    if (!cases[name]) { offenders.push(`${name}: reads the cache but has no case here`); continue; }
+    fresh(cases[name].setup);
+    const res = await call(name, stuffed, cases[name].body);
+    const rereads = res.gets.filter((get) => get.startsWith('GroupMember:mStuffed')).length;
+    if (rereads < 1 || rereads > 5) offenders.push(`${name}: ${rereads} hinted re-reads`);
+  }
+  assert.deepEqual(offenders, []);
+});
 thaw(base);
 
 // --- static guards: the browser must not read game data directly -------------------------
+section = 'static guards';
 const stripJsonComments = (src) => {
   let out = '';
   for (let i = 0, inString = false; i < src.length; i++) {
@@ -991,6 +1436,21 @@ await t('no entity lets everyone read or write', async () => {
     for (const [op, rule] of Object.entries(schema.rls || {})) assert.notEqual(rule, true, `${file} rls.${op} is open to everyone`);
   }
 });
+// Group and game data are only ever touched through service-role functions, so the
+// browser gets nothing: every rule on them names the app admin and nothing else.
+section = 'P13 review fixes';
+await t('entities Group, Session, Game, RoundResult, TableTalkNote: every rule, on every operation, is app-admin only', async () => {
+  const offenders = [];
+  for (const name of ['Group', 'Session', 'Game', 'RoundResult', 'TableTalkNote']) {
+    const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', `${name}.jsonc`), 'utf8')));
+    const rules = schema.rls || {};
+    for (const op of new Set(['create', 'read', 'update', 'delete', ...Object.keys(rules)])) {
+      if (JSON.stringify(rules[op]) !== JSON.stringify(ADMIN_ONLY)) offenders.push(`${name} rls.${op}: ${JSON.stringify(rules[op])}`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});
+section = 'static guards';
 await t('the frontend never reads game data entities directly', async () => {
   const offenders = [];
   const walk = (dir) => {
@@ -1010,7 +1470,6 @@ await t('the frontend never reads game data entities directly', async () => {
 // Anything that looks like a write call. Deliberately broad (it would also match a
 // Map#delete): a false alarm costs a line here, a missed write costs an unchecked function.
 const WRITE_CALL = /\.(create|bulkCreate|update|bulkUpdate|updateMe|delete|deleteMany)\(/;
-const source = (name) => readFileSync(path.join(FUNCTIONS_DIR, name, 'entry.ts'), 'utf8');
 const writeNames = Object.keys(WRITE_FUNCTIONS);
 
 await t('every function folder is on the read list or the write list, and only one of them', async () => {

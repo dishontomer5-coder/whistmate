@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// How many cached memberships are re-read by id at the most — a user can write their
+// own cache, and stuffing it must not buy one request any number of reads.
+const MAX_HINTS = 5;
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -16,8 +20,11 @@ Deno.serve(async (req) => {
     // session cache via by-ID gets (reliable) so a just-joined group doesn't
     // vanish — and stale cache entries (left groups) are dropped, not revived.
     const queriedIds = new Set(memberships.map(m => m.id));
+    const tried = new Set();
     for (const cached of (user.groups || [])) {
-      if (!cached.member_id || queriedIds.has(cached.member_id)) continue;
+      if (!cached || !cached.member_id || queriedIds.has(cached.member_id) || tried.has(cached.member_id)) continue;
+      if (tried.size >= MAX_HINTS) break;
+      tried.add(cached.member_id);
       const row = await base44.asServiceRole.entities.GroupMember.get(cached.member_id).catch(() => null);
       if (row && row.user_id === user.id) {
         memberships.push(row);

@@ -1,5 +1,24 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// EVERY row of an entity, or an error — a count made from the first page alone is
+// simply wrong. Cursor pagination as in getGroupData; the $lte cursor + seen-set copes
+// with rows sharing a created_date.
+async function fetchAll(entity, what) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 1000; guard++) {
+    const page = await entity.filter(cursor ? { created_date: { $lte: cursor } } : {}, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE) return all; // a short page is the last one: everything has been read
+    if (fresh.length === 0) break;      // a full page with nothing new: no telling what is left
+    cursor = page[page.length - 1].created_date;
+  }
+  throw new Error(`Could not read every ${what}`);
+}
+
 // App-admin overview: every group with whist activity counts.
 Deno.serve(async (req) => {
   try {
@@ -11,11 +30,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'App admin only' }, { status: 403 });
     }
 
+    const db = base44.asServiceRole.entities;
     const [groups, members, sessions, rounds] = await Promise.all([
-      base44.asServiceRole.entities.Group.filter({}, '-created_date', 500),
-      base44.asServiceRole.entities.GroupMember.filter({}, '-created_date', 2000),
-      base44.asServiceRole.entities.Session.filter({}, '-created_date', 5000),
-      base44.asServiceRole.entities.Game.filter({}, '-created_date', 20000),
+      fetchAll(db.Group, 'group'),
+      fetchAll(db.GroupMember, 'member'),
+      fetchAll(db.Session, 'session'),
+      fetchAll(db.Game, 'round'),
     ]);
 
     const stats = groups.map((g) => {

@@ -13,6 +13,10 @@ Deno.serve(async (req) => {
     const { group_id } = await req.json();
     if (!group_id) return Response.json({ error: 'group_id required' }, { status: 400 });
 
+    // An id that is not a group is a 404, not a cascade that fails at its last step.
+    const group = await base44.asServiceRole.entities.Group.get(group_id).catch(() => null);
+    if (!group) return Response.json({ error: 'Group not found' }, { status: 404 });
+
     // Cascading hard deletes — order matters: child entities first, then parent.
     // RoundResult (per-player) -> Game (round) -> Session (night) -> notes/members -> Group.
     await base44.asServiceRole.entities.RoundResult.deleteMany({ group_id: group_id });

@@ -35,13 +35,18 @@ async function fetchAll(entity, baseQuery) {
 // The caller's membership row in a group, or null. Only a real GroupMember row owned by
 // the caller counts. The cache on the user record (user.groups) covers read-after-write
 // lag (P7-9) but is only a HINT: a user can write their own record, so a hinted row is
-// re-read by id and must really be theirs.
+// re-read by id and must really be theirs. At most MAX_HINTS different rows are re-read,
+// so a stuffed cache buys no extra reads.
+const MAX_HINTS = 5;
 async function membershipIn(base44, user, groupId) {
   const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
   const direct = rows.find((m) => m.group_id === groupId);
   if (direct) return direct;
+  const tried = new Set();
   for (const hint of (user.groups || [])) {
-    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(hint.member_id);
     const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
     if (row && row.user_id === user.id && row.group_id === groupId) return row;
   }

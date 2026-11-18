@@ -4,14 +4,32 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // a user can write their own record. It only rides out read-after-write lag (P7-9) — the
 // GroupMember row it points at is re-read by id and counts only if it really belongs to
 // the caller and to this group. Role and player_name come from that row, never the cache.
+// At most MAX_HINTS different rows are re-read, so a stuffed cache buys no extra reads.
+const MAX_HINTS = 5;
 async function hintedMemberRow(base44, user, groupId) {
   if (!groupId) return null;
+  const tried = new Set();
   for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
-    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    if (!hint || hint.group_id !== groupId || !hint.member_id || tried.has(hint.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(hint.member_id);
     const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
     if (row && row.user_id === user.id && row.group_id === groupId) return row;
   }
   return null;
+}
+
+// The optional cap on scored rounds in a session (startRound enforces it). Nothing, null
+// or an empty string -> null, no limit. A whole number from 1 to 99, given as a number or
+// as a numeric string -> that number. Anything else -> NaN, which the caller refuses.
+function parseGameLimit(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (text === '') return null;
+    value = /^\d+$/.test(text) ? Number(text) : NaN;
+  }
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 99 ? value : NaN;
 }
 
 // Start a new whist Session (a meetup/night) in a group. Session/Game/RoundResult
@@ -24,13 +42,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { group_id, name, session_date, location, scoring_method, advanced_rules_enabled } = await req.json();
+    const { group_id, name, session_date, location, scoring_method, advanced_rules_enabled, game_limit } = await req.json();
     if (!group_id) return Response.json({ error: 'group_id is required' }, { status: 400 });
-
-    const group = await base44.asServiceRole.entities.Group.get(group_id);
-    if (!group) return Response.json({ error: 'Group not found' }, { status: 404 });
-    if ((group.status || 'active') !== 'active') {
-      return Response.json({ error: 'This group is archived — new sessions cannot be started' }, { status: 403 });
+    const gameLimit = parseGameLimit(game_limit);
+    if (Number.isNaN(gameLimit)) {
+      return Response.json({ error: 'game_limit must be a whole number between 1 and 99' }, { status: 400 });
     }
 
     // Any member of the group may start a session (app admins allowed for support).
@@ -47,6 +63,14 @@ Deno.serve(async (req) => {
       if (mine.length === 0) {
         return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
       }
+    }
+
+    // Only then the group itself, so a non-member learns nothing about it. A group that
+    // is not active is read-only: archived -> 403, deleted or gone -> 404.
+    const group = await base44.asServiceRole.entities.Group.get(group_id).catch(() => null);
+    if (!group || group.status === 'deleted') return Response.json({ error: 'Group not found' }, { status: 404 });
+    if ((group.status || 'active') !== 'active') {
+      return Response.json({ error: 'This group is archived — it is read-only' }, { status: 403 });
     }
 
     // One open session per group. Query by group_id only + check status in memory:
@@ -67,7 +91,7 @@ Deno.serve(async (req) => {
       // group defaults), then frozen for the whole night.
       advanced_rules_enabled: advanced_rules_enabled != null ? !!advanced_rules_enabled : !!group.advanced_rules_default,
       scoring_method: (scoring_method || group.scoring_method_default) === 'progressive' ? 'progressive' : 'classic',
-      game_limit: null,
+      game_limit: gameLimit,
     });
 
     return Response.json({ session });

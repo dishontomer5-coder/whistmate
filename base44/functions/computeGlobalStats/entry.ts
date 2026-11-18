@@ -1,5 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
 // Cross-group whist stats for the current user (their GlobalProfile). Aggregation
 // MIRRORS src/lib/whist-stats.js (Deno can't import src/) — keep in sync.
 Deno.serve(async (req) => {
@@ -31,17 +49,7 @@ Deno.serve(async (req) => {
     activeMemberships.forEach((m) => { memberGroup[m.id] = m.group_id; });
 
     // All of the user's round results across groups (paginated).
-    const PAGE = 500;
-    const rows = [];
-    const seen = new Set();
-    let filter = { player_id: { $in: memberIds } };
-    for (let guard = 0; guard < 60; guard++) {
-      const page = await base44.asServiceRole.entities.RoundResult.filter(filter, '-created_date', PAGE);
-      const fresh = page.filter((r) => !seen.has(r.id));
-      fresh.forEach((r) => { seen.add(r.id); rows.push(r); });
-      if (page.length < PAGE || fresh.length === 0) break;
-      filter = { player_id: { $in: memberIds }, created_date: { $lte: page[page.length - 1].created_date } };
-    }
+    const rows = await fetchAll(base44.asServiceRole.entities.RoundResult, { player_id: { $in: memberIds } });
     const scoped = rows.filter((r) => r.points != null && r.bid != null && r.tricks_won != null && groupMap[r.group_id]);
     if (scoped.length === 0) {
       return Response.json({ ...empty, groups_breakdown: [], total_groups: Object.keys(groupMap).length });
@@ -66,9 +74,11 @@ Deno.serve(async (req) => {
 
     // Win/podium: rank each session the user played (needs ALL players' rows).
     const sessionIds = [...new Set(scoped.map((r) => r.session_id).filter(Boolean))];
+    // EVERY result of those sessions — one filter() returns a single page (500 rows,
+    // about 125 rounds), and a ranking made from part of a night is wrong.
     let sessionRows = [];
     if (sessionIds.length > 0) {
-      sessionRows = await base44.asServiceRole.entities.RoundResult.filter({ session_id: { $in: sessionIds } }, '-created_date', 8000);
+      sessionRows = await fetchAll(base44.asServiceRole.entities.RoundResult, { session_id: { $in: sessionIds } });
     }
     const bySession = {};
     sessionRows.forEach((r) => {

@@ -1,5 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// How many cached memberships are re-read by id at the most — a user can write their
+// own cache, and stuffing it must not buy one request any number of reads.
+const MAX_HINTS = 5;
+
+const PAGE = 500; // the entity store hands out at most 500 rows per filter()
+// Every row matching a query, not just the first page: cursor pagination, as in
+// getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
+async function fetchAll(entity, baseQuery) {
+  const all = [];
+  const seen = new Set();
+  let cursor = null;
+  for (let guard = 0; guard < 200; guard++) {
+    const query = cursor ? { ...baseQuery, created_date: { $lte: cursor } } : baseQuery;
+    const page = await entity.filter(query, '-created_date', PAGE);
+    const fresh = page.filter((r) => !seen.has(r.id));
+    fresh.forEach((r) => { seen.add(r.id); all.push(r); });
+    if (page.length < PAGE || fresh.length === 0) break;
+    cursor = page[page.length - 1].created_date;
+  }
+  return all;
+}
+
 // Activity feed (P8-1): table-talk notes across every group the caller belongs
 // to, enriched server-side. Names of other GroupMembers aren't client-readable
 // under RLS, and anonymous authors must be stripped HERE, not just hidden in UI.
@@ -22,9 +44,12 @@ Deno.serve(async (req) => {
     const groupIdSet = new Set(memberships.map(m => m.group_id));
     // The cache covers read-after-write lag, but it is only a hint (P12-1): a user can
     // write their own record, so each hinted membership is re-read by id and must really
-    // be the caller's before its group's notes are included.
+    // be the caller's before its group's notes are included. At most MAX_HINTS are tried.
+    const tried = new Set();
     for (const cached of (user.groups || [])) {
-      if (!cached || !cached.member_id || memberIds.has(cached.member_id)) continue;
+      if (!cached || !cached.member_id || memberIds.has(cached.member_id) || tried.has(cached.member_id)) continue;
+      if (tried.size >= MAX_HINTS) break;
+      tried.add(cached.member_id);
       const row = await base44.asServiceRole.entities.GroupMember.get(cached.member_id).catch(() => null);
       if (row && row.user_id === user.id) {
         memberIds.add(row.id);
@@ -66,12 +91,8 @@ Deno.serve(async (req) => {
       return Response.json({ unseen_count: unseenCount, latest_ts: latestTs });
     }
 
-    // Resolve target player names (single batched query across the caller's groups)
-    const allMembers = await base44.asServiceRole.entities.GroupMember.filter(
-      { group_id: { $in: activeGroupIds } },
-      '-created_date',
-      2000
-    );
+    // Resolve target player names: every member of the caller's groups, past the first page
+    const allMembers = await fetchAll(base44.asServiceRole.entities.GroupMember, { group_id: { $in: activeGroupIds } });
     const memberNameMap = {};
     allMembers.forEach(m => { memberNameMap[m.id] = m.player_name; });
 
