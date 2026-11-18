@@ -449,6 +449,24 @@ this trail.
   for the Whist-player reviewer), e-mail delivery, Google sign-in, realtime updates, and whatever
   Base44's hosting injects. Options considered: `base44 dev` / a Base44 test app / fake backend.
 
+- **Decision (Nov 19 2026):** Test platform guarantees instead of assuming them, on a **throwaway
+  Base44 app** rather than the live one. — The whole access model rested on "a user cannot change
+  their own `role`", which nobody had checked and the docs do not state. It was false (P13-B9). The
+  test app let the agent's own account play the non-admin with no risk to real users; the one live
+  check afterwards (demote the owner, try to self-promote, restore through privileged mode) was run
+  only once the restore path had been proven on the test app.
+- **Decision (Nov 19 2026):** Close the role hole at its root with a **field-level write rule on
+  `User.role`** (app admin only), not with an app-admin allow-list in every function. — One rule, at the
+  platform level, restores what all the functions already assume; an allow-list would be 30 functions
+  plus a secret to keep in step. Kept as the fallback if the field rule ever proves to break sign-up.
+- **Decision (Nov 19 2026):** Data entities are closed with the literal `false`, not "app admin only".
+  — Nothing in the browser needs them (even the app-admin screens go through functions), and `false`
+  does not depend on the `role` field. Verified on the live app: the owner's direct reads return 0 rows.
+- **Decision (Nov 19 2026):** Ship the backend fixes ahead of the UX work (functions deploy +
+  `entities push` on Nov 19 2026). — They close holes that were exploitable on the live app, and
+  they are compatible with the frontend that is live. Note for the deploy order: this time the git
+  sync did NOT apply the entity rules by itself; `entities push` did.
+
 ### Must not change
 
 - **Scoring results.** `src/lib/scoring.test.mjs` stays green with its assertions untouched.

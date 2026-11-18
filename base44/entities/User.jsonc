@@ -2,11 +2,18 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
+      "description": "The role of the user in the app. Only an app admin may write it: without this field rule a signed-in user can set their own role through auth.updateMe (P13-B9).",
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     }
   },
   "required": [

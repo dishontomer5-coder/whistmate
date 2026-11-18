@@ -560,12 +560,21 @@
   `Session`, `Game`, `RoundResult`, `TableTalkNote`, `JoinAttempt`: every rule is the literal `false`
   (was "app admin only", and `Group` update/delete was "its creator"); `GroupMember`: read your own
   rows, write nothing. Only service-role functions touch them, so no entity rule rests on `user.role`.
-- [ ] **P13-B9** *(to verify — owner, on the live app)*: every app-admin bypass assumes a user cannot set their own `role`
-  through `auth.updateMe`. The SDK's own typings say `updateMe({ role: 'admin' })` is allowed; the
-  platform docs are silent on who may do it. Could not be tested without a second, non-admin account
-  on the live app. After P13-B12 the data entities no longer depend on it, but the functions' app-admin
-  bypass and the platform's own user list still do. If the owner's check shows a plain user CAN promote
-  themselves: add a server-side allow-list for app admins (a secret) to every function.
+- [x] **P13-B9** *(BLOCKER, found and closed Nov 19 2026)*: **any signed-in user could make
+  themselves app admin.** The platform accepts `auth.updateMe({ role: 'admin' })` from a plain user
+  (the SDK's own typings show it as an example; the docs do not say who may). Proven on a throwaway
+  Base44 app (`whistmate-role-test`, id `6afe27651d1ab7327046506d`): demoted to `user`, then
+  self-promotion was accepted. That would have unlocked every app-admin path — reading any group,
+  `purgeGroup`, the user list. Fix: a field-level rule in `base44/entities/User.jsonc` —
+  `role` may be written only by an app admin. Verified on the test app and then ON THE LIVE APP with the
+  owner's account: demoted, self-promotion refused (403 "You're not allowed to modify the following
+  fields: data.role"), other self-updates (the `groups` cache) still accepted, admin restored through
+  `exec --privileged`. The live app had 6 users and exactly 1 app admin, so the hole had not been used.
+  A guard in the access test fails if the field rule is ever removed.
+- [ ] **P13-B13** *(owner — soon)*: confirm that SIGN-UP still works on the live app with the role rule
+  in place (a fresh e-mail in a private window). It could not be tested by the agent: sign-up needs a
+  real mailbox, and the platform rejects made-up domains. If sign-up fails, the rule is the first
+  suspect — loosen nothing; tell the agent.
 
 ### 13d. Ship
 

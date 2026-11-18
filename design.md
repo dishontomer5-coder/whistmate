@@ -48,7 +48,7 @@ Base44 backend
   (create group, start/settle round, member role changes, deletes) go through backend
   **functions** that re-check role server-side. Entity RLS is the second line of defense.
 - **Game data is never read from the browser.** `Group`, `Session`, `Game`, `RoundResult` and
-  `TableTalkNote` have entity read RLS = app admin only. Every screen reads through a backend function
+  `TableTalkNote` are closed to the browser altogether (every rule is `false`). Every screen reads through a backend function
   that checks group membership first: `getGroupData` (scopes `group` / `session` / `round` / `player` /
   `shared_sessions`), `getPlayerNotes`, and the older `getGroupMembers` / `getMyGroups` /
   `getActivityFeed` / `computePlayerStats` / `computeGlobalStats`. A signed-out visitor, or a signed-in
@@ -121,10 +121,23 @@ Per-player round score:
 - **No entity is open.** No `rls` rule is the literal `true` — every create/read/update/delete either
   names the app admin or compares a field to the caller. `scripts/functions-access.test.mjs` fails if
   one is, or if `src/` reads a game-data entity directly.
+- **`User.role` is write-protected by a field rule** (`base44/entities/User.jsonc`: only an app admin
+  may write it). The platform itself lets any signed-in user set their own role through
+  `auth.updateMe`; every `user.role === 'admin'` check in the functions is safe only because of this
+  rule. Never remove it. (Custom fields on the user record, such as the `groups` cache, stay
+  user-writable — which is why that cache is only ever a hint.)
+- **Data entities are closed to the browser.** Every rule on `Group`, `Session`, `Game`,
+  `RoundResult`, `TableTalkNote`, `JoinAttempt` is the literal `false`; `GroupMember` lets a caller
+  read their own rows and nothing else. Only service-role functions touch them — app admins included.
+- **A group that is not `active` is read-only** in every write function (archived → 403 "This group is
+  archived — it is read-only"; deleted → 404), except un-archiving, the app-admin tools, leaving the
+  group yourself, and app-admin note moderation.
+- **Never decide from one page of rows.** The entity store returns a page (50 by default, 500 at most
+  per the code's own measurements); any "all rows of X" read must page by cursor (`fetchAll`).
 - **The membership cache is a hint, never proof.** `user.groups` (written by `getMyGroups`,
   `createGroup`, `joinGroupByCode`) exists to ride out read-after-write lag, but it is written with the
   caller's own token, so a user can write it. A read path may use it only to find a `GroupMember` row to
-  re-read by id, and that row must belong to the caller. (The write functions still trust it — todo P12-9.)
+  re-read by id, and that row must belong to the caller. No function, read or write, trusts it (P13-7); at most five hinted rows are re-read per call.
 - **Scoring is deterministic & pure.** `lib/scoring.js` has no I/O; given bids+tricks+options
   it returns the same points. It is the single source of scoring truth (frontend preview +
   backend settle both call it).
@@ -170,3 +183,7 @@ Per-player round score:
   "no open entity" and "cache is a hint" invariants; recorded the `InvokeLLM` and hosting integrations that
   were missing; corrected the sign-in methods (Google + email, no Apple); added the accountability
   convention (`src/lib/app-info.js`). See plan.md Phase 12.
+- **Nov 19 2026:** Access model hardened (Phase 13): `User.role` write-protected by a field rule (the
+  platform allowed self-promotion to admin); data entities closed with `false`; no function trusts
+  the membership cache; non-active groups are read-only; "all rows" reads page by cursor. Added the
+  `sandbox/` (fake backend running the real functions + a browser driver) as the place to test.

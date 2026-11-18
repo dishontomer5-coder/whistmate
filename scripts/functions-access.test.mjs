@@ -1457,6 +1457,13 @@ await t('GroupMember: a browser caller reads only their own rows and writes noth
   const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', 'GroupMember.jsonc'), 'utf8')));
   assert.deepEqual(schema.rls, { create: false, read: { 'data.user_id': '{{user.id}}' }, update: false, delete: false });
 });
+// Without this field rule a signed-in user can make themselves app admin with
+// auth.updateMe({ role: 'admin' }) — proven on a throwaway Base44 app, then closed on the
+// live one (P13-B9). Every `user.role === 'admin'` check in the functions rests on it.
+await t('User.role can be written only by an app admin (field rule)', async () => {
+  const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', 'User.jsonc'), 'utf8')));
+  assert.deepEqual(schema.properties.role.rls, { write: { user_condition: { role: 'admin' } } });
+});
 await t('no entity rule depends on the user record\'s role field', async () => {
   for (const file of readdirSync(path.join(ROOT, 'base44/entities'))) {
     const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', file), 'utf8')));
