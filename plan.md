@@ -46,7 +46,7 @@ Source spec: `~/Downloads/israeli_whist_gameapp_plan.md`. Reference code (read-o
 | 9 | AI "Ask about the game" chat | CLOSED Aug 3 (deployed) | Rules assistant grounded in `docs/whist-rules.md`. Detail lives in todo.md (no plan section was written). |
 | 10 | Trump winner tracking + suit-rank fix | CLOSED Aug 3 (deployed; live round test never recorded) | Record the auction winner instead of deriving it. Detail in todo.md. |
 | 11 | Fix locked bids + phase colours | CLOSED Aug 3 in code (function deploy never recorded) | Edit bids after locking; bidding vs results visually distinct. Detail in todo.md. |
-| 12 | Public-listing readiness (Clonitt) | OPEN — code done Nov 18, deploy pending | Close the open data API, name who is accountable, remove poker leftovers, so the app can be listed publicly. |
+| 12 | Public-listing readiness (Clonitt) | OPEN — deployed + verified signed out Nov 18; owner's signed-in test and the submission remain | Close the open data API, name who is accountable, remove poker leftovers, so the app can be listed publicly. |
 
 Ordered by dependency and risk: scaffold → data → pure logic → server logic → UI shell → the
 flow that depends on all of it → stats → deploy. Scoring (Phase 2) is sequenced early and
@@ -288,7 +288,7 @@ standalone because it's the highest-risk domain logic and fully testable without
 
 ---
 
-## Phase 12: Public-listing readiness — OPEN (v1 — Nov 2026; code done Nov 18, not yet deployed)
+## Phase 12: Public-listing readiness — OPEN (v1 — Nov 2026; deployed and verified signed out Nov 18)
 
 > The owner wants WhistMate listed on Clonitt, a hub where a person reviews each app against eight
 > standards (v1.2). It is a web app, so the download standards do not apply. An audit on Nov 17 2026
@@ -309,6 +309,7 @@ standalone because it's the highest-risk domain logic and fully testable without
 | P12-2 | The live `/join` page showed the poker app's logo and "track your poker nights"; "poker" also survived in `Activity.jsx`, `TableTalkCard.jsx`, `WriteNoteDialog.jsx`, and an unused `EditGameForm.jsx`. | Missed in the Phase 4 port. | Replace with WhistMate's own logo and wording; delete the unused form. |
 | P12-3 | Nobody is named as accountable: README was the Base44 template, `package.json` had no author, the app had no About or contact screen. | Never written. | `/about` page (public), README, `package.json`, one source in `src/lib/app-info.js`. |
 | P12-4 | Table talk's "link to game" list was always empty. | `WriteNoteDialog` queried `GamePlayer`, an entity deleted in Phase 1; `createNote` validated the link against `Game`, which in whist is a single round with no name or date. | Link notes to a **Session**; shared sessions come from `getGroupData`. |
+| P12-6 | The git sync is not enough to ship a frontend change promptly. On Nov 18 2026 it applied the entity rules ~30 s after the push but had not published a site build 5 minutes later. | Unknown — the Builder may build lazily or need a publish. | Publish the site from the CLI (`site deploy --build --publish`) BEFORE pushing; order recorded in todo.md's resume block. |
 | P12-9 | **Not fixed:** 18 write functions still trust `user.groups` for membership or admin role (`startRound`, `submitBids`, `saveRoundResults`, `updateRound`, `deleteRound`, `startSession`, `closeSession`, `createNote`, `deleteNote`, `addGhostMember`, `removeMember`, `renameMember`, `unclaimMember`, `updateMemberRole`, `updateGroupSettings`, `setGroupStatus`, `regenerateInviteCode`, `joinGroupByCode`). A signed-in user who knows a group id could forge membership, and a member could forge the admin role. | Same root cause as P12-1b. | Same hint-not-proof fix in each. Deferred — see the decision below. |
 
 ### Execution order
@@ -355,3 +356,8 @@ standalone because it's the highest-risk domain logic and fully testable without
 - **Owner's answers (Nov 18 2026, via AskUserQuestion):** developer name **Tomer Dishon**; support contact
   the personal Gmail address (published in the app, README and listing); the jester app icon and the
   EOS Poker Nights app this was ported from are both the owner's own.
+- **Decision (Nov 18 2026):** Published the site from this machine (`site deploy --build --publish`)
+  when the synced build had not appeared five minutes after the push. — The entity rules were already
+  live, so the old page was showing signed-in users empty lists; waiting longer only extended that. The
+  local build uses the installed `@base44/sdk` 0.8.39 rather than the lockfile's 0.8.63, the same as the
+  August CLI deploys. Options considered: keep waiting for the cloud build / publish locally.

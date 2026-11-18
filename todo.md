@@ -4,22 +4,29 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 18 2026): **Phase 12 (Clonitt listing readiness) — code DONE and committed on
-> branch `p12-clonitt-readiness`, NOT deployed.** Next action = **P12-6** (deploy), which is blocked on
-> the owner: the Base44 CLI on this machine is logged in as the work account (`tomerdi@base44.com`), and
-> the WhistMate app refuses it ("You don't have permission"). The owner runs `npx base44@latest login`
-> with the account that owns the app; then follow P12-6 exactly — **functions first, then push `main`**.
+> ▶ RESUME HERE (Nov 18 2026): **Phase 12 (Clonitt listing readiness) is DEPLOYED and verified on the
+> live site signed out.** Next action = **P12-8**, which only the owner can do: the signed-in smoke test
+> on the live site. After it passes, P12-10 (the owner submits the listing). P12-9 (harden the write
+> functions) is waiting for the owner's go-ahead — recommended before submitting.
+> The Base44 CLI on this machine is logged in as **dishontomer5@gmail.com**, the account that owns the
+> app (the owner logged in on Nov 18 2026; the work account `tomerdi@base44.com` is refused by the app).
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
 > **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
 > disabled — never push there. The owner allows pushing and deploying on this repo only. Two-way-synced
 > to the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`), live at
 > **https://whist-mate-pro.base44.app**.
 > Phases 1–11 are done (10 and 11 never had their live round test recorded — P12-8 covers it).
-> Checks at the branch tip (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
-> **functions-access 89/89**, `rules:check` in sync.
-> in_progress: P12-6.
-> ⚠️ The live site is still the OLD code (checked Nov 18 2026): a signed-out request to the entity API
-> returns group data. Nothing may be submitted to Clonitt until P12-7 passes.
+> Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
+> **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
+> `p12-clonitt-readiness` is merged and can be deleted.
+> in_progress: P12-8 (owner).
+> ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
+> `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
+> `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
+> the push but had NOT published a new SITE build five minutes later, so for those minutes the old page
+> ran against locked entities and showed empty lists. Publishing the site from the CLI fixed it. After
+> any push that changes the frontend, check the served bundle hash and publish the site yourself if it
+> has not moved.
 > ⚠️ `node_modules` is behind `package.json`: installed `@base44/sdk` 0.8.39 / `@base44/vite-plugin` 1.0.30,
 > wanted ^0.8.63 / ^1.0.52 since the Builder's Nov 17 "Update base44 packages" commit. The build is green
 > anyway (nothing imports the new auth boilerplate). Local `npm install` was blocked in August (the
@@ -429,25 +436,37 @@
 
 ### 12c. Ship
 
-- [ ] 🔄 **P12-6:** deploy. Blocked on the owner logging the Base44 CLI in as the account that owns the
-  app (`npx base44@latest login`; check with `whoami`, then
-  `npx base44@latest functions list --app-id 6a5be77702d0c74b5a13cfea` must succeed). Then, in this order:
-  (1) `git checkout main && git pull --rebase`, merge `p12-clonitt-readiness` (fast-forward);
-  (2) `npx base44@latest functions deploy --app-id 6a5be77702d0c74b5a13cfea` — ALL functions, so the
-  never-recorded P10/P11 `submitBids` / `updateRound` deploy is covered too — and confirm
-  `functions list` shows `getGroupData` and `getPlayerNotes`; (3) `git push origin main` → the sync
-  cloud-builds the site and pushes the entity rules; (4) if the site or the rules have not changed after
-  a few minutes, fall back to `entities push` / `site deploy` (or `deploy --yes --build`) with the same
-  `--app-id`. Never push to `old-blip`.
-- [ ] **P12-7:** re-probe the live site signed out. Pass = `GET /api/apps/<id>/entities/{Group,Session,Game,RoundResult,TableTalkNote}`
-  with no token returns no rows; the served bundle contains "About, contact & privacy" and no
-  "poker"; `/about` and `/join` render as in Wave 12b; the landing page still opens with no login.
-- [ ] **P12-8** *(owner)*: signed-in smoke test on the live site — sign up with a fresh email in a
+- [x] **P12-6** *(done Nov 18 2026)*: **deployed.** The owner logged the CLI in as the owning account;
+  then `functions deploy` (all 31: **9 deployed, 22 unchanged** — `getGroupData` and `getPlayerNotes`
+  new, and `submitBids` + `updateRound` were among the changed ones, so the August P10/P11 function
+  changes had never reached the live app until now); fast-forwarded `main` and pushed `27be6de` to
+  `origin` (dishontomer5-coder/whistmate); the sync applied the entity rules within about 30 seconds;
+  the site did not follow within five minutes, so `site deploy --build --publish --yes` published the
+  local build. That build uses the installed `@base44/sdk` 0.8.39, like the August CLI deploys.
+- [x] **P12-7** *(done Nov 18 2026)*: **live site re-probed signed out — passes.** With no token, the
+  entity API returns **0 records** for `Group`, `Session`, `Game`, `RoundResult`, `TableTalkNote`,
+  `GroupMember`, `JoinAttempt` (and 401 for `User`); a get-by-id is 404; the two new functions refuse
+  a signed-out caller with no data. The served bundle (`index-GWOfqBiz.js`) contains the About link,
+  the developer name and address, "track your whist nights", and no "poker", no `GamePlayer`, no direct
+  `entities.Session` read. In a clean headless Chrome: landing, `/about`, `/join`, `/register` render
+  at 320 / 390 / 1440 px with no horizontal overflow; only console error is the expected signed-out 401;
+  requests go only to the app's own address and `media.base44.com`; the web manifest is still served
+  (standalone, 192 + 512 icons). Also ran a read-only script as the signed-in owner through
+  `base44 exec`: every `getGroupData` scope, `getPlayerNotes`, `getGroupMembers`,
+  `computePlayerStats` and `getActivityFeed` answer on the real backend with no rows from another
+  group, and unknown ids / a mismatched `group_id` are refused with 404 (unknown scope 400).
+- [ ] 🔄 **P12-8** *(owner)*: signed-in smoke test on the live site — sign up with a fresh email in a
   private window, create a group, start a session, play a full round including **Edit bids**, open
   History / a player profile / the Activity tab, leave a note pinned to a session, and Add to Home
   Screen on a phone. This is also the P10/P11 live test that was never recorded.
 - [ ] **P12-10:** submit the Clonitt listing (the owner pastes the block; no Clonitt connector is
   attached to the agent). Needs a square icon ≥ 256 px; screenshots are optional but must be real.
+
+> **Wave 12c verification (Nov 18 2026):** see P12-7 — signed-out probe, bundle contents, rendered
+> pages and a signed-in read-only run as the owner all pass on the live site. ⚠️ NOT verified: a
+> signed-in user who is neither app admin nor a member being refused on the REAL backend (the owner is
+> both; it is covered only by the local access test and by the documented RLS behaviour), and every
+> signed-in SCREEN (P12-8).
 
 ## Backlog
 
