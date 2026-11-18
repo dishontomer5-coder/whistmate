@@ -596,10 +596,10 @@
   fields: data.role"), other self-updates (the `groups` cache) still accepted, admin restored through
   `exec --privileged`. The live app had 6 users and exactly 1 app admin, so the hole had not been used.
   A guard in the access test fails if the field rule is ever removed.
-- [ ] **P13-B13** *(owner — soon)*: confirm that SIGN-UP still works on the live app with the role rule
-  in place (a fresh e-mail in a private window). It could not be tested by the agent: sign-up needs a
-  real mailbox, and the platform rejects made-up domains. If sign-up fails, the rule is the first
-  suspect — loosen nothing; tell the agent.
+- [x] **P13-B13** *(done Nov 19 2026 — by the owner)*: sign-up still works on the live app with the
+  role field rule in place. The owner created a fresh account ("it felt normal") and reached the
+  create-or-join-a-group screen. (A server-side look at the new account's role was attempted and
+  dropped: `exec --privileged` hung twice that hour.)
 
 ### 13d. Ship
 
