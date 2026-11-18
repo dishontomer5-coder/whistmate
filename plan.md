@@ -47,6 +47,7 @@ Source spec: `~/Downloads/israeli_whist_gameapp_plan.md`. Reference code (read-o
 | 10 | Trump winner tracking + suit-rank fix | CLOSED Aug 3 (deployed; live round test never recorded) | Record the auction winner instead of deriving it. Detail in todo.md. |
 | 11 | Fix locked bids + phase colours | CLOSED Aug 3 in code (function deploy never recorded) | Edit bids after locking; bidding vs results visually distinct. Detail in todo.md. |
 | 12 | Public-listing readiness (Clonitt) | OPEN — deployed + verified signed out Nov 18; owner's signed-in test and the submission remain | Close the open data API, name who is accountable, remove poker leftovers, so the app can be listed publicly. |
+| 13 | Substantial UX improvement by an independent team | OPEN — planned Nov 18, not started | The owner is not convinced the app is clear enough to publish. Review → fix → re-review until independent reviewers find no blocker or major problem. |
 
 Ordered by dependency and risk: scaffold → data → pure logic → server logic → UI shell → the
 flow that depends on all of it → stats → deploy. Scoring (Phase 2) is sequenced early and
@@ -361,3 +362,108 @@ standalone because it's the highest-risk domain logic and fully testable without
   live, so the old page was showing signed-in users empty lists; waiting longer only extended that. The
   local build uses the installed `@base44/sdk` 0.8.39 rather than the lockfile's 0.8.63, the same as the
   August CLI deploys. Options considered: keep waiting for the cloud build / publish locally.
+
+---
+
+## Phase 13: Substantial UX improvement by an independent team — OPEN (v1 — Nov 2026; planned, not started)
+
+> After Phase 12 the owner opened the live app and was not convinced: "I am not sure the user
+> experience and clarity of the web app is quite there." Nobody but the owner has ever used the
+> signed-in app, and no one has reviewed it as a newcomer, as the person scoring at the table, or as a
+> designer. This phase gathers an independent team of reviewers and doers and runs them back and forth
+> — review, fix, verify, review again — until the app is substantially better in function, user
+> experience, design and feel, then ships it. It also clears the P12-9 security debt and leaves behind
+> a best-practices guide for future web apps. Gate: nothing is submitted to Clonitt (todo P12-10)
+> before this phase closes.
+
+### Findings so far
+
+| # | Finding | Root cause | Fix direction |
+|---|---------|-----------|---------------|
+| P13-F1 | The group **"Sessions"** tab is really a group home — active session, standings, awards, recent sessions — while the session list lives under **"History"**, whose icon is a trophy, the icon for standings. (Owner, Nov 18 2026; confirmed in `Layout.jsx` `groupNavItems` and `Home.jsx`.) | The tab bar was ported from the poker shell in Phase 4 and never re-thought around what each screen shows. | Each tab's label and icon must say what is inside it. The Returning-player reviewer owns this. |
+| P13-F2 | The signed-in app has never been reviewed by anyone but its owner: first run, the in-round flow, wording, visual consistency, edge cases. | No test account, no sandbox, no reviewers until now. | The team and the sandbox below. |
+| P12-9 | 18 write functions trust the user-writable `user.groups` cache (see Phase 12). | — | Fix in this phase (owner approved Nov 18 2026) — todo P13-7. |
+
+### The team
+
+Reviewers are independent subagents. Each works alone, sees the app fresh, never sees another
+reviewer's notes or the lead's opinions, and reports findings with screenshots and steps.
+
+| Reviewer | Walks in as | Looks for |
+|----------|-------------|-----------|
+| Newcomer | Someone who just got an invite link | Sign-up, creating or joining a group, the first round with no guidance; where they get lost. |
+| Scorekeeper | The person holding the phone at the table | Start session, pick players, bids, results, fixing a mistake, closing; taps, speed, one-handed use. |
+| Returning player | Someone checking results a week later | Tabs, labels, icons, what lives where; finding standings, history, a profile (P13-F1). |
+| Visual designer | A designer seeing it for the first time | Hierarchy, type, colour, spacing, consistency, contrast, tap sizes, phone and desktop. |
+| Whist player | Someone who knows the game | Whether scoring and terms match how the game is played and talked about; every label and message; the rules assistant; Hebrew names in the layout. |
+| QA tester | Someone trying to break it | Every feature and edge case (bids totalling 13, tricks not totalling 13, renege, everyone falls, edit and delete a round, claiming a player, archived group, game limit), with steps to reproduce. |
+
+Doers: a **sandbox builder** (first), **implementers** working in separate git worktrees (structure and
+navigation; screens, visuals and wording; backend), and the **QA tester again as the independent
+verifier** of every change. The lead (the main session) triages, decides, merges, deploys and keeps
+this trail.
+
+### How it runs
+
+1. **Sandbox.** Stand up a place where everyone can be signed in and nothing real is touched, seeded
+   with realistic data: several groups, many sessions, 150+ rounds, Hebrew and English player names, a
+   round in play, an open and several closed sessions, an archived group, table-talk notes.
+2. **Review round.** All six reviewers, in parallel, independently.
+3. **Triage.** The lead reproduces every finding, drops duplicates and anything not real, and rates
+   each one **blocker / major / minor / idea**. The full list goes into todo.md as numbered tasks.
+4. **Fix.** Every blocker and major, and the minors that are cheap. Ideas are logged, not built.
+5. **Verify.** The verifier re-walks every changed flow, with before and after screenshots; build,
+   lint and all tests green.
+6. **Review again** with fresh reviewers. Repeat 3–6 until a round ends with **zero open blockers and
+   zero open majors**, or three rounds are done.
+7. **Ship.** Deploy in the recorded order, re-probe the live site, close the phase.
+
+### Decisions
+
+- **Owner's decisions (Nov 18 2026):**
+  - **Where the team works:** wherever is easiest — a local sandbox, a fake backend, or a separate
+    Base44 test app (creating one is allowed). Never the real groups on the live app.
+  - **Authority:** the lead decides and changes without asking — navigation, layout, wording, visual
+    design included. Ask only when genuinely unsure about something that is the owner's to decide.
+  - **Shipping:** committing, pushing to `origin main` (dishontomer5-coder/whistmate only — never
+    `old-blip`) and deploying to the live app are allowed, in the order todo.md's resume block records.
+  - **Security fix (P12-9):** approved; do it in this phase.
+  - **Best-practices guide:** wanted, to help future builds of this sort.
+- **Decision (Nov 18 2026):** Keep the product's identity — the name WhistMate, the navy-and-gold look,
+  the spade mark — and improve within it. — "Substantially better" means clearer and easier, not a
+  different product; a repaint would also invalidate the listing's icon and screenshots. A reviewer may
+  still challenge any part of it, and the lead may change it with a logged reason.
+- **Decision (Nov 18 2026):** The guide lives at `docs/web-app-best-practices.md` — plain Markdown,
+  written to be project-agnostic so it can be copied into the next project or turned into an agent
+  skill. Each practice carries the WhistMate lesson behind it. Options considered: a doc in this repo /
+  a shared online doc / a skill straight away.
+
+### Must not change
+
+- **Scoring results.** `src/lib/scoring.test.mjs` stays green with its assertions untouched.
+- **Existing users' data**, and **existing links**: `/join?code=…`, `/session/:id`, `/round/:id`,
+  `/player/:id`, `/about`. A renamed route keeps a redirect from the old one.
+- **The single rulebook source** (`docs/whist-rules.md` → `npm run rules:gen`).
+- **The truth of the data statements** on `/about` and in `README.md`; the read-path invariants in
+  design.md; `scripts/functions-access.test.mjs` stays green.
+- **No new npm dependencies** unless unavoidable — `npm install` is unreliable on the owner's machine
+  (see todo.md's resume block).
+
+### Done when
+
+The lead's final message shows all of this as evidence:
+
+- (a) the last review round's scorecard — each reviewer's verdict and the count of findings by
+  rating, with **0 open blockers and 0 open majors** — plus what was deliberately left and why;
+- (b) the output of `npm run build`, `npm run lint`, `npm run rules:check` and every `node` test
+  file, all passing;
+- (c) the access test's count of write functions it covers (all of them — P12-9);
+- (d) the live site running the new build: the served bundle hash, signed-out entity reads returning
+  0 rows, and the key pages rendering at 320, 390 and 1440 px with no horizontal overflow;
+- (e) the table of contents of `docs/web-app-best-practices.md`;
+- (f) todo.md Phase 13 closed, the decisions logged here, `git status` clean, `main` equal to
+  `origin/main`;
+- (g) an updated CLONITT LISTING block reflecting anything renamed or added — **not submitted**;
+- (h) a short list of what only the owner can check.
+
+Bound: stop after three review rounds, or 80 turns, and report exactly what remains.

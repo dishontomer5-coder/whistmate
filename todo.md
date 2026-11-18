@@ -4,10 +4,14 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 18 2026): **Phase 12 (Clonitt listing readiness) is DEPLOYED and verified on the
-> live site signed out.** Next action = **P12-8**, which only the owner can do: the signed-in smoke test
-> on the live site. After it passes, P12-10 (the owner submits the listing). P12-9 (harden the write
-> functions) is waiting for the owner's go-ahead — recommended before submitting.
+> ▶ RESUME HERE (Nov 18 2026): **Phase 13 (substantial UX improvement by an independent team) is
+> PLANNED and not started.** Next action = **P13-1** (build the sandbox). Read plan.md Phase 13 first:
+> it holds the team, the loop, the owner's decisions (full authority to decide and change; may push and
+> deploy), what must not change, and the "Done when" list. The owner starts the run with a `/goal`
+> that points at that section.
+> Phase 12 (Clonitt listing readiness) is DEPLOYED and verified on the live site signed out; the owner
+> then opened the live app signed in and Home and History loaded with data (Nov 18 2026). The listing
+> is NOT to be submitted (P12-10) until Phase 13 closes — the owner's call.
 > The Base44 CLI on this machine is logged in as **dishontomer5@gmail.com**, the account that owns the
 > app (the owner logged in on Nov 18 2026; the work account `tomerdi@base44.com` is refused by the app).
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
@@ -19,7 +23,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P12-8 (owner).
+> in_progress: P13-1.
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -455,7 +459,9 @@
   `base44 exec`: every `getGroupData` scope, `getPlayerNotes`, `getGroupMembers`,
   `computePlayerStats` and `getActivityFeed` answer on the real backend with no rows from another
   group, and unknown ids / a mismatched `group_id` are refused with 404 (unknown scope 400).
-- [ ] 🔄 **P12-8** *(owner)*: signed-in smoke test on the live site — sign up with a fresh email in a
+- [ ] **P12-8** *(owner; partly confirmed Nov 18 2026 — the owner opened the live app signed in and
+  Home (standings) and History (sessions) loaded with data; the rest is folded into Phase 13's QA
+  and the owner's final check, P13-11)*: signed-in smoke test on the live site — sign up with a fresh email in a
   private window, create a group, start a session, play a full round including **Edit bids**, open
   History / a player profile / the Activity tab, leave a note pinned to a session, and Add to Home
   Screen on a phone. This is also the P10/P11 live test that was never recorded.
@@ -468,9 +474,51 @@
 > both; it is covered only by the local access test and by the documented RLS behaviour), and every
 > signed-in SCREEN (P12-8).
 
+## Phase 13: Substantial UX improvement by an independent team (Nov 2026)
+
+> Review → fix → verify → review again, by independent reviewers and doers, until no blocker or major
+> problem is left; then ship. The team, the loop, the owner's decisions, what must not change and the
+> "Done when" list are in plan.md Phase 13. Findings from each review round become numbered tasks
+> here (`P13-R<round>-<n>`), rated blocker / major / minor / idea.
+
+### 13a. Sandbox
+
+- [ ] 🔄 **P13-1:** a place where every reviewer can be signed in and nothing real is touched — a local
+  sandbox, a fake backend, or a separate Base44 test app, whichever is easiest — seeded with realistic
+  data (several groups, many sessions, 150+ rounds, Hebrew and English names, a round in play, an
+  archived group, notes). Record how to start it and how to sign in.
+
+### 13b. Review and fix rounds
+
+- [ ] **P13-2:** review round 1 — the six reviewers, independently, with screenshots.
+- [ ] **P13-3:** triage round 1 — reproduce, de-duplicate, rate; list every finding here as a task.
+  P13-F1 (the Sessions / History tabs and the trophy icon) is already known.
+- [ ] **P13-4:** fix every blocker and major from round 1, and the cheap minors.
+- [ ] **P13-5:** verify round 1's fixes — the QA tester re-walks each changed flow, before and after
+  screenshots; build, lint and all tests green.
+- [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
+  if needed, until a round ends with 0 open blockers and 0 open majors (at most three rounds).
+
+### 13c. Security and the guide
+
+- [ ] **P13-7:** P12-9 — no backend function trusts the user-writable `user.groups` cache: apply the
+  hint-not-proof check to the 18 write functions and extend `scripts/functions-access.test.mjs` to
+  cover every one of them.
+- [ ] **P13-8:** `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
+  kind (structure and navigation, flows, states, wording, visual design, phones, accessibility, data
+  access and privacy, accountability, testing, shipping), each practice with the WhistMate lesson
+  behind it.
+
+### 13d. Ship
+
+- [ ] **P13-9:** deploy in the recorded order (functions → site → push) and re-probe the live site
+  signed out; key pages at 320 / 390 / 1440 px.
+- [ ] **P13-10:** refresh the CLONITT LISTING block for anything renamed or added. Do not submit.
+- [ ] **P13-11** *(owner)*: final signed-in look at the live app, then P12-10.
+
 ## Backlog
 
-- [ ] **P12-9** *(found Nov 18 2026, deferred — see plan.md Phase 12)*: the 18 WRITE functions still
+- [ ] **P12-9** *(found Nov 18 2026; owner approved the fix Nov 18 2026 — now scheduled as **P13-7**)*: the 18 WRITE functions still
   trust the user-writable `user.groups` cache for membership or admin role. Apply the same
   hint-not-proof check the read functions got in P12-1b (re-read the hinted `GroupMember` row by id; it
   must be the caller's; take the role from the row), and extend `scripts/functions-access.test.mjs` to
