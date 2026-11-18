@@ -342,16 +342,26 @@ await t('round scope returns the round, its session and its four results', async
   assert.equal(data.results.length, 4);
   assert.ok(data.results.every((r) => r.game_id === 'rA1-7'));
 });
-await t('player scope returns the latest 50 scored rounds, newest first, with their rounds', async () => {
+await t('player scope returns every scored round of a short history, newest first, with their rounds and sessions', async () => {
   const { data } = await call('getGroupData', bob, { scope: 'player', player_id: 'mAlice' });
   assert.deepEqual(data.player, { id: 'mAlice', name: 'Alice', group_id: 'gA' });
-  assert.equal(data.results.length, 50);
+  // Alice scored in 130 rounds of Big Night and one of Short Night: all 131 come back,
+  // and the response says that this is all of them (it used to stop at 50 without a word).
+  assert.equal(data.results.length, 131);
+  assert.equal(data.total_rows, 131);
+  assert.equal(data.limit, 200);
   assert.ok(data.results.every((r) => r.player_id === 'mAlice' && r.points != null));
   assert.equal(data.results[0].game_id, 'rA2-1'); // newest scored round; rA2-2 is unscored
   const times = data.results.map((r) => new Date(r.created_date).getTime());
   assert.deepEqual(times, [...times].sort((a, b) => b - a));
   const roundIds = new Set(data.rounds.map((g) => g.id));
+  assert.equal(roundIds.size, 131);
   assert.ok(data.results.every((r) => roundIds.has(r.game_id)));
+  // Every row can name its night: the session's name, date and status, by session id.
+  assert.deepEqual(data.sessions, {
+    sA1: { id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed' },
+    sA2: { id: 'sA2', name: 'Short Night', session_date: '2026-07-08', status: 'open' },
+  });
 });
 await t('player scope never returns the claim token', async () => {
   const { data } = await call('getGroupData', alice, { scope: 'player', player_id: 'mGhost' });
@@ -678,6 +688,7 @@ const GROUP_WRITES = {
     verify: () => assert.equal(row('Group', 'gA').name, 'Table Seven'),
   },
   setGroupStatus: {
+    setup: () => { row('Session', 'sA2').status = 'closed'; }, // a group is archived only once nothing is open
     body: { group_id: 'gA', status: 'archived' },
     done: ['Group ~1'], appAdmin: true,
     outsider: 'Only group admins can perform this action', plain: 'Only group admins can perform this action',
@@ -1407,6 +1418,526 @@ await t('a cache stuffed with 500 entries causes at most 5 hinted re-reads, in e
   }
   assert.deepEqual(offenders, []);
 });
+
+// =========================================================================================
+// Review round 1 (rulings 9-13, 50, 53, 54, 58). Every check from here to the static guards
+// fails against the functions as they were at commit 5a660c7 — what each one pins is new.
+// =========================================================================================
+section = 'R1 stats';
+
+// A small group whose numbers can be counted by hand: "Stats Table" (gS), two closed nights
+// and one still open. Each line is one round: [member, bid, tricks, points], classic scoring.
+//
+//   First Friday (closed)      Sam   Tal   Uri   Vered
+//     1                        +26   +19   -10   +35     Uri bid 2, took 1 (too few)
+//     2  everyone fell           0     0     0     0     Sam and Tal both bid 5; spades, trump winner TAL
+//     3                        +50   +26   -10   +35     Sam's zero bid made on a DOWN table; Uri bid 3, took 4
+//     night                    +76   +45   -20   +70     1st Sam, 2nd Vered, 3rd Tal, 4th Uri
+//   Second Friday (closed)
+//     1  everyone fell           0     0     0     0     no trump recorded; Sam and Tal both bid 4 (the highest)
+//     2                        +19   -10   -40   +26     Tal bid 5, took 4; Uri's zero bid took 2
+//     3                        +14   +46  -110   +19     Uri bid 3, took 2 and reneged
+//     night                    +33   +36  -150   +45     1st Vered, 2nd Tal, 3rd Sam, 4th Uri
+//   Tonight (OPEN)             Sam   Tal   Uri   Wolf
+//     1                        +46   -10   +14   +26     Tal bid 2, took 1
+//     2  everyone fell           0     0     0     0     no trump recorded; Sam bid 6 (the highest)
+//     3  bids locked, hand in play — not scored
+//     so far                   +46   -10   +14   +26     Sam leads, then Wolf, Uri, Tal
+//
+// Sam is also a player of Group B (as "Sammy"), where he lost a zero bid on a closed night.
+const STATS_ROUNDS = [
+  { id: 'rS1-1', session: 'sS1', number: 1, seats: [['mSam', 4, 4, 26], ['mTal', 3, 3, 19], ['mUri', 2, 1, -10], ['mVered', 5, 5, 35]] },
+  { id: 'rS1-2', session: 'sS1', number: 2, fell: true, trump: 'spades', winner: 'mTal', seats: [['mSam', 5, 4, 0], ['mTal', 5, 6, 0], ['mUri', 2, 1, 0], ['mVered', 3, 2, 0]] },
+  { id: 'rS1-3', session: 'sS1', number: 3, seats: [['mSam', 0, 0, 50], ['mTal', 4, 4, 26], ['mUri', 3, 4, -10], ['mVered', 5, 5, 35]] },
+  { id: 'rS2-1', session: 'sS2', number: 1, fell: true, winner: 'mSam', seats: [['mSam', 4, 5, 0], ['mTal', 4, 3, 0], ['mUri', 3, 2, 0], ['mVered', 1, 3, 0]] },
+  { id: 'rS2-2', session: 'sS2', number: 2, seats: [['mSam', 3, 3, 19], ['mTal', 5, 4, -10], ['mUri', 0, 2, -40], ['mVered', 4, 4, 26]] },
+  { id: 'rS2-3', session: 'sS2', number: 3, seats: [['mSam', 2, 2, 14], ['mTal', 6, 6, 46], ['mUri', 3, 2, -110, true], ['mVered', 3, 3, 19]] },
+  { id: 'rS3-1', session: 'sS3', number: 1, seats: [['mSam', 6, 6, 46], ['mTal', 2, 1, -10], ['mUri', 2, 2, 14], ['mWolf', 4, 4, 26]] },
+  { id: 'rS3-2', session: 'sS3', number: 2, fell: true, winner: 'mSam', seats: [['mSam', 6, 5, 0], ['mTal', 3, 4, 0], ['mUri', 2, 3, 0], ['mWolf', 3, 1, 0]] },
+  { id: 'rS3-3', session: 'sS3', number: 3, playing: true, winner: 'mUri', seats: [['mSam', 3, null, null], ['mTal', 3, null, null], ['mUri', 4, null, null], ['mWolf', 4, null, null]] },
+  { id: 'rBs-1', session: 'sBs', group: 'gB', number: 1, seats: [['mSamB', 0, 1, -50], ['mCarol', 5, 5, 35], ['mBea', 4, 4, 26], ['mBen', 3, 3, 19]] },
+];
+const { scoreRound } = await import(path.join(ROOT, 'src/lib/scoring.js'));
+const statsTable = () => {
+  const NAMES = { mSam: 'Sam', mTal: 'Tal', mUri: 'Uri', mVered: 'Vered', mWolf: 'Wolf', mXen: 'Xen', mSamB: 'Sammy', mCarol: 'Carol', mBea: 'Bea', mBen: 'Ben' };
+  db.Group.push({ id: 'gS', name: 'Stats Table', invite_code: 'SSSSSS', status: 'active' });
+  db.GroupMember.push(
+    { id: 'mSam', group_id: 'gS', user_id: 'uSam', role: 'admin', player_name: 'Sam', claimed: true, claim_token: null, created_date: at(6000) },
+    { id: 'mTal', group_id: 'gS', user_id: 'uTal', role: 'player', player_name: 'Tal', claimed: true, claim_token: null, created_date: at(6001) },
+    { id: 'mWolf', group_id: 'gS', user_id: 'uWolf', role: 'player', player_name: 'Wolf', claimed: true, claim_token: null, created_date: at(6002) },
+    ...['mUri', 'mVered', 'mXen'].map((id, i) => ({ id, group_id: 'gS', user_id: null, role: 'player', player_name: NAMES[id], claimed: false, claim_token: null, created_date: at(6003 + i) })),
+    { id: 'mSamB', group_id: 'gB', user_id: 'uSam', role: 'player', player_name: 'Sammy', claimed: true, claim_token: null, created_date: at(6010) },
+    ...['mBea', 'mBen'].map((id, i) => ({ id, group_id: 'gB', user_id: null, role: 'player', player_name: NAMES[id], claimed: false, claim_token: null, created_date: at(6011 + i) })),
+  );
+  db.Session.push(
+    { id: 'sS1', group_id: 'gS', name: 'First Friday', status: 'closed', session_date: '2026-08-07', created_date: at(6100) },
+    { id: 'sS2', group_id: 'gS', name: 'Second Friday', status: 'closed', session_date: '2026-08-14', created_date: at(6200) },
+    { id: 'sS3', group_id: 'gS', name: 'Tonight', status: 'open', session_date: '2026-08-21', created_date: at(6300) },
+    { id: 'sBs', group_id: 'gB', name: 'B Stats Night', status: 'closed', session_date: '2026-08-10', created_date: at(6150) },
+  );
+  STATS_ROUNDS.forEach((round, n) => {
+    const group = round.group || 'gS';
+    const created = at(6400 + n);
+    db.Game.push({
+      id: round.id, group_id: group, session_id: round.session, round_number: round.number,
+      status: round.playing ? 'playing' : round.fell ? 'cancelled' : 'complete', everyone_falls: !!round.fell,
+      // Like submitBids: always a "highest bidder" — the trump winner the table marked, or
+      // else just the first of the highest bids. Only a trump suit says it was marked.
+      trump_suit: round.trump || null, highest_bidder_player_id: round.winner || null, created_date: created,
+    });
+    round.seats.forEach(([playerId, bid, tricks, points, reneged], i) => db.RoundResult.push({
+      id: `${round.id}-r${i}`, game_id: round.id, session_id: round.session, group_id: group, player_id: playerId, player_name: NAMES[playerId],
+      bid_order: i, bid, tricks_won: tricks, reneged: !!reneged, points, created_date: created,
+    }));
+    if (round.playing) return;
+    // The table above is hand-written; it has to be what the scoring engine gives.
+    const scoredByEngine = scoreRound({ players: round.seats.map(([player_id, bid, tricks_won, , reneged]) => ({ player_id, bid, tricks_won, reneged: !!reneged })), scoringMethod: 'classic' });
+    assert.deepEqual(scoredByEngine.results.map((r) => r.points), round.seats.map((seat) => seat[3]), `fixture round ${round.id} is not scored like src/lib/scoring.js`);
+    assert.equal(scoredByEngine.everyoneFalls, !!round.fell, `fixture round ${round.id}: everyone-falls flag`);
+  });
+};
+const sam = { id: 'uSam', email: 'sam@example.com', role: 'user', groups: [] };
+const tal = { id: 'uTal', email: 'tal@example.com', role: 'user', groups: [] };
+const wolf = { id: 'uWolf', email: 'wolf@example.com', role: 'user', groups: [] };
+const playerStats = async (playerId, as = sam) => {
+  const res = await call('computePlayerStats', as, { player_id: playerId });
+  assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+  return res.data;
+};
+const NEW_STATS_FIELDS = ['sessions', 'best_session', 'worst_session', 'group_awards', 'performance', 'awards', 'results', 'total_rows'];
+const refusedWithNothing = (res, status) => {
+  assert.equal(res.status, status);
+  assert.deepEqual(Object.keys(res.data), ['error']);
+  for (const field of NEW_STATS_FIELDS) assert.ok(!(field in res.data));
+  assert.ok(!/Stats Table|First Friday|Sam|Tal/.test(JSON.stringify(res.data)));
+};
+
+// --- ruling 9: a win is a closed session finished in first place -------------------------------
+await t('computePlayerStats: wins, podiums, win rate and sessions count closed sessions only; totals still include the open one', async () => {
+  fresh(statsTable);
+  // Sam: won First Friday, 3rd on Second Friday, and is in front tonight — which is not a win.
+  const samStats = (await playerStats('mSam')).performance;
+  assert.deepEqual(samStats, { total_score: 155, avg_score: 19.38, rounds_played: 8, sessions_played: 2, sessions_open: 1, wins: 1, podiums: 2, win_ratio: 0.5 });
+  // Vered won Second Friday and was 2nd on First Friday; she is not playing tonight.
+  assert.deepEqual((await playerStats('mVered')).performance, { total_score: 115, avg_score: 19.17, rounds_played: 6, sessions_played: 2, sessions_open: 0, wins: 1, podiums: 2, win_ratio: 0.5 });
+  // Tal: 3rd and 2nd on the closed nights; last tonight. Uri: last twice.
+  assert.deepEqual((await playerStats('mTal')).performance, { total_score: 71, avg_score: 8.88, rounds_played: 8, sessions_played: 2, sessions_open: 1, wins: 0, podiums: 2, win_ratio: 0 });
+  assert.deepEqual((await playerStats('mUri')).performance, { total_score: -156, avg_score: -19.5, rounds_played: 8, sessions_played: 2, sessions_open: 1, wins: 0, podiums: 0, win_ratio: 0 });
+});
+await t('computePlayerStats: a player who has only played in the open session has no win, no podium and no win rate', async () => {
+  fresh(statsTable);
+  // Wolf is 2nd tonight, with the night still open: two rounds on the books and nothing else.
+  const wolf = await playerStats('mWolf');
+  assert.deepEqual(wolf.performance, { total_score: 26, avg_score: 13, rounds_played: 2, sessions_played: 0, sessions_open: 1, wins: 0, podiums: 0, win_ratio: null });
+  assert.deepEqual([wolf.best_session, wolf.worst_session], [null, null]);
+  // Group A: Frank has only played Short Night, which is open and where all four are level.
+  const frankStats = (await call('computePlayerStats', alice, { player_id: 'mFrank' })).data.performance;
+  assert.deepEqual([frankStats.rounds_played, frankStats.sessions_played, frankStats.wins, frankStats.podiums, frankStats.win_ratio], [1, 0, 0, 0, null]);
+  // Alice played both nights of Group A; only Big Night is closed (everyone level, so all first).
+  const aliceStats = (await call('computePlayerStats', bob, { player_id: 'mAlice' })).data.performance;
+  assert.deepEqual([aliceStats.rounds_played, aliceStats.sessions_played, aliceStats.sessions_open, aliceStats.wins, aliceStats.podiums, aliceStats.win_ratio], [131, 1, 1, 1, 1, 1]);
+});
+await t('computePlayerStats: closing the open session turns the lead into a win', async () => {
+  fresh(() => { statsTable(); row('Session', 'sS3').status = 'closed'; });
+  assert.deepEqual((await playerStats('mSam')).performance, { total_score: 155, avg_score: 19.38, rounds_played: 8, sessions_played: 3, sessions_open: 0, wins: 2, podiums: 3, win_ratio: 0.67 });
+  assert.deepEqual((await playerStats('mWolf')).performance, { total_score: 26, avg_score: 13, rounds_played: 2, sessions_played: 1, sessions_open: 0, wins: 0, podiums: 1, win_ratio: 0 });
+});
+await t('computeGlobalStats: across groups, closed sessions only — and signed out it answers 401 with nothing', async () => {
+  fresh(statsTable);
+  refusedWithNothing(await call('computeGlobalStats', null, {}), 401);
+  const res = await call('computeGlobalStats', sam, {});
+  assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+  // Stats Table: 8 rounds, +155, one win in two closed nights. Group B: one round, -50, last of four.
+  assert.deepEqual(res.data.performance, { total_score: 105, avg_score: 11.67, rounds_played: 9, sessions_played: 3, sessions_open: 1, wins: 1, podiums: 2, win_ratio: 0.33 });
+  assert.equal(res.data.total_groups, 2);
+  assert.deepEqual(res.data.groups_breakdown, [
+    { group_id: 'gS', group_name: 'Stats Table', total_score: 155, rounds_played: 8, avg_score: 19.38 },
+    { group_id: 'gB', group_name: 'Group B', total_score: -50, rounds_played: 1, avg_score: -50 },
+  ]);
+  // Someone with no group gets zeros and "nothing to count", not 0%.
+  const nobody = (await call('computeGlobalStats', dave, {})).data;
+  assert.deepEqual(nobody.performance, { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, sessions_open: 0, wins: 0, podiums: 0, win_ratio: null });
+  assert.deepEqual([nobody.strategy.contract_accuracy, nobody.strategy.zero_bid_success_rate, nobody.best_session, nobody.sessions], [null, null, null, []]);
+});
+await t('computeGlobalStats: the nights across groups, with the best and the worst closed one', async () => {
+  fresh(statsTable);
+  const { data } = await call('computeGlobalStats', sam, {});
+  assert.deepEqual(data.sessions, [
+    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4, group_id: 'gS', group_name: 'Stats Table' },
+    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4, group_id: 'gS', group_name: 'Stats Table' },
+    { session_id: 'sBs', name: 'B Stats Night', session_date: '2026-08-10', status: 'closed', total: -50, rank: 4, players: 4, group_id: 'gB', group_name: 'Group B' },
+    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4, group_id: 'gS', group_name: 'Stats Table' },
+  ]);
+  assert.equal(data.best_session.session_id, 'sS1');   // +76 on First Friday
+  assert.equal(data.worst_session.session_id, 'sBs');  // -50 in Group B
+  // Carol shares Group B with Sam; nothing of his other group reaches her.
+  assert.ok(!JSON.stringify((await call('computeGlobalStats', carol, {})).data).includes('Stats Table'));
+});
+
+// --- ruling 13: a player's nights, best and worst --------------------------------------------
+await t('computePlayerStats: one entry per session the player scored in, newest first, with their total and place', async () => {
+  fresh(statsTable);
+  const stats = await playerStats('mSam', tal); // any member of the group may look
+  assert.deepEqual(stats.sessions, [
+    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4 },
+    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4 },
+    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4 },
+  ]);
+  // Wolf never sat at the closed nights; Xen never played at all.
+  assert.deepEqual((await playerStats('mWolf')).sessions, [{ session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 26, rank: 2, players: 4 }]);
+  assert.deepEqual((await playerStats('mXen')).sessions, []);
+  // The chart's points can name their night too.
+  assert.deepEqual(stats.timeline.map((p) => p.session_name), ['First Friday', 'First Friday', 'First Friday', 'Second Friday', 'Second Friday', 'Second Friday', 'Tonight', 'Tonight']);
+  assert.equal(stats.timeline.at(-1).cumulative, 155);
+});
+await t('computePlayerStats: best and worst night are closed sessions; outsiders and the signed-out still get nothing', async () => {
+  fresh(statsTable);
+  const samStats = await playerStats('mSam');
+  // Tonight's +46 would be Sam's second best night — it does not count while it is open.
+  assert.deepEqual(samStats.best_session, { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4 });
+  assert.deepEqual(samStats.worst_session, { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4 });
+  const uri = await playerStats('mUri');
+  assert.deepEqual([uri.best_session.name, uri.best_session.total, uri.worst_session.name, uri.worst_session.total], ['First Friday', -20, 'Second Friday', -150]);
+  assert.deepEqual([(await playerStats('mXen')).best_session, (await playerStats('mXen')).worst_session], [null, null]);
+
+  refusedWithNothing(await call('computePlayerStats', null, { player_id: 'mSam' }), 401);
+  refusedWithNothing(await call('computePlayerStats', dave, { player_id: 'mSam' }), 403);   // in no group
+  refusedWithNothing(await call('computePlayerStats', alice, { player_id: 'mSam' }), 403);  // admin of another group
+  refusedWithNothing(await call('computePlayerStats', carol, { player_id: 'mSam' }), 403);  // shares Group B with Sam, not this group
+  refusedWithNothing(await call('computePlayerStats', carol, { player_id: 'mSam', group_id: 'gB' }), 404);
+  for (const forger of Object.values(forgers)) {
+    const forged = { ...forger, groups: [{ ...forger.groups[0], group_id: 'gS' }] };
+    refusedWithNothing(await call('computePlayerStats', forged, { player_id: 'mSam' }), 403);
+  }
+});
+
+// --- ruling 58: tied players share a place ---------------------------------------------------------
+await t('computePlayerStats: players level on points share a place in a night — #1 #2 #2 #4; two level on top are both #1 with a win each and the next is #3', async () => {
+  fresh(() => {
+    statsTable();
+    db.Session.push(
+      { id: 'sT2', group_id: 'gS', name: 'Two level', status: 'closed', session_date: '2026-07-24', created_date: at(6050) },
+      { id: 'sT3', group_id: 'gS', name: 'Three level', status: 'closed', session_date: '2026-07-31', created_date: at(6060) },
+      { id: 'sT1', group_id: 'gS', name: 'Two on top', status: 'closed', session_date: '2026-07-17', created_date: at(6040) },
+    );
+    // Two level: Sam +26, Tal +19, Uri +19, Vered -10.  Three level: Sam, Tal, Uri +14 each, Vered -20.
+    // Two on top: Sam +26, Tal +26, Uri +14, Vered -10.
+    const night = (id, session, seats) => {
+      db.Game.push({ id, group_id: 'gS', session_id: session, round_number: 1, status: 'complete', everyone_falls: false, trump_suit: null, highest_bidder_player_id: 'mSam', created_date: at(6070) });
+      seats.forEach(([playerId, name, bid, tricks, points], i) => db.RoundResult.push({
+        id: `${id}-r${i}`, game_id: id, session_id: session, group_id: 'gS', player_id: playerId, player_name: name, bid_order: i, bid, tricks_won: tricks, reneged: false, points, created_date: at(6070),
+      }));
+    };
+    night('rT2-1', 'sT2', [['mSam', 'Sam', 4, 4, 26], ['mTal', 'Tal', 3, 3, 19], ['mUri', 'Uri', 3, 3, 19], ['mVered', 'Vered', 2, 3, -10]]);
+    night('rT3-1', 'sT3', [['mSam', 'Sam', 2, 2, 14], ['mTal', 'Tal', 2, 2, 14], ['mUri', 'Uri', 2, 2, 14], ['mVered', 'Vered', 5, 7, -20]]);
+    night('rT1-1', 'sT1', [['mSam', 'Sam', 4, 4, 26], ['mTal', 'Tal', 4, 4, 26], ['mUri', 'Uri', 2, 2, 14], ['mVered', 'Vered', 2, 3, -10]]);
+  });
+  const place = async (id) => Object.fromEntries((await playerStats(id)).sessions.map((n) => [n.name, n.rank]));
+  const [samPlaces, talPlaces, uriPlaces, veredPlaces] = [await place('mSam'), await place('mTal'), await place('mUri'), await place('mVered')];
+  assert.deepEqual([samPlaces['Two level'], talPlaces['Two level'], uriPlaces['Two level'], veredPlaces['Two level']], [1, 2, 2, 4]);
+  assert.deepEqual([samPlaces['Three level'], talPlaces['Three level'], uriPlaces['Three level'], veredPlaces['Three level']], [1, 1, 1, 4]);
+  // Two level on top: both are #1 and the next player is #3 — nobody is #2.
+  assert.deepEqual([samPlaces['Two on top'], talPlaces['Two on top'], uriPlaces['Two on top'], veredPlaces['Two on top']], [1, 1, 3, 4]);
+  // Level in front on a closed night is a win for each of them (a shared win, by design).
+  // Sam: First Friday, Two level, Three level, Two on top. Tal: Three level, Two on top. Uri: Three level.
+  const wins = async (id) => (await playerStats(id)).performance.wins;
+  assert.deepEqual([await wins('mSam'), await wins('mTal'), await wins('mUri'), await wins('mVered')], [4, 2, 1, 1]);
+  // Group A's Big Night ended with all four level: everyone is #1 of 4.
+  const big = (await call('computePlayerStats', alice, { player_id: 'mBob' })).data.sessions;
+  assert.deepEqual(big, [{ session_id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed', total: 2470, rank: 1, players: 4 }]);
+});
+
+// --- ruling 12: nothing to count is not 0% -------------------------------------------------------
+await t('computePlayerStats: a rate with nothing to count is null — zero-bid success without a zero bid, accuracy without a round', async () => {
+  fresh(statsTable);
+  // Tal never bid zero: null. Uri bid zero once and took two tricks: a real 0. Sam made his: 1.
+  assert.deepEqual((await playerStats('mTal')).strategy, { contract_accuracy: 0.38, made_count: 3, zero_bids: 0, zero_bid_success: 0, zero_bid_success_rate: null, bid_aggressiveness: 4 });
+  assert.deepEqual((await playerStats('mUri')).strategy, { contract_accuracy: 0.13, made_count: 1, zero_bids: 1, zero_bid_success: 0, zero_bid_success_rate: 0, bid_aggressiveness: 2.13 });
+  assert.deepEqual((await playerStats('mSam')).strategy, { contract_accuracy: 0.63, made_count: 5, zero_bids: 1, zero_bid_success: 1, zero_bid_success_rate: 1, bid_aggressiveness: 3.75 });
+  // Xen has not played: every rate is null, every count 0.
+  const xen = await playerStats('mXen');
+  assert.deepEqual(xen.performance, { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, sessions_open: 0, wins: 0, podiums: 0, win_ratio: null });
+  assert.deepEqual(xen.strategy, { contract_accuracy: null, made_count: 0, zero_bids: 0, zero_bid_success: 0, zero_bid_success_rate: null, bid_aggressiveness: 0 });
+  assert.deepEqual(xen.awards, { greedy_loss: 0, coward_loss: 0, destroyer_count: 0, held: [] });
+  // Group A never saw a zero bid.
+  assert.equal((await call('computePlayerStats', alice, { player_id: 'mBob' })).data.strategy.zero_bid_success_rate, null);
+});
+await t('computeGlobalStats: the same rates across groups', async () => {
+  fresh(statsTable);
+  // Sam: 5 of 9 contracts made; two zero bids, one made (Stats Table) and one lost (Group B).
+  assert.deepEqual((await call('computeGlobalStats', sam, {})).data.strategy, { contract_accuracy: 0.56, made_count: 5, zero_bids: 2, zero_bid_success: 1, zero_bid_success_rate: 0.5, bid_aggressiveness: 3.33 });
+  // Bob (Group A only) made every contract and never bid zero.
+  const bobStats = (await call('computeGlobalStats', bob, {})).data;
+  assert.deepEqual([bobStats.strategy.contract_accuracy, bobStats.strategy.zero_bid_success_rate, bobStats.performance.win_ratio], [1, null, 1]);
+  // Wolf's only night is still open: two rounds played, and no win rate yet.
+  const wolfStats = (await call('computeGlobalStats', wolf, {})).data;
+  assert.deepEqual(wolfStats.performance, { total_score: 26, avg_score: 13, rounds_played: 2, sessions_played: 0, sessions_open: 1, wins: 0, podiums: 0, win_ratio: null });
+  assert.deepEqual([wolfStats.best_session, wolfStats.worst_session], [null, null]);
+});
+
+// --- ruling 10: The Destroyer names a person; ties name every holder ----------------------------
+await t('computePlayerStats: The Destroyer counts everyone-falls rounds for the top bidder — the recorded trump winner, else the highest bid', async () => {
+  fresh(statsTable);
+  // Three rounds fell. First Friday 2: trump recorded for Tal (Sam bid the same 5).
+  // Second Friday 1: no trump, Sam and Tal level on 4 -> both. Tonight 2: no trump, Sam's 6.
+  const count = async (id) => (await playerStats(id)).awards.destroyer_count;
+  assert.deepEqual([await count('mSam'), await count('mTal'), await count('mUri'), await count('mVered'), await count('mWolf')], [2, 2, 0, 0, 0]);
+  // Marking the trump winner of Second Friday 1 settles that tie.
+  fresh(() => { statsTable(); Object.assign(row('Game', 'rS2-1'), { trump_suit: 'hearts', highest_bidder_player_id: 'mTal' }); });
+  assert.deepEqual([await count('mSam'), await count('mTal')], [1, 2]);
+});
+await t('computePlayerStats: group awards name every tied holder, leave out an award nobody holds, and say which ones the player holds', async () => {
+  fresh(statsTable);
+  const stats = await playerStats('mSam');
+  assert.deepEqual(stats.group_awards, {
+    greedy: { value: 20, holders: [{ player_id: 'mTal', name: 'Tal' }] },                                         // Tal: -10 and -10 taking too few
+    coward: { value: 50, holders: [{ player_id: 'mUri', name: 'Uri' }] },                                         // Uri: -10 and the lost zero bid, -40
+    destroyer: { value: 2, holders: [{ player_id: 'mSam', name: 'Sam' }, { player_id: 'mTal', name: 'Tal' }] },   // level on two rounds
+  });
+  assert.deepEqual(stats.awards, { greedy_loss: 0, coward_loss: 0, destroyer_count: 2, held: ['destroyer'] });
+  assert.deepEqual((await playerStats('mTal')).awards, { greedy_loss: 20, coward_loss: 0, destroyer_count: 2, held: ['greedy', 'destroyer'] });
+  // Uri's -110 was a renege round: it is not counted as "too few".
+  assert.deepEqual((await playerStats('mUri')).awards, { greedy_loss: 10, coward_loss: 50, destroyer_count: 0, held: ['coward'] });
+  assert.deepEqual((await playerStats('mVered')).awards, { greedy_loss: 0, coward_loss: 0, destroyer_count: 0, held: [] });
+  // Group A: nobody ever lost a point and no round fell — there is no award to hold.
+  const groupA = (await call('computePlayerStats', alice, { player_id: 'mBob' })).data;
+  assert.deepEqual(groupA.group_awards, { greedy: null, coward: null, destroyer: null });
+  assert.deepEqual(groupA.awards, { greedy_loss: 0, coward_loss: 0, destroyer_count: 0, held: [] });
+});
+await t('computeGlobalStats: a player’s own award figures across groups, with The Destroyer counted the same way', async () => {
+  fresh(statsTable);
+  assert.deepEqual((await call('computeGlobalStats', sam, {})).data.awards, { greedy_loss: 0, coward_loss: 50, destroyer_count: 2 }); // -50: the zero bid lost in Group B
+  assert.deepEqual((await call('computeGlobalStats', tal, {})).data.awards, { greedy_loss: 20, coward_loss: 0, destroyer_count: 2 });
+});
+
+// --- the browser's standings and the server's stats agree ----------------------------------------
+await t('the group home (src/lib/standings.js) and computePlayerStats count the same wins and name the same award holders', async () => {
+  fresh(statsTable);
+  const { buildStandings, computeAwardLeaders } = await import(path.join(ROOT, 'src/lib/standings.js'));
+  const group = (await call('getGroupData', sam, { scope: 'group', group_id: 'gS' })).data;
+  const table = buildStandings(group.results, {}, { sessions: group.sessions });
+  // By hand: Sam won First Friday, Vered won Second Friday; tonight is open, where Sam leads.
+  assert.deepEqual(table.map((p) => [p.player_name, p.total_score, p.rank, p.gap_to_leader, p.wins, p.leading]), [
+    ['Sam', 155, 1, 0, 1, true], ['Vered', 115, 2, 40, 1, false], ['Tal', 71, 3, 84, 0, false], ['Wolf', 26, 4, 129, 0, false], ['Uri', -156, 5, 311, 0, false],
+  ]);
+  assert.deepEqual(table[0].delta_session, { id: 'sS3', name: 'Tonight', status: 'open' });
+  for (const p of table) {
+    const { performance } = await playerStats(p.player_id);
+    assert.deepEqual(
+      [performance.total_score, performance.rounds_played, performance.wins, performance.podiums, performance.sessions_played, performance.win_ratio],
+      [p.total_score, p.rounds_played, p.wins, p.podiums, p.sessions_played, p.win_ratio],
+      `${p.player_name}: the profile and the standings disagree`,
+    );
+  }
+  assert.deepEqual(computeAwardLeaders(group.results, group.rounds), (await playerStats('mSam')).group_awards);
+});
+
+// --- ruling 13: round history says which night, and is never cut silently -------------------------
+await t('getGroupData player scope: every row names its session; a long history is cut at 200 rows and says how many there are', async () => {
+  fresh(statsTable);
+  const short = (await call('getGroupData', tal, { scope: 'player', player_id: 'mUri' })).data;
+  assert.deepEqual([short.results.length, short.total_rows, short.limit], [8, 8, 200]); // the round in play is not history yet
+  assert.deepEqual(short.sessions, {
+    sS1: { id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed' },
+    sS2: { id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed' },
+    sS3: { id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open' },
+  });
+  assert.deepEqual(short.results.map((r) => short.sessions[r.session_id].name), ['Tonight', 'Tonight', 'Second Friday', 'Second Friday', 'Second Friday', 'First Friday', 'First Friday', 'First Friday']);
+  // Sam's history in Stats Table does not carry his Group B night, nor Group B's session.
+  const samHistory = (await call('getGroupData', tal, { scope: 'player', player_id: 'mSam' })).data;
+  assert.deepEqual(Object.keys(samHistory.sessions).sort(), ['sS1', 'sS2', 'sS3']);
+  assert.ok(samHistory.results.every((r) => r.group_id === 'gS'));
+
+  // Group A with 140 more rounds: Alice has 271 scored rows.
+  fresh(() => {
+    db.Session.push({ id: 'sLong', group_id: 'gA', name: 'Long Night', status: 'closed', session_date: '2026-07-20', created_date: at(5000) });
+    for (let n = 1; n <= 140; n++) addRound({ id: `rLong-${n}`, group: 'gA', session: 'sLong', number: n, seats: SEATS });
+  });
+  const long = (await call('getGroupData', bob, { scope: 'player', player_id: 'mAlice' })).data;
+  assert.deepEqual([long.results.length, long.total_rows, long.limit], [200, 271, 200]);
+  assert.equal(new Set(long.results.map((r) => r.id)).size, 200);
+  const times = long.results.map((r) => new Date(r.created_date).getTime());
+  assert.deepEqual(times, [...times].sort((a, b) => b - a));
+  assert.equal(long.results[0].game_id, 'rLong-140');
+  assert.equal(long.rounds.length, 200);
+  assert.deepEqual(Object.keys(long.sessions).sort(), ['sA1', 'sA2', 'sLong']);
+  assert.ok(long.results.every((r) => long.sessions[r.session_id]));
+
+  // Who is refused has not changed, and a refusal carries none of it.
+  for (const outsider of [null, dave, carol, ...Object.values(forgers)]) {
+    const res = await call('getGroupData', outsider, { scope: 'player', player_id: 'mAlice' });
+    assert.equal(res.status, outsider ? 403 : 401);
+    assert.deepEqual(Object.keys(res.data), ['error']);
+  }
+});
+
+// --- ruling 66: a player's own note is not news to them --------------------------------------------
+section = 'R1 names, archive, session input, activity';
+await check('getActivityFeed', 'allowed', 'a note the caller wrote is never unseen and does not raise their own badge; other people’s notes and anonymous ones still do', async () => {
+  // Group A with just its three fixture notes about Bob: n1 signed by Alice, n2 anonymous,
+  // nW signed by Yael (the notes the read-path checks above created are taken out again).
+  fresh(() => { db.TableTalkNote = db.TableTalkNote.filter((n) => ['n1', 'n2', 'n3', 'nW'].includes(n.id)); });
+  const unseen = (res) => Object.fromEntries(res.data.notes.map((n) => [n.id, n.is_unseen]));
+  const asAlice = await call('getActivityFeed', alice, {});
+  assert.equal(asAlice.data.unseen_count, 2);
+  assert.deepEqual(unseen(asAlice), { nW: true, n2: true, n1: false });
+  assert.equal((await call('getActivityFeed', alice, { count_only: true })).data.unseen_count, 2); // the badge
+  assert.equal((await call('getActivityFeed', yael, {})).data.unseen_count, 2);                    // nW is hers
+  // Bob wrote none of them: all three are news to him.
+  const asBob = await call('getActivityFeed', bob, {});
+  assert.equal(asBob.data.unseen_count, 3);
+  assert.deepEqual(unseen(asBob), { nW: true, n2: true, n1: true });
+  // Carol's only note is her own.
+  assert.deepEqual([(await call('getActivityFeed', carol, {})).data.unseen_count, unseen(await call('getActivityFeed', carol, {}))], [0, { n3: false }]);
+
+  // Alice leaves a signed note: her badge does not move, Bob's does.
+  assert.equal((await call('createNote', alice, { group_id: 'gA', target_player_id: 'mDan', note: 'Dealt himself four aces' })).status, 200);
+  assert.equal((await call('getActivityFeed', alice, { count_only: true })).data.unseen_count, 2);
+  assert.equal((await call('getActivityFeed', bob, { count_only: true })).data.unseen_count, 4);
+  // An anonymous note is stored without its author, so it cannot be told apart: it counts for her too.
+  assert.equal((await call('createNote', alice, { group_id: 'gA', target_player_id: 'mDan', note: 'Someone peeked', is_anonymous: true })).status, 200);
+  assert.equal(db.TableTalkNote.at(-1).author_user_id, null);
+  assert.equal((await call('getActivityFeed', alice, { count_only: true })).data.unseen_count, 3);
+});
+
+// --- ruling 50: one player name per group, whatever the letter case or surrounding spaces ---------
+{
+  const taken = (typed, tail = '') => [409, `A member named "${typed}" already exists in this group${tail}`];
+  await check('addGhostMember', 'allowed', 'a name that differs from a member’s only by letter case or surrounding spaces -> 409, nothing written', async () => {
+    for (const typed of ['dan', 'DAN', ' Dan ', 'aLiCe', 'bob  ']) {
+      const snap = fresh();
+      const res = await call('addGhostMember', alice, { group_id: 'gA', player_name: typed });
+      assert.deepEqual(outcome(res), taken(typed.trim()));
+      assert.deepEqual(changes(snap), []);
+      assert.equal(res.writes, 0, 'a write was attempted');
+    }
+    // Checked against the whole roster, past one page; a name nobody has is still fine.
+    const snap = fresh(bigGroupA);
+    assert.deepEqual(outcome(await call('addGhostMember', alice, { group_id: 'gA', player_name: 'ALICE' })), taken('ALICE'));
+    assert.deepEqual(outcome(await call('addGhostMember', alice, { group_id: 'gA', player_name: 'extra 7' })), taken('extra 7'));
+    assert.equal((await call('addGhostMember', alice, { group_id: 'gA', player_name: ' Danny ' })).status, 200);
+    assert.deepEqual(changes(snap), ['GroupMember +1']);
+    assert.equal(db.GroupMember.at(-1).player_name, 'Danny');
+  });
+  await check('joinGroupByCode', 'allowed', 'joining as a new player under a taken name, in any letter case -> 409, only the attempt is logged', async () => {
+    const tail = '. Try a different display name.';
+    for (const typed of ['bob', ' BOB ', 'ghost', 'Zed ']) {
+      const snap = fresh();
+      const res = await call('joinGroupByCode', dave, { invite_code: 'AAAAAA', player_name: typed });
+      assert.deepEqual(outcome(res), taken(typed.trim(), tail));
+      assert.deepEqual(changes(snap), ['JoinAttempt +1']);
+    }
+    // Checked against the whole roster, past one page; a name nobody has is still fine.
+    let snap = fresh(bigGroupA);
+    assert.deepEqual(outcome(await call('joinGroupByCode', dave, { invite_code: 'AAAAAA', player_name: 'alice' })), taken('alice', tail));
+    assert.deepEqual(changes(snap), ['JoinAttempt +1']);
+    snap = fresh(bigGroupA);
+    assert.equal((await call('joinGroupByCode', dave, { invite_code: 'AAAAAA', player_name: ' Dave ' })).status, 200);
+    assert.deepEqual(changes(snap), ['GroupMember +1', 'JoinAttempt +1']);
+    assert.equal(db.GroupMember.at(-1).player_name, 'Dave');
+  });
+  await check('renameMember', 'allowed', 'a rename is compared the same way — spaces around a stored name do not hide it; changing the case of your own name is fine', async () => {
+    // Old data: a name stored with a space after it.
+    const snap = fresh(() => { row('GroupMember', 'mBob').player_name = 'Bob '; });
+    for (const typed of ['bob', 'BOB', ' Bob']) {
+      assert.deepEqual(outcome(await call('renameMember', alice, { group_id: 'gA', member_id: 'mZed', player_name: typed })), taken(typed.trim()));
+    }
+    assert.deepEqual(changes(snap), []);
+    assert.equal((await call('renameMember', bob, { group_id: 'gA', member_id: 'mBob', player_name: 'BOB' })).status, 200);
+    assert.equal(row('GroupMember', 'mBob').player_name, 'BOB');
+  });
+}
+
+// --- ruling 53: a group with a session still open cannot be archived ------------------------------
+{
+  const OPEN_SESSION = 'Close the open session first';
+  const archive = { group_id: 'gA', status: 'archived' };
+  await check('setGroupStatus', 'allowed', 'archiving while a session is open -> 409 for the group admin and the app admin alike, nothing written', async () => {
+    const snap = fresh(); // Short Night is open
+    for (const user of [alice, hana, root]) {
+      const res = await call('setGroupStatus', user, archive);
+      assert.deepEqual(outcome(res), [409, OPEN_SESSION]);
+      assert.equal(res.writes, 0, 'a write was attempted');
+    }
+    assert.deepEqual(changes(snap), []);
+    assert.equal(row('Group', 'gA').status, 'active');
+    // Who may not do it at all is told that, not about the session.
+    assert.deepEqual(outcome(await call('setGroupStatus', bob, archive)), [403, GROUP_WRITES.setGroupStatus.plain]);
+    assert.deepEqual(outcome(await call('setGroupStatus', carol, archive)), [403, GROUP_WRITES.setGroupStatus.outsider]);
+  });
+  await check('setGroupStatus', 'allowed', 'the way out is to close the session: then the group is archived; un-archiving and deleting never wait for a session', async () => {
+    fresh(finishOpenRound);
+    assert.deepEqual(outcome(await call('setGroupStatus', alice, archive)), [409, OPEN_SESSION]);
+    assert.equal((await call('closeSession', alice, { session_id: 'sA2' })).status, 200);
+    assert.equal((await call('setGroupStatus', alice, archive)).status, 200);
+    assert.equal(row('Group', 'gA').status, 'archived');
+    // A group archived before this rule may still hold an open session: it can be made active again...
+    fresh(() => { row('Group', 'gA').status = 'archived'; });
+    assert.deepEqual(outcome(await call('setGroupStatus', alice, archive)), [409, OPEN_SESSION]);
+    assert.equal((await call('setGroupStatus', alice, { group_id: 'gA', status: 'active' })).status, 200);
+    assert.equal(row('Group', 'gA').status, 'active');
+    // ...and deleting a group does not need its session closed.
+    fresh();
+    assert.equal((await call('setGroupStatus', alice, { group_id: 'gA', status: 'deleted' })).status, 200);
+    assert.equal(row('Group', 'gA').status, 'deleted');
+  });
+  await check('setGroupStatus', 'allowed', 'the open session is found past one page of newer sessions', async () => {
+    const snap = fresh(() => {
+      for (let i = 0; i < 520; i++) db.Session.push({ id: `sA-x${i}`, group_id: 'gA', name: `Night ${i}`, status: 'closed', session_date: '2026-09-01', created_date: at(7000 + i) });
+    });
+    assert.deepEqual(outcome(await call('setGroupStatus', alice, archive)), [409, OPEN_SESSION]);
+    assert.deepEqual(changes(snap), []);
+  });
+}
+
+// --- ruling 54: a session's name, place and date have limits ---------------------------------------
+{
+  const sessionClosed = GROUP_WRITES.startSession.setup; // nothing open, so a session can start
+  const start = (body) => call('startSession', bob, { group_id: 'gA', ...body });
+  const NAME_TOO_LONG = 'The session name can be at most 60 characters';
+  const PLACE_TOO_LONG = 'The place can be at most 60 characters';
+  const BAD_DATE = 'The date must be a real date between 2000-01-01 and 2100-12-31, as YYYY-MM-DD';
+  await check('startSession', 'allowed', 'a name or a place longer than 60 characters -> 400, nothing written; 60 is fine and is stored without surrounding spaces', async () => {
+    const snap = fresh(sessionClosed);
+    for (const [body, error] of [
+      [{ name: 'x'.repeat(61) }, NAME_TOO_LONG], [{ name: 'ש'.repeat(360) }, NAME_TOO_LONG], [{ name: 12345 }, NAME_TOO_LONG],
+      [{ location: 'y'.repeat(61) }, PLACE_TOO_LONG], [{ name: 'Fine', location: 'z'.repeat(500) }, PLACE_TOO_LONG],
+    ]) {
+      const res = await start(body);
+      assert.deepEqual(outcome(res), [400, error], JSON.stringify(body).slice(0, 40));
+      assert.equal(res.writes, 0, 'a write was attempted');
+    }
+    assert.deepEqual(changes(snap), []);
+    // Exactly 60 after trimming: accepted.
+    const res = await start({ name: `  ${'n'.repeat(60)}  `, location: ` ${'p'.repeat(60)} ` });
+    assert.equal(res.status, 200, `got ${res.status}: ${res.data.error}`);
+    assert.deepEqual([res.data.session.name, res.data.session.location], ['n'.repeat(60), 'p'.repeat(60)]);
+  });
+  await check('startSession', 'allowed', 'a date that is not a real day between 2000-01-01 and 2100-12-31 -> 400, nothing written', async () => {
+    const snap = fresh(sessionClosed);
+    for (const session_date of ['1900-01-01', '1999-12-31', '2101-01-01', '9999-12-31', '2026-02-30', '2026-13-01', '2026-00-10', '2026-7-1', '01/07/2026', 'yesterday', '2026-07-01T20:30:00Z', 20260701, true]) {
+      const res = await start({ name: 'Dated', session_date });
+      assert.deepEqual(outcome(res), [400, BAD_DATE], `session_date ${JSON.stringify(session_date)}`);
+      assert.equal(res.writes, 0, 'a write was attempted');
+    }
+    assert.deepEqual(changes(snap), []);
+  });
+  await check('startSession', 'allowed', 'a real date in range is stored as sent; no date at all still means today', async () => {
+    for (const session_date of ['2000-01-01', '2100-12-31', '2028-02-29', ' 2026-07-15 ']) {
+      fresh(sessionClosed);
+      const res = await start({ name: 'Dated', session_date });
+      assert.equal(res.status, 200, `${session_date} -> ${res.status}: ${res.data.error}`);
+      assert.equal(res.data.session.session_date, session_date.trim());
+    }
+    for (const session_date of [undefined, null, '', '   ']) {
+      fresh(sessionClosed);
+      const res = await start({ session_date });
+      assert.equal(res.status, 200, `${JSON.stringify(session_date)} -> ${res.status}: ${res.data.error}`);
+      assert.equal(res.data.session.session_date, new Date().toISOString().slice(0, 10)); // the server's (UTC) day
+      assert.equal(res.data.session.name, 'Whist Night');
+    }
+  });
+}
 thaw(base);
 
 // --- static guards: the browser must not read game data directly -------------------------
@@ -1468,6 +1999,23 @@ await t('no entity rule depends on the user record\'s role field', async () => {
   for (const file of readdirSync(path.join(ROOT, 'base44/entities'))) {
     const schema = JSON.parse(stripJsonComments(readFileSync(path.join(ROOT, 'base44/entities', file), 'utf8')));
     assert.ok(!JSON.stringify(schema.rls || {}).includes('user_condition'), `${file} has a rule that trusts user.role`);
+  }
+});
+// The stats functions cannot import src/lib/whist-stats.js (Deno), so they carry a copy of
+// its MIRROR block. A copy that drifts would make the profile disagree with the standings.
+section = 'R1 stats';
+await t('the stats code inlined in computePlayerStats and computeGlobalStats is src/lib/whist-stats.js, word for word', async () => {
+  const mirror = (text) => (text.match(/\/\/ <<< BEGIN MIRROR[^\n]*>>>\n([\s\S]*?)\/\/ <<< END MIRROR >>>/) || [])[1];
+  const lib = mirror(readFileSync(path.join(ROOT, 'src/lib/whist-stats.js'), 'utf8'));
+  assert.ok(lib && lib.includes('function sessionRecord'), 'src/lib/whist-stats.js has no MIRROR block');
+  const expected = lib.replace(/^export /gm, '').split('\n');
+  for (const name of ['computePlayerStats', 'computeGlobalStats']) {
+    const copy = mirror(source(name));
+    assert.ok(copy, `${name} has no MIRROR block`);
+    const lines = copy.split('\n');
+    const drift = expected.findIndex((line, i) => line !== lines[i]);
+    assert.equal(drift, -1, `${name} differs from src/lib/whist-stats.js at line ${drift + 1} of the block: ${JSON.stringify(lines[drift])} instead of ${JSON.stringify(expected[drift])}`);
+    assert.equal(lines.length, expected.length, `${name}: the block has extra lines`);
   }
 });
 section = 'static guards';

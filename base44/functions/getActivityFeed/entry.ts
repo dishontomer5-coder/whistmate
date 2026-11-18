@@ -80,7 +80,13 @@ Deno.serve(async (req) => {
     );
 
     const seenTs = user.activity_seen_ts ? new Date(user.activity_seen_ts).getTime() : 0;
-    const unseenCount = notes.filter(n => new Date(n.created_date).getTime() > seenTs).length;
+    // A note the caller wrote is not news to them: it is never "unseen" and does not raise
+    // their own badge. Only a signed note can be told apart — an anonymous note is stored
+    // with no author at all (createNote), so the writer's own anonymous note still counts
+    // for them like anybody else's.
+    const isUnseen = (n) => !(n.author_user_id && n.author_user_id === user.id)
+      && new Date(n.created_date).getTime() > seenTs;
+    const unseenCount = notes.filter(isUnseen).length;
     const latestTs = notes.length > 0 ? notes[0].created_date : null;
 
     if (markSeen) {
@@ -110,7 +116,7 @@ Deno.serve(async (req) => {
       game_name: n.game_name || null,
       game_date: n.game_date || null,
       created_date: n.created_date,
-      is_unseen: new Date(n.created_date).getTime() > seenTs
+      is_unseen: isUnseen(n)
     }));
 
     return Response.json({ notes: enriched, unseen_count: unseenCount, latest_ts: latestTs });

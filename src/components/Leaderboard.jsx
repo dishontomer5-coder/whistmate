@@ -30,8 +30,10 @@ export default function Leaderboard({ players = [], sortBy = 'avg' }) {
 
   return (
     <div className="space-y-2">
-      {sorted.map((player, index) => {
+      {sorted.map((player) => {
         const value = player[metricKey] ?? 0;
+        // Tied players share a rank (#2, #2, #4): the place of the first row with this value.
+        const rank = sorted.findIndex((p) => (p[metricKey] ?? 0) === value) + 1;
         const isPositive = value >= 0;
         const avatarColor = getAvatarColor(player.player_name || '?');
         return (
@@ -42,7 +44,7 @@ export default function Leaderboard({ players = [], sortBy = 'avg' }) {
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className="font-heading font-bold text-sm text-muted-foreground flex-shrink-0 w-6">
-                #{index + 1}
+                #{rank}
               </span>
               <div className={`w-9 h-9 rounded-full flex items-center justify-center font-heading font-bold text-sm flex-shrink-0 ${avatarColor}`}>
                 {(player.player_name || '?').charAt(0).toUpperCase()}

@@ -49,6 +49,9 @@ async function fetchAll(entity, baseQuery) {
   return all;
 }
 
+// What two player names are compared by: no surrounding spaces, no letter case.
+const nameKey = (name) => String(name || '').trim().toLowerCase();
+
 // Rename a member / player. Group admins can rename anyone; a claimed member can
 // rename their own profile. Enforces (group_id, player_name) uniqueness and sweeps
 // the denormalized name on RoundResult so standings and round results all update.
@@ -93,9 +96,11 @@ Deno.serve(async (req) => {
       return Response.json({ member: target }); // no-op
     }
 
-    // (group_id, player_name) uniqueness — against the whole roster, excluding the target itself
+    // A player name is unique within a group whatever its letter case or surrounding
+    // spaces — against the whole roster, excluding the target itself (so a player may
+    // change the case of their own name). addGhostMember and joinGroupByCode apply the same rule.
     const groupMembers = await fetchAll(base44.asServiceRole.entities.GroupMember, { group_id });
-    if (groupMembers.some(m => m.id !== member_id && String(m.player_name || '').toLowerCase() === newName.toLowerCase())) {
+    if (groupMembers.some(m => m.id !== member_id && nameKey(m.player_name) === nameKey(newName))) {
       return Response.json({ error: `A member named "${newName}" already exists in this group` }, { status: 409 });
     }
 

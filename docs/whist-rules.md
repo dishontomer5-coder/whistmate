@@ -183,20 +183,34 @@ Bids 4 / 3 / 3 / 2 (total 12 → DOWN). Tricks taken 4 / 3 / 2 / 4 (total 13):
 
 - **Session score / standings:** within a session, each player's round scores add up; the leaderboard
   ranks players by total. Across the group, WhistMate also shows an **overall (all-time) score** and how
-  much it moved in the latest session.
-- **Winning a session:** the player with the highest total when the session closes.
+  much it moved in the session being played — or, when no session is open, in the last closed one.
+  Players level on points **share a place** (1st, 2nd, 2nd, 4th).
+- **Winning a session:** the player with the highest total when the session **closes**. While a session
+  is still open nobody has won it — the player in front is only **leading**. Players level in first
+  place when it closes each have a win.
 
 Per-player stats WhistMate tracks:
-- **Average score** — points per round.
-- **Win rate / podiums** — share of sessions finished 1st / in the top 3.
+- **Total score / rounds played / average score** — every scored round counts, including the rounds of
+  a session that is still open. An **"Everyone Falls"** round counts as a round played too (it was
+  played and scored 0), so it is in the average and counts as a missed contract.
+- **Wins / win rate / podiums** — **closed** sessions only: sessions finished 1st, their share of the
+  closed sessions you played, and sessions finished in the top 3. A session that is still open is not
+  counted until it is closed.
 - **Contract accuracy** — share of rounds where tricks taken exactly matched the bid.
 - **0-bid success rate** — of your zero bids, how often you took exactly zero.
 - **Bid aggressiveness** — your average bid size (higher = you commit to more tricks).
+- **Best / worst night** — your highest and lowest session total, among closed sessions.
+- A rate has no value until there is something to count: no 0-bid success rate before your first
+  zero bid, no win rate before your first closed session. That is not the same as 0%.
 
 Awards (group "hall of fame"):
 - **The Greedy** — most points lost from taking **too few** tricks (bidding higher than you delivered).
 - **The Coward** — most points lost from taking **too many** tricks (over-delivering / busting a low bid).
-- **The Destroyer** — was in the most **"Everyone Falls"** rounds.
+- **The Destroyer** — most **"Everyone Falls"** rounds **as the top bidder**. An Everyone Falls round
+  counts for the player recorded as its trump winner; when no trump winner was recorded it counts for
+  every player who bid the highest number in that round.
+- Rounds with a renege are left out of The Greedy and The Coward. Players level on an award **share
+  it**; an award nobody has earned yet is not shown.
 
 ---
 
