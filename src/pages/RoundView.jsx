@@ -5,33 +5,37 @@ import { ArrowLeft, Loader2, Trash2, Pencil, Gavel, ClipboardCheck } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorState from '@/components/ErrorState';
+import TableBadge from '@/components/TableBadge';
+import { Suit, SUITS_IN_AUCTION_ORDER, SUIT_LABEL } from '@/components/Suit';
+import { Name } from '@/components/UserText';
+import { useConfirm } from '@/components/ConfirmDialog';
+import { ScoringHelp } from '@/components/ScoringHelp';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { tableState, isBidSumLegal, isTricksTotalLegal, highestBidderIndex, SUITS, HIERARCHIES } from '@/lib/scoring';
-import { formatScore, formatSuit } from '@/lib/format';
+import { tableState, isBidSumLegal, isTricksTotalLegal, highestBidderIndex, HIERARCHIES } from '@/lib/scoring';
+import { CARD_ORDER_LABEL } from '@/lib/scoring-help';
+import { formatScore, scoreTone, errorMessage } from '@/lib/format';
 
-const SUIT_LABEL = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣', notrump: 'NT' };
-const HIER_LABEL = { standard: 'Standard (A high → 2 low)', down_up: 'Down-Up (A,2,3…K)' };
-const RED_SUITS = new Set(['hearts', 'diamonds']);
+// The renege chip on a player row (results and edit screens): a small pill whose tap
+// area is 44px tall. On = red text on a red tint.
+const renegeChip = (on) => `relative inline-flex items-center text-xs px-3 py-1.5 rounded-full font-medium uppercase after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] ${
+  on ? 'bg-destructive/15 text-negative ring-1 ring-destructive/50' : 'bg-secondary text-muted-foreground'
+}`;
 
 // The trump marker at the end of a player row. Tap it to record that this player won the
 // auction at the table — the app can't derive that, since equal bids are settled by suit
 // rank (♣<♦<♥<♠<NT) during an auction WhistMate never sees.
 function TrumpCell({ owned, suit, onPick }) {
   const pick = (e) => { e.stopPropagation(); onPick(); };
-  const glyph = owned ? (suit ? SUIT_LABEL[suit] : '?') : '·';
-  const size = owned && suit === 'notrump' ? 'text-[11px]' : 'text-lg';
-  const tone = owned
-    ? (suit && RED_SUITS.has(suit) ? 'text-rose-500' : 'text-foreground')
-    : 'text-muted-foreground/40';
   return (
     <span
       role="button" tabIndex={0} onClick={pick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') pick(e); }}
-      aria-label={owned ? `Won trump${suit ? `, ${suit}` : ''}` : 'Mark as trump winner'}
-      className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-bold transition-colors ${size} ${tone} ${
-        owned ? 'bg-primary/15 ring-1 ring-primary' : 'bg-secondary/50 hover:text-muted-foreground'
-      }`}>
-      {glyph}
+      aria-label={owned ? `Won trump${suit ? `, ${SUIT_LABEL[suit]}` : ''}` : 'Mark as trump winner'}
+      className={`w-11 h-11 shrink-0 rounded-lg flex items-center justify-center font-bold transition-colors ${
+        owned ? 'bg-primary/15 ring-1 ring-primary text-foreground' : 'bg-secondary text-muted-foreground'
+      } ${owned && suit === 'notrump' ? 'text-xs' : 'text-lg'}`}>
+      {owned ? (suit ? <Suit suit={suit} /> : '?') : <span aria-hidden="true">·</span>}
     </span>
   );
 }
@@ -58,10 +62,13 @@ function PhaseBanner({ phase, roundNumber, badge }) {
   const { label, step, Icon, band } = PHASE[phase];
   return (
     <div className={`flex items-center justify-between gap-2 rounded-lg border-l-4 px-3 py-2.5 ${band}`}>
-      <span className="flex items-baseline gap-2 min-w-0">
-        <Icon className="w-4 h-4 shrink-0 self-center" />
-        <h1 className="font-heading text-lg font-bold uppercase tracking-wide truncate">{label}</h1>
-        <span className="text-[10px] opacity-70 shrink-0 whitespace-nowrap">Round {roundNumber} · step {step}</span>
+      <span className="flex items-center gap-2 min-w-0">
+        <Icon className="w-4 h-4 shrink-0" />
+        {/* The step counter sits under the title, so neither is cut off on a narrow phone. */}
+        <span className="min-w-0">
+          <h1 className="font-heading text-lg font-bold leading-tight">{label}</h1>
+          <span className="block text-xs text-muted-foreground">Round {roundNumber} · step {step}</span>
+        </span>
       </span>
       {badge}
     </div>
@@ -114,6 +121,10 @@ export default function RoundView() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBids, setEditBids] = useState(false); // reopen locked bids mid-round
+  const [notFound, setNotFound] = useState(false);
+  // Which section of "How scoring works" is open (null = closed).
+  const [helpSection, setHelpSection] = useState(null);
+  const [confirm, confirmElement] = useConfirm();
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
@@ -134,14 +145,23 @@ export default function RoundView() {
       // just the bid-number fallback, and showing it as chosen would be a lie.
       setTrumpOwner(rnd.trump_suit ? (rnd.highest_bidder_player_id || null) : null);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to load round.');
+      setNotFound(err.response?.status === 404);
+      setError(errorMessage(err, 'Failed to load round.'));
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <LoadingSpinner showLogo />;
-  if (!round) return <p className="text-sm text-destructive">{error || 'Round not found.'}</p>;
+  if (!round) {
+    // A missing round cannot be fixed by trying again — offer the way back instead.
+    return notFound || !error ? (
+      <ErrorState title="Round not found" message="It was deleted, or the link is wrong."
+        action={<Button variant="outline" onClick={() => navigate('/')}>Back to sessions</Button>} />
+    ) : (
+      <ErrorState title="Couldn't load this round" message={error} onRetry={load} />
+    );
+  }
 
   const advanced = !!session?.advanced_rules_enabled;
   const bidVals = results.map((r) => bids[r.player_id]);
@@ -171,18 +191,20 @@ export default function RoundView() {
   const renderTrumpPanel = () => (
     <div className="rounded-lg border border-border bg-card p-3 space-y-3">
       <p className="text-xs text-muted-foreground">
-        Trump won by <span className="text-foreground font-medium">{trumpOwnerName || 'nobody yet'}</span>
+        Trump won by <span className="text-foreground font-medium">{trumpOwnerName ? <Name>{trumpOwnerName}</Name> : 'nobody yet'}</span>
         {trumpOwnerName ? ' — suit called:' : ' — tap a player\'s trump slot first'}
       </p>
+      {/* Suits in auction order, lowest first. The chosen suit gets a gold outline rather
+          than a gold fill, so hearts and diamonds stay red when selected. */}
       <div className="flex gap-1.5">
-        {SUITS.map((s) => (
+        {SUITS_IN_AUCTION_ORDER.map((s) => (
           <button key={s} type="button" disabled={!trumpOwnerId}
+            aria-pressed={trump === s}
             onClick={() => setTrump(trump === s ? null : s)}
-            className={`flex-1 py-2 rounded-lg font-bold disabled:opacity-40 ${
-              trump === s ? 'bg-primary text-primary-foreground'
-              : `bg-secondary ${RED_SUITS.has(s) ? 'text-rose-400' : 'text-foreground'}`
+            className={`flex-1 min-h-11 rounded-lg text-lg disabled:opacity-40 ${
+              trump === s ? 'bg-primary/15 ring-2 ring-primary' : 'bg-secondary'
             }`}>
-            {SUIT_LABEL[s]}
+            <Suit suit={s} className={s === 'notrump' ? 'text-sm' : undefined} />
           </button>
         ))}
       </div>
@@ -190,8 +212,9 @@ export default function RoundView() {
         <div className="flex gap-1.5">
           {HIERARCHIES.map((h) => (
             <button key={h} type="button" onClick={() => setHierarchy(h)}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium ${hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-              {HIER_LABEL[h]}
+              aria-pressed={hierarchy === h}
+              className={`flex-1 min-h-11 px-2 py-2 rounded-lg text-xs font-medium ${hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+              {CARD_ORDER_LABEL[h]}
             </button>
           ))}
         </div>
@@ -201,7 +224,7 @@ export default function RoundView() {
 
   // ---- BIDDING ----
   const renderBidding = () => {
-    // forbidden value for the last unset player (Σ != 13)
+    // forbidden value for the last unset player (the four bids can't total 13)
     const setCount = bidVals.filter((v) => v != null).length;
     let disabledForActive = [];
     if (bids[results[activeIdx]?.player_id] == null && setCount === 3) {
@@ -228,7 +251,7 @@ export default function RoundView() {
         setEditBids(false);
         await load();
       } catch (err) {
-        setError(err.response?.data?.error || err.message || 'Failed to lock bids.');
+        setError(errorMessage(err, 'Failed to lock bids.'));
       } finally { setSaving(false); }
     };
 
@@ -236,26 +259,24 @@ export default function RoundView() {
       <>
         <PhaseBanner phase="bidding" roundNumber={round.round_number}
           badge={liveTable && (
-            <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase shrink-0 ${
-              liveTable === 'up' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-            }`}>{liveTable} · {bidTotal}</span>
+            <TableBadge state={liveTable} total={bidTotal} onClick={() => setHelpSection('updown')} />
           )} />
 
         {editBids && (
           <p className="text-xs text-muted-foreground">
-            Fixing the locked bids for this round. Saving re-derives up/down and the trump record; tricks
-            already typed in are untouched.
+            Fixing the locked bids for this round. Saving updates the up or down table and the trump
+            record; the tricks already entered are kept.
           </p>
         )}
 
         <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground text-right pr-2">trump</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground text-right pr-2">trump</p>
           {results.map((r, i) => (
             <button key={r.id} onClick={() => setActiveIdx(i)}
               className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors ${
                 activeIdx === i ? PHASE.bidding.row : 'border-border bg-card'
               }`}>
-              <span className="text-sm font-medium text-foreground">{i + 1}. {r.player_name}</span>
+              <span className="text-sm font-medium text-foreground text-left">{i + 1}. <Name>{r.player_name}</Name></span>
               <span className="flex items-center gap-3">
                 <span className="font-heading font-bold text-lg text-foreground w-8 text-center">
                   {bids[r.player_id] != null ? bids[r.player_id] : '—'}
@@ -269,8 +290,8 @@ export default function RoundView() {
 
         <div className="rounded-lg border border-border bg-card p-3 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Bid for <span className="text-foreground font-medium">{results[activeIdx]?.player_name}</span>
-            {disabledForActive.length > 0 && <span className="text-destructive"> · {disabledForActive[0]} blocked (would make Σ=13)</span>}
+            Bid for <span className="text-foreground font-medium"><Name>{results[activeIdx]?.player_name}</Name></span>
+            {disabledForActive.length > 0 && <span className="text-negative"> · {disabledForActive[0]} is blocked — the bids can't total 13</span>}
             {/* All four in and nothing left to auto-advance to — say out loud that rows are
                 tappable, otherwise a typo looks unfixable. */}
             {allBidsSet && disabledForActive.length === 0 && (
@@ -290,24 +311,24 @@ export default function RoundView() {
         {/* Before, an illegal total just greyed the button out with no reason given — easy to
             hit now that bids can be edited after the fact. */}
         {allBidsSet && !isBidSumLegal(bidVals.map(Number)) && (
-          <p className="text-xs text-destructive text-center">
+          <p className="text-sm text-negative text-center">
             The four bids total exactly 13, which isn't allowed — change one.
           </p>
         )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <ErrorState inline message={error} />
         {editBids ? (
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 border-border" disabled={saving}
+            <Button variant="outline" size="lg" className="flex-1 px-2" disabled={saving}
               onClick={() => { setEditBids(false); setError(''); load(); }}>
               Cancel
             </Button>
-            <Button className="flex-1" disabled={!canSubmit || saving} onClick={submit}>
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : 'Save Bids'}
+            <Button size="lg" className="flex-1 px-2" disabled={!canSubmit || saving} onClick={submit}>
+              {saving ? <><Loader2 className="animate-spin" /> Saving…</> : 'Save bids'}
             </Button>
           </div>
         ) : (
-          <Button className="w-full" disabled={!canSubmit || saving} onClick={submit}>
-            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Locking…</> : 'Lock Bids'}
+          <Button size="lg" className="w-full" disabled={!canSubmit || saving} onClick={submit}>
+            {saving ? <><Loader2 className="animate-spin" /> Locking…</> : 'Lock bids'}
           </Button>
         )}
       </>
@@ -329,7 +350,7 @@ export default function RoundView() {
         await base44.functions.invoke('saveRoundResults', { game_id: id, tricks: tMap, reneges: gMap });
         navigate(`/session/${round.session_id}`, { replace: true });
       } catch (err) {
-        setError(err.response?.data?.error || err.message || 'Failed to save results.');
+        setError(errorMessage(err, 'Failed to save results.'));
         setSaving(false);
       }
     };
@@ -344,16 +365,16 @@ export default function RoundView() {
           } />
         <div className="flex items-center justify-between gap-2">
           {round.table_state ? (
-            <p className="text-xs text-muted-foreground">
-              Table <span className="font-bold uppercase">{round.table_state}</span>
-              {round.trump_suit ? ` · trump ${formatSuit(round.trump_suit)}` : ''}
-              {round.trump_suit && trumpWinnerName ? ` · won by ${trumpWinnerName}` : ''}
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+              <TableBadge state={round.table_state} onClick={() => setHelpSection('updown')} />
+              {round.trump_suit ? <span>· trump <Suit suit={round.trump_suit} label /></span> : null}
+              {round.trump_suit && trumpWinnerName ? <span>· won by <Name>{trumpWinnerName}</Name></span> : null}
             </p>
           ) : <span />}
           {/* Bids are typed in after the table's real auction, so typos show up here. Any
               member can fix them while the round is unscored. */}
           <button type="button" onClick={() => { setError(''); setEditBids(true); }}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0">
+            className="flex items-center gap-1 min-h-11 pl-2 text-xs text-muted-foreground hover:text-foreground shrink-0">
             <Pencil className="w-3 h-3" /> Edit bids
           </button>
         </div>
@@ -365,7 +386,7 @@ export default function RoundView() {
                 activeTrickIdx === i ? PHASE.results.row : 'border-border bg-card'
               }`}>
               <span className="text-sm font-medium text-foreground text-left">
-                {r.player_name}
+                <Name>{r.player_name}</Name>
                 <span className="block text-xs text-muted-foreground">bid {r.bid}</span>
               </span>
               <span className="flex items-center gap-2">
@@ -373,7 +394,8 @@ export default function RoundView() {
                   role="button" tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); setReneges((p) => ({ ...p, [r.player_id]: !p[r.player_id] })); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setReneges((p) => ({ ...p, [r.player_id]: !p[r.player_id] })); } }}
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${reneges[r.player_id] ? 'bg-destructive/20 text-destructive' : 'bg-secondary text-muted-foreground'}`}>
+                  aria-pressed={!!reneges[r.player_id]}
+                  className={renegeChip(reneges[r.player_id])}>
                   renege
                 </span>
                 <span className="font-heading font-bold text-lg text-foreground w-8 text-center">
@@ -386,7 +408,7 @@ export default function RoundView() {
 
         <div className="rounded-lg border border-border bg-card p-3 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Tricks for <span className="text-foreground font-medium">{results[activeTrickIdx]?.player_name}</span>
+            Tricks for <span className="text-foreground font-medium"><Name>{results[activeTrickIdx]?.player_name}</Name></span>
           </p>
           <NumberPad value={tricks[results[activeTrickIdx]?.player_id]} accent={PHASE.results.pad}
             onPick={(n) => {
@@ -396,10 +418,10 @@ export default function RoundView() {
             }} />
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        {!canSave && allSet && <p className="text-xs text-destructive text-center">Tricks must total exactly 13 (currently {total}).</p>}
-        <Button className="w-full" disabled={!canSave || saving} onClick={save}>
-          {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : 'Save Round'}
+        <ErrorState inline message={error} />
+        {!canSave && allSet && <p className="text-sm text-negative text-center">Tricks must total exactly 13 (currently {total}).</p>}
+        <Button size="lg" className="w-full" disabled={!canSave || saving} onClick={save}>
+          {saving ? <><Loader2 className="animate-spin" /> Saving…</> : 'Save round'}
         </Button>
       </>
     );
@@ -408,58 +430,63 @@ export default function RoundView() {
   // ---- SUMMARY (complete / cancelled) ----
   const renderSummary = () => {
     const del = async () => {
-      if (!confirm('Delete this round? Its scores will be removed.')) return;
+      const ok = await confirm({
+        title: 'Delete this round?',
+        description: 'Its scores will be removed.',
+        confirmLabel: 'Delete round',
+        destructive: true,
+      });
+      if (!ok) return;
       setSaving(true);
       try {
         await base44.functions.invoke('deleteRound', { game_id: id });
         navigate(`/session/${round.session_id}`, { replace: true });
       } catch (err) {
-        setError(err.response?.data?.error || err.message || 'Failed to delete round.');
+        setError(errorMessage(err, 'Failed to delete round.'));
         setSaving(false);
       }
     };
     return (
       <>
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-xl font-bold text-foreground">Round {round.round_number}</h1>
-          <div className="flex items-center gap-2">
-            {round.table_state && <span className="text-xs font-bold uppercase text-muted-foreground">{round.table_state}</span>}
-            {round.everyone_falls && <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Everyone fell</span>}
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="page-title">Round {round.round_number}</h1>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <TableBadge state={round.table_state} onClick={() => setHelpSection('updown')} />
+            {round.everyone_falls && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase whitespace-nowrap">Everyone fell</span>}
           </div>
         </div>
         {round.trump_suit && (
           <p className="text-xs text-muted-foreground">
-            Trump <span className={`font-bold ${RED_SUITS.has(round.trump_suit) ? 'text-rose-400' : 'text-foreground'}`}>{formatSuit(round.trump_suit)}</span>
-            {trumpWinnerName ? <> · won by <span className="text-foreground font-medium">{trumpWinnerName}</span></> : null}
-            {round.hierarchy ? ` · ${HIER_LABEL[round.hierarchy]}` : ''}
+            Trump <Suit suit={round.trump_suit} label />
+            {trumpWinnerName ? <> · won by <span className="text-foreground font-medium"><Name>{trumpWinnerName}</Name></span></> : null}
+            {round.hierarchy ? ` · ${CARD_ORDER_LABEL[round.hierarchy] || round.hierarchy}` : ''}
           </p>
         )}
         <div className="space-y-1.5">
           {results.map((r) => (
             <div key={r.id} className="flex items-center justify-between bg-card border border-border rounded-lg p-3 text-sm">
-              <span className="text-foreground">
-                {r.player_name}
+              <span className="text-foreground min-w-0">
+                <Name>{r.player_name}</Name>
                 {round.trump_suit && r.player_id === round.highest_bidder_player_id && (
-                  <span className={`ml-1.5 font-bold ${RED_SUITS.has(round.trump_suit) ? 'text-rose-500' : 'text-foreground'}`}
-                    title="Won the trump">{SUIT_LABEL[round.trump_suit]}</span>
+                  <span className="ml-1.5" title="Won the trump"><Suit suit={round.trump_suit} /></span>
                 )}
-                {r.reneged ? <span className="ml-1 text-destructive text-xs">(reneged)</span> : null}
+                {r.reneged ? <span className="ml-1 text-negative text-xs">(reneged)</span> : null}
               </span>
-              <span className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">bid {r.bid} · won {r.tricks_won}</span>
-                <span className={`font-heading font-bold w-12 text-right ${(r.points ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatScore(r.points)}</span>
+              <span className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-xs text-muted-foreground">bid {r.bid} · took {r.tricks_won}</span>
+                <span className={`font-heading font-bold w-12 text-right ${scoreTone(r.points)}`}>{formatScore(r.points)}</span>
               </span>
             </div>
           ))}
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <ErrorState inline message={error} />
         {isAdmin && (
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 border-border" onClick={() => { setError(''); setEditing(true); }} disabled={saving}>
-              <Pencil className="w-4 h-4 mr-2" /> Edit Round
+            <Button variant="outline" className="flex-1 px-2" onClick={() => { setError(''); setEditing(true); }} disabled={saving}>
+              <Pencil /> Edit round
             </Button>
-            <Button variant="outline" className="flex-1 border-destructive/40 text-destructive" onClick={del} disabled={saving}>
-              <Trash2 className="w-4 h-4 mr-2" /> Delete Round
+            <Button variant="outline" className="flex-1 px-2 border-destructive/60 text-negative" onClick={del} disabled={saving}>
+              <Trash2 /> Delete round
             </Button>
           </div>
         )}
@@ -501,7 +528,7 @@ export default function RoundView() {
         setEditing(false);
         await load();
       } catch (err) {
-        setError(err.response?.data?.error || err.message || 'Failed to update round.');
+        setError(errorMessage(err, 'Failed to update round.'));
       } finally {
         setSaving(false);
       }
@@ -509,11 +536,11 @@ export default function RoundView() {
 
     return (
       <>
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-xl font-bold text-foreground">Edit Round {round.round_number}</h1>
-          <div className="flex items-center gap-2 text-[11px]">
-            <span className={bidsOk ? 'text-emerald-400' : 'text-rose-400'}>bids {bidTotal}{bidsOk ? '' : ' ✕'}</span>
-            <span className={tricksOk ? 'text-emerald-400' : 'text-rose-400'}>tricks {trickTotal}/13</span>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="page-title">Edit round {round.round_number}</h1>
+          <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+            <span className={bidsOk ? 'text-emerald-400' : 'text-negative'}>bids {bidTotal}{bidsOk ? '' : ' ✕'}</span>
+            <span className={tricksOk ? 'text-emerald-400' : 'text-negative'}>tricks {trickTotal}/13</span>
           </div>
         </div>
 
@@ -521,11 +548,12 @@ export default function RoundView() {
           {results.map((r) => (
             <div key={r.id} className="bg-card border border-border rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">{r.player_name}</span>
+                <span className="text-sm font-medium text-foreground"><Name>{r.player_name}</Name></span>
                 <span className="flex items-center gap-2">
                   <button type="button"
+                    aria-pressed={!!reneges[r.player_id]}
                     onClick={() => setReneges((p) => ({ ...p, [r.player_id]: !p[r.player_id] }))}
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${reneges[r.player_id] ? 'bg-destructive/20 text-destructive' : 'bg-secondary text-muted-foreground'}`}>
+                    className={renegeChip(reneges[r.player_id])}>
                     renege
                   </button>
                   <TrumpCell owned={trumpOwnerId === r.player_id} suit={trump}
@@ -536,12 +564,12 @@ export default function RoundView() {
                 <label className="flex-1 text-xs text-muted-foreground">
                   Bid
                   <Input type="number" min={0} max={13} inputMode="numeric" value={bids[r.player_id] ?? ''}
-                    onChange={(e) => setNum(setBids, r.player_id, e.target.value)} className="mt-1 bg-background border-border" />
+                    onChange={(e) => setNum(setBids, r.player_id, e.target.value)} className="mt-1" />
                 </label>
                 <label className="flex-1 text-xs text-muted-foreground">
                   Tricks
                   <Input type="number" min={0} max={13} inputMode="numeric" value={tricks[r.player_id] ?? ''}
-                    onChange={(e) => setNum(setTricks, r.player_id, e.target.value)} className="mt-1 bg-background border-border" />
+                    onChange={(e) => setNum(setTricks, r.player_id, e.target.value)} className="mt-1" />
                 </label>
               </div>
             </div>
@@ -550,14 +578,14 @@ export default function RoundView() {
 
         {(trumpOwnerId || advanced) && renderTrumpPanel()}
 
-        {!bidsOk && <p className="text-xs text-destructive">Bids must each be 0–13 and not sum to 13.</p>}
-        {!tricksOk && <p className="text-xs text-destructive">Tricks must each be 0–13 and total exactly 13.</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {!bidsOk && <p className="text-sm text-negative">Bids must each be 0–13, and the four can't total 13.</p>}
+        {!tricksOk && <p className="text-sm text-negative">Tricks must each be 0–13 and total exactly 13.</p>}
+        <ErrorState inline message={error} />
 
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1 border-border" onClick={() => { setEditing(false); load(); }} disabled={saving}>Cancel</Button>
-          <Button className="flex-1" onClick={save} disabled={!canSave || saving}>
-            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : 'Save Changes'}
+          <Button variant="outline" size="lg" className="flex-1 px-2" onClick={() => { setEditing(false); load(); }} disabled={saving}>Cancel</Button>
+          <Button size="lg" className="flex-1 px-2" onClick={save} disabled={!canSave || saving}>
+            {saving ? <><Loader2 className="animate-spin" /> Saving…</> : 'Save changes'}
           </Button>
         </div>
       </>
@@ -566,13 +594,15 @@ export default function RoundView() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => navigate(`/session/${round.session_id}`)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <button onClick={() => navigate(`/session/${round.session_id}`)} className="flex items-center gap-1 min-h-11 pr-2 -my-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="w-4 h-4" /> Session
       </button>
       {editing ? renderEdit()
         : round.status === 'bidding' || (editBids && round.status === 'playing') ? renderBidding()
         : round.status === 'playing' ? renderResults()
         : renderSummary()}
+      {confirmElement}
+      <ScoringHelp open={helpSection != null} onOpenChange={(open) => { if (!open) setHelpSection(null); }} section={helpSection || undefined} />
     </div>
   );
 }

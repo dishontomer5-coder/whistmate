@@ -9,6 +9,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
+import ErrorState from '@/components/ErrorState';
+import { errorMessage } from '@/lib/format';
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -31,7 +33,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(errorMessage(err, "Registration failed"));
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export default function Register() {
       }
       window.location.href = "/home";
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(errorMessage(err, "Invalid verification code"));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export default function Register() {
         description: "Check your email for the new code.",
       });
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(errorMessage(err, "Failed to resend code"));
     }
   };
 
@@ -77,11 +79,7 @@ export default function Register() {
         title="Verify your email"
         subtitle={`We sent a code to ${email}`}
       >
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-            {error}
-          </div>
-        )}
+        <ErrorState inline message={error} className="mb-4" />
         <div className="flex justify-center mb-6">
           <InputOTP
             maxLength={6}
@@ -101,7 +99,7 @@ export default function Register() {
           </InputOTP>
         </div>
         <Button
-          className="w-full h-12 font-medium"
+          size="lg" className="w-full"
           onClick={handleVerify}
           disabled={loading || otpCode.length < 6}
         >
@@ -140,7 +138,7 @@ export default function Register() {
     >
       <Button
         variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
+        className="w-full mb-6"
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
@@ -156,11 +154,7 @@ export default function Register() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      <ErrorState inline message={error} className="mb-4" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -175,7 +169,7 @@ export default function Register() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10"
               required
             />
           </div>
@@ -191,13 +185,13 @@ export default function Register() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10"
               required
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm">Confirm password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -207,12 +201,12 @@ export default function Register() {
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10"
               required
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

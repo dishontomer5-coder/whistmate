@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserPlus, UserMinus, Trash2, Shield, ShieldOff, Loader2, CheckCircle2, Circle, Pencil, Check as CheckIcon, X as XIcon } from 'lucide-react';
 import GhostMemberDialog from '@/components/groups/GhostMemberDialog';
+import ErrorState from '@/components/ErrorState';
+import { Name, dirAuto } from '@/components/UserText';
+import { errorMessage } from '@/lib/format';
 
 export default function MemberList({ groupId, isAdmin, myUserId }) {
   const { user } = useAuth();
@@ -63,7 +66,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
       });
       setMembers(members.map(m => m.id === member.id ? { ...m, role: newRole } : m));
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update role.');
+      setError(errorMessage(err, 'Failed to update role.'));
     }
   };
 
@@ -75,7 +78,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
         member_id: member.id
       });
       if (res.data.converted_to_ghost) {
-        // Members with game history aren't hard-deleted — they become ghosts so
+        // Members who have played aren't hard-deleted — they become unclaimed players so
         // standings and history stay intact (P2-2)
         setMembers(members.map(m => m.id === member.id ? { ...m, ...res.data.member } : m));
       } else {
@@ -83,7 +86,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
       }
       setRemovingId(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to remove member.');
+      setError(errorMessage(err, 'Failed to remove member.'));
       setRemovingId(null);
     }
   };
@@ -104,7 +107,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
       setMembers(members.map(m => m.id === member.id ? { ...m, ...res.data.member } : m));
       setRenamingId(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to rename player.');
+      setError(errorMessage(err, 'Failed to rename player.'));
     } finally {
       setSavingRename(false);
     }
@@ -122,7 +125,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
       setMembers(members.map(m => m.id === member.id ? { ...m, ...res.data.member } : m));
       setUnclaimingId(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to unclaim player.');
+      setError(errorMessage(err, 'Failed to unclaim player.'));
       setUnclaimingId(null);
     }
   };
@@ -138,18 +141,18 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+        <h2 className="section-title">
           Members ({members.length})
         </h2>
         {isAdmin && (
-          <Button onClick={() => setShowAddGhost(true)} size="sm" variant="outline" className="border-border h-9 px-3">
-            <UserPlus className="w-4 h-4 mr-1" />
+          <Button onClick={() => setShowAddGhost(true)} variant="outline">
+            <UserPlus />
             Add
           </Button>
         )}
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ErrorState inline message={error} />
 
       <div className="space-y-2">
         {members.map(member => {
@@ -160,25 +163,26 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
               {renamingId === member.id ? (
                 <div className="flex items-center gap-2">
                   <Input
+                    {...dirAuto}
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleRename(member); if (e.key === 'Escape') setRenamingId(null); }}
-                    className="bg-background border-border h-9"
+                    aria-label={`New name for ${member.player_name}`}
                     maxLength={30}
                     autoFocus
                   />
-                  <Button onClick={() => handleRename(member)} disabled={savingRename} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 w-9 p-0 flex-shrink-0">
-                    {savingRename ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckIcon className="w-4 h-4" />}
+                  <Button onClick={() => handleRename(member)} disabled={savingRename} size="icon" aria-label="Save name">
+                    {savingRename ? <Loader2 className="animate-spin" /> : <CheckIcon />}
                   </Button>
-                  <Button onClick={() => setRenamingId(null)} variant="outline" size="sm" className="border-border h-9 w-9 p-0 flex-shrink-0">
-                    <XIcon className="w-4 h-4" />
+                  <Button onClick={() => setRenamingId(null)} variant="outline" size="icon" aria-label="Cancel rename">
+                    <XIcon />
                   </Button>
                 </div>
               ) : (
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground truncate">{member.player_name}</span>
+                    <span className="text-sm font-medium text-foreground truncate"><Name>{member.player_name}</Name></span>
                     {member.role === 'admin' && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium flex-shrink-0">
                         Admin
@@ -187,7 +191,7 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
                     {isAdmin && (
                       <button
                         onClick={() => { setRenamingId(member.id); setRenameValue(member.player_name); setError(''); }}
-                        className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                        className="inline-flex h-11 w-11 -my-3 items-center justify-center rounded-lg text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
                         aria-label={`Rename ${member.player_name}`}
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -214,33 +218,29 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
               )}
 
               {isAdmin && !isSelf && (
-                <div className="flex gap-2 pt-1 border-t border-border">
+                <div className="flex flex-wrap gap-x-2 gap-y-1 pt-2 border-t border-border">
                   {/* Only claimed players can hold the admin role (plan.md §11.1) */}
                   {claimed && (
                     <Button
                       onClick={() => handleRoleChange(member)}
                       size="sm"
                       variant="ghost"
-                      className="text-muted-foreground hover:text-foreground h-9 px-3 text-xs flex-1"
+                      className="text-muted-foreground hover:text-foreground flex-1"
                     >
                       {member.role === 'admin' ? (
-                        <><ShieldOff className="w-3.5 h-3.5 mr-1" />Make Player</>
+                        <><ShieldOff />Make player</>
                       ) : (
-                        <><Shield className="w-3.5 h-3.5 mr-1" />Make Admin</>
+                        <><Shield />Make admin</>
                       )}
                     </Button>
                   )}
                   {claimed && (
                     unclaimingId === member.id ? (
                       <div className="flex gap-1">
-                        <Button
-                          onClick={() => handleUnclaim(member)}
-                          size="sm"
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3 text-xs"
-                        >
+                        <Button onClick={() => handleUnclaim(member)} size="sm" variant="destructive">
                           Confirm
                         </Button>
-                        <Button onClick={() => setUnclaimingId(null)} size="sm" variant="outline" className="border-border h-9 px-3 text-xs">
+                        <Button onClick={() => setUnclaimingId(null)} size="sm" variant="outline">
                           Cancel
                         </Button>
                       </div>
@@ -249,22 +249,18 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
                         onClick={() => { setUnclaimingId(member.id); setRemovingId(null); }}
                         size="sm"
                         variant="ghost"
-                        className="text-muted-foreground hover:text-foreground h-9 px-3 text-xs"
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        <UserMinus className="w-3.5 h-3.5 mr-1" />Unclaim
+                        <UserMinus />Unclaim
                       </Button>
                     )
                   )}
                   {removingId === member.id ? (
                     <div className="flex gap-1">
-                      <Button
-                        onClick={() => handleRemove(member)}
-                        size="sm"
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3 text-xs"
-                      >
+                      <Button onClick={() => handleRemove(member)} size="sm" variant="destructive">
                         Confirm
                       </Button>
-                      <Button onClick={() => setRemovingId(null)} size="sm" variant="outline" className="border-border h-9 px-3 text-xs">
+                      <Button onClick={() => setRemovingId(null)} size="sm" variant="outline">
                         Cancel
                       </Button>
                     </div>
@@ -273,9 +269,9 @@ export default function MemberList({ groupId, isAdmin, myUserId }) {
                       onClick={() => setRemovingId(member.id)}
                       size="sm"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive h-9 px-3 text-xs"
+                      className="text-negative hover:text-negative"
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" />Remove
+                      <Trash2 />Remove
                     </Button>
                   )}
                 </div>

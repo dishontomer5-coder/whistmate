@@ -2,32 +2,18 @@ import { useState } from 'react';
 import { MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { formatDate } from '@/lib/format';
-
-const AVATAR_COLORS = [
-  'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-];
-
-function getAvatarColor(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
+import PlayerAvatar from '@/components/PlayerAvatar';
+import { Button } from '@/components/ui/button';
+import { Name, UserText } from '@/components/UserText';
 
 export default function TableTalkCard({ note, canDelete = false, onDeleted }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isAnonymous = note.is_anonymous;
-  const displayName = isAnonymous ? 'Anonymous' : (note.author_name || 'Unknown Player');
-  // game_name/game_date hold the whist night (Session) a note was pinned to, if any.
-  const gameLabel = note.game_name || (note.game_date ? 'Whist Night' : 'General note');
-  const gameDate = formatDate(note.game_date);
-  const initial = displayName.charAt(0).toUpperCase();
-  const avatarColor = getAvatarColor(displayName);
+  const displayName = isAnonymous ? 'Anonymous' : (note.author_name || 'Unknown player');
+  // game_name/game_date hold the session a note was pinned to, if any.
+  const sessionLabel = note.game_name || (note.game_date ? 'Session' : 'General note');
+  const sessionDate = formatDate(note.game_date);
 
   const handleDelete = async () => {
     try {
@@ -44,54 +30,47 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted }) {
   return (
     <div className="bg-card border border-border rounded-lg p-4 space-y-3 transition-colors hover:border-primary/30">
       <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm ${avatarColor}`}>
-          {initial}
-        </div>
+        <PlayerAvatar name={displayName} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground truncate">
-            {displayName}
+            <Name>{displayName}</Name>
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            {gameLabel}{gameDate && ` · ${gameDate}`}
+            <UserText>{sessionLabel}</UserText>{sessionDate && ` · ${sessionDate}`}
           </p>
         </div>
         {isAnonymous && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide flex-shrink-0">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide flex-shrink-0">
             Anon
           </span>
         )}
         {canDelete && !confirming && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setConfirming(true)}
-            className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 p-1"
+            className="-my-2 -mr-2 text-muted-foreground hover:text-negative"
             aria-label="Delete note"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <Trash2 />
+          </Button>
         )}
       </div>
       <div className="flex items-start gap-2">
-        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-foreground leading-relaxed">{note.note}</p>
+        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-1" />
+        {/* The note keeps its own direction: a Hebrew note reads right-to-left and aligns right. */}
+        <UserText as="p" className="min-w-0 flex-1 text-sm text-foreground leading-relaxed break-words">{note.note}</UserText>
       </div>
       {confirming && (
-        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground mr-auto">Delete this note?</span>
-          <button
-            onClick={() => setConfirming(false)}
-            disabled={deleting}
-            className="text-xs px-3 py-1.5 rounded-md border border-border text-foreground hover:bg-secondary transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={() => setConfirming(false)} disabled={deleting}>
             Cancel
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-xs px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center gap-1"
-          >
-            {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+            {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
             Delete
-          </button>
+          </Button>
         </div>
       )}
     </div>

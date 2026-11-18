@@ -38,12 +38,12 @@ export default function About() {
 
   return (
     <div className="space-y-6">
-      <Link to="/home" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link to="/home" className="flex items-center gap-1 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="w-4 h-4" /> Back
       </Link>
 
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">About {APP_INFO.name}</h1>
+        <h1 className="page-title">About {APP_INFO.name}</h1>
         <p className="text-sm text-muted-foreground mt-2">
           {APP_INFO.name} is a scorekeeper and stats tracker for Israeli Whist. It records the bids and tricks at
           your table and does the scoring. It does not deal or play cards.
@@ -51,18 +51,18 @@ export default function About() {
       </div>
 
       <section className="bg-card border border-border rounded-lg p-4 space-y-2">
-        <h2 className="font-heading text-lg font-bold text-foreground">Who makes it</h2>
+        <h2 className="section-title">Who makes it</h2>
         <p className="text-sm text-muted-foreground">
           Made by <span className="text-foreground font-medium">{APP_INFO.developer}</span>. For questions,
           problems, or to have your account or data deleted, write to:
         </p>
-        <a href={mailto} className="inline-flex items-center gap-2 text-sm text-primary hover:underline break-all">
+        <a href={mailto} className="inline-flex items-center gap-2 min-h-11 text-sm text-primary hover:underline break-all">
           <Mail className="w-4 h-4 flex-shrink-0" /> {APP_INFO.supportEmail}
         </a>
       </section>
 
       <section className="bg-card border border-border rounded-lg p-4 space-y-4">
-        <h2 className="font-heading text-lg font-bold text-foreground">Your data</h2>
+        <h2 className="section-title">Your data</h2>
         <dl className="space-y-3">
           {DATA_POINTS.map(({ title, body }) => (
             <div key={title}>

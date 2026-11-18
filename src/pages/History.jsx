@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SessionCard from '@/components/SessionCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -45,14 +45,14 @@ export default function History() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">History</h1>
-        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" disabled={refreshing} onClick={() => loadData(true)} aria-label="Refresh">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        <h1 className="page-title">History</h1>
+        <Button size="icon" variant="ghost" className="-my-1 -mr-2 text-muted-foreground hover:text-foreground" disabled={refreshing} onClick={() => loadData(true)} aria-label="Refresh">
+          <RefreshCw className={refreshing ? 'animate-spin' : ''} />
         </Button>
       </div>
 
       {sessions.length === 0 ? (
-        <EmptyState icon="♠" title="No Sessions Yet" description="Past whist nights will show up here." />
+        <EmptyState icon={CalendarDays} title="No sessions yet" description="Past sessions will show up here." />
       ) : (
         <div className="space-y-3">
           {sessions.map((s) => (

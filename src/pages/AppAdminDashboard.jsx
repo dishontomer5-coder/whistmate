@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Shield, Loader2, Trash2, AlertTriangle, RotateCcw, Archive, ArchiveRestore, Eraser, Mail } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { formatDate } from '@/lib/format';
+import { formatDate, errorMessage } from '@/lib/format';
+import ErrorState from '@/components/ErrorState';
+import { Name, UserText, dirAuto } from '@/components/UserText';
 
 const STATUS_STYLES = {
   active: 'bg-primary/20 text-primary',
   archived: 'bg-yellow-500/20 text-yellow-500',
-  deleted: 'bg-destructive/20 text-destructive'
+  deleted: 'bg-destructive/15 text-negative'
 };
 
 export default function AppAdminDashboard() {
@@ -55,7 +57,7 @@ export default function AppAdminDashboard() {
       setInviteMessage(`Invitation sent to ${email}`);
       await loadUsers();
     } catch (err) {
-      setInviteMessage(err.message || 'Failed to send invitation');
+      setInviteMessage(errorMessage(err, 'Failed to send invitation'));
     } finally {
       setInviting(false);
     }
@@ -78,7 +80,7 @@ export default function AppAdminDashboard() {
       const res = await base44.functions.invoke('listAllGroupsWithStats', {});
       setGroups(res.data.groups || []);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load groups.');
+      setError(errorMessage(err, 'Failed to load groups.'));
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function AppAdminDashboard() {
       await base44.functions.invoke('setGroupStatus', { group_id: groupId, status: newStatus });
       setGroups(prev => prev.map(g => g.id === groupId ? { ...g, status: newStatus } : g));
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update status.');
+      setError(errorMessage(err, 'Failed to update status.'));
     } finally {
       setActionLoading(null);
     }
@@ -107,7 +109,7 @@ export default function AppAdminDashboard() {
       setCleanResult(`Removed ${d.rounds_deleted} orphaned round(s) (${d.results_deleted} result rows), ${d.sessions_deleted} orphaned session(s), and ${d.notes_deleted} orphaned note(s).`);
       loadGroups();
     } catch (err) {
-      setError(err.response?.data?.error || 'Cleanup failed.');
+      setError(errorMessage(err, 'Cleanup failed.'));
     } finally {
       setCleaning(false);
     }
@@ -123,7 +125,7 @@ export default function AppAdminDashboard() {
       setPurgeTarget(null);
       setPurgeConfirm('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to purge group.');
+      setError(errorMessage(err, 'Failed to purge group.'));
     } finally {
       setPurging(false);
     }
@@ -135,28 +137,24 @@ export default function AppAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <Link to="/home" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <Link to="/home" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        Back to Home
+        Back to groups
       </Link>
 
       <div className="flex items-center gap-3">
-        <Shield className="w-6 h-6 text-primary" />
-        <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">
-          App Admin Dashboard
+        <Shield className="w-6 h-6 text-primary flex-shrink-0" />
+        <h1 className="page-title">
+          App admin dashboard
         </h1>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/40 rounded-lg p-3">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
+      <ErrorState inline message={error} />
 
       <div className="bg-card border border-border rounded-lg p-3 flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">Clean Orphaned Data</p>
-          <p className="text-xs text-muted-foreground">Deletes games with no group and notes targeting removed members.</p>
+          <p className="text-sm font-medium text-foreground">Clean orphaned data</p>
+          <p className="text-xs text-muted-foreground">Deletes sessions and rounds that belong to no group, and notes about removed players.</p>
           {cleanResult && <p className="text-xs text-primary mt-1">{cleanResult}</p>}
         </div>
         <Button
@@ -164,10 +162,10 @@ export default function AppAdminDashboard() {
           variant="outline"
           disabled={cleaning}
           onClick={handleCleanOrphans}
-          className="border-border flex-shrink-0"
+          className="flex-shrink-0"
         >
-          {cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eraser className="w-3.5 h-3.5 mr-1" />}
-          Clean Orphans
+          {cleaning ? <Loader2 className="animate-spin" /> : <Eraser />}
+          Clean orphans
         </Button>
       </div>
 
@@ -182,8 +180,8 @@ export default function AppAdminDashboard() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-foreground truncate">{g.name}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${STATUS_STYLES[g.status] || STATUS_STYLES.active}`}>
+                    <p className="font-medium text-foreground truncate"><UserText>{g.name}</UserText></p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase flex-shrink-0 ${STATUS_STYLES[g.status] || STATUS_STYLES.active}`}>
                       {g.status}
                     </span>
                   </div>
@@ -203,9 +201,9 @@ export default function AppAdminDashboard() {
                     variant="outline"
                     disabled={actionLoading === g.id}
                     onClick={() => handleStatusChange(g.id, 'active')}
-                    className="border-border text-primary hover:bg-primary/10"
+                    className="text-primary hover:bg-primary/10"
                   >
-                    {actionLoading === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
+                    {actionLoading === g.id ? <Loader2 className="animate-spin" /> : <RotateCcw />}
                     Activate
                   </Button>
                 )}
@@ -215,9 +213,8 @@ export default function AppAdminDashboard() {
                     variant="outline"
                     disabled={actionLoading === g.id}
                     onClick={() => handleStatusChange(g.id, 'archived')}
-                    className="border-border"
                   >
-                    {actionLoading === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5 mr-1" />}
+                    {actionLoading === g.id ? <Loader2 className="animate-spin" /> : <Archive />}
                     Archive
                   </Button>
                 )}
@@ -227,10 +224,10 @@ export default function AppAdminDashboard() {
                     variant="outline"
                     disabled={actionLoading === g.id}
                     onClick={() => handleStatusChange(g.id, 'deleted')}
-                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    className="border-destructive/60 text-negative hover:bg-destructive/10"
                   >
-                    {actionLoading === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArchiveRestore className="w-3.5 h-3.5 mr-1" />}
-                    Soft Delete
+                    {actionLoading === g.id ? <Loader2 className="animate-spin" /> : <ArchiveRestore />}
+                    Delete
                   </Button>
                 )}
                 <Button
@@ -239,8 +236,8 @@ export default function AppAdminDashboard() {
                   onClick={() => { setPurgeTarget(g); setPurgeConfirm(''); }}
                   className="ml-auto"
                 >
-                  <Trash2 className="w-3.5 h-3.5 mr-1" />
-                  Purge Data
+                  <Trash2 />
+                  Purge data
                 </Button>
               </div>
             </div>
@@ -251,8 +248,8 @@ export default function AppAdminDashboard() {
       {/* Platform-account management moved here from the group Admin tab (P7-10) —
           account emails belong in the app-admin context only */}
       <div>
-        <h2 className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
-          App Admins
+        <h2 className="section-label mb-2">
+          App admins
         </h2>
         <div className="bg-card border border-border rounded-lg p-3 space-y-2 mb-3">
           <Input
@@ -261,11 +258,11 @@ export default function AppAdminDashboard() {
             onChange={(e) => setInviteEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && inviteAdmin()}
             placeholder="Enter email to invite as app admin"
-            className="bg-background border-border"
+            aria-label="Email of the new app admin"
           />
-          <Button onClick={inviteAdmin} disabled={inviting || !inviteEmail.trim()} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-            <Mail className="w-4 h-4 mr-1" />
-            {inviting ? 'Sending...' : 'Invite App Admin'}
+          <Button onClick={inviteAdmin} disabled={inviting || !inviteEmail.trim()} className="w-full">
+            <Mail />
+            {inviting ? 'Sending...' : 'Invite app admin'}
           </Button>
           {inviteMessage && (
             <p className="text-xs text-muted-foreground">{inviteMessage}</p>
@@ -276,7 +273,7 @@ export default function AppAdminDashboard() {
             <div key={u.id} className="flex items-center gap-2 bg-card border border-border rounded-lg p-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {u.full_name || u.email}
+                  <Name>{u.full_name || u.email}</Name>
                 </p>
                 {u.full_name && (
                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
@@ -292,9 +289,9 @@ export default function AppAdminDashboard() {
                   onClick={() => toggleAdminRole(u)}
                   size="sm"
                   variant="outline"
-                  className={`border-border h-9 px-3 flex-shrink-0 ${u.role === 'admin' ? 'text-destructive' : 'text-primary'}`}
+                  className={`flex-shrink-0 ${u.role === 'admin' ? 'text-negative' : 'text-primary'}`}
                 >
-                  {u.role === 'admin' ? 'Remove' : 'Make Admin'}
+                  {u.role === 'admin' ? 'Remove' : 'Make admin'}
                 </Button>
               )}
             </div>
@@ -310,23 +307,23 @@ export default function AppAdminDashboard() {
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-destructive" />
+                <AlertTriangle className="w-6 h-6 text-negative" />
               </div>
               <div>
-                <h2 className="font-heading text-lg font-bold text-destructive uppercase tracking-wide">
-                  Permanent Data Purge
+                <h2 className="font-heading text-lg font-bold text-negative">
+                  Permanent data purge
                 </h2>
                 <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
               </div>
             </div>
 
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-2">
-              <p className="text-sm text-destructive font-medium">
+              <p className="text-sm text-negative font-medium">
                 You are about to permanently delete ALL data for:
               </p>
-              <p className="font-heading text-xl font-bold text-foreground">{purgeTarget.name}</p>
+              <p className="font-heading text-xl font-bold text-foreground"><UserText>{purgeTarget.name}</UserText></p>
               <p className="text-xs text-muted-foreground">
-                This will execute a cascading hard-delete of:
+                This permanently deletes:
               </p>
               <ul className="text-xs text-muted-foreground space-y-0.5 ml-4">
                 <li>• All sessions, rounds and results</li>
@@ -334,20 +331,21 @@ export default function AppAdminDashboard() {
                 <li>• All group member records</li>
                 <li>• The group itself</li>
               </ul>
-              <p className="text-xs text-destructive font-medium pt-1">
+              <p className="text-xs text-negative font-medium pt-1">
                 This data cannot be recovered by anyone — not even Base44 support.
               </p>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm text-foreground">
-                Type the group name <span className="font-bold text-destructive">{purgeTarget.name}</span> to confirm:
+                Type the group name <UserText className="font-bold text-negative">{purgeTarget.name}</UserText> to confirm:
               </p>
               <Input
+                {...dirAuto}
                 value={purgeConfirm}
                 onChange={(e) => setPurgeConfirm(e.target.value)}
                 placeholder="Type group name"
-                className="bg-background border-destructive/40"
+                aria-label="Type the group name to confirm"
                 disabled={purging}
               />
             </div>
@@ -355,7 +353,7 @@ export default function AppAdminDashboard() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="flex-1 border-border"
+                className="flex-1 px-2"
                 disabled={purging}
                 onClick={() => { setPurgeTarget(null); setPurgeConfirm(''); }}
               >
@@ -363,12 +361,12 @@ export default function AppAdminDashboard() {
               </Button>
               <Button
                 variant="destructive"
-                className="flex-1"
+                className="flex-1 px-2"
                 disabled={purgeConfirm !== purgeTarget.name || purging}
                 onClick={handlePurge}
               >
-                {purging ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                Purge All Data
+                {purging ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                Purge all data
               </Button>
             </div>
           </div>

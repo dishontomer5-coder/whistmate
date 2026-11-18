@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
+import { dirAuto } from '@/components/UserText';
+import { errorMessage } from '@/lib/format';
 
 export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
   const [name, setName] = useState('');
@@ -33,7 +36,7 @@ export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
       onOpenChange(false);
       if (onCreated) onCreated(res.data.group, res.data.groups);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to create group.');
+      setError(errorMessage(err, 'Failed to create group.'));
     } finally {
       setSubmitting(false);
     }
@@ -43,34 +46,34 @@ export default function CreateGroupDialog({ open, onOpenChange, onCreated }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-heading uppercase tracking-wide text-foreground">Create New Group</DialogTitle>
+          <DialogTitle>Create a group</DialogTitle>
           <DialogDescription>Start a new whist circle. You'll be the admin. You'll pick the scoring rules when you start each session.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Group Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Tuesday Whist Club" className="bg-background border-border" maxLength={60} />
+            <Label htmlFor="new-group-name">Group name</Label>
+            <Input id="new-group-name" {...dirAuto} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Tuesday Whist Club" maxLength={60} />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Description (Optional)</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A short bio for your group" className="bg-background border-border" maxLength={200} />
+            <Label htmlFor="new-group-description">Description (optional)</Label>
+            <Input id="new-group-description" {...dirAuto} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A short bio for your group" maxLength={200} />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Your Display Name</Label>
-            <Input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="How others will see you in this group" className="bg-background border-border" maxLength={30} />
+            <Label htmlFor="new-group-player">Your display name</Label>
+            <Input id="new-group-player" {...dirAuto} value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="How others will see you in this group" maxLength={30} />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <ErrorState inline message={error} />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !playerName.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-            {submitting ? 'Creating...' : 'Create Group'}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !playerName.trim()}>
+            {submitting ? <Loader2 className="animate-spin" /> : <Plus />}
+            {submitting ? 'Creating...' : 'Create group'}
           </Button>
         </DialogFooter>
       </DialogContent>

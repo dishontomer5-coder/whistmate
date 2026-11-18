@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { todayLocalISO } from '@/lib/format';
+import { todayLocalISO, errorMessage } from '@/lib/format';
+import { SCORING_METHOD_SUMMARY } from '@/lib/scoring-help';
+import ErrorState from '@/components/ErrorState';
+import { dirAuto } from '@/components/UserText';
 
 export default function NewSession() {
   const navigate = useNavigate();
@@ -40,7 +43,7 @@ export default function NewSession() {
       const session = res.data.session;
       navigate(`/session/${session.id}`, { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Failed to start session.';
+      const msg = errorMessage(err, 'Failed to start session.');
       const openId = err.response?.data?.open_session_id;
       if (openId) { navigate(`/session/${openId}`, { replace: true }); return; }
       setError(msg);
@@ -50,15 +53,15 @@ export default function NewSession() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 min-h-11 pr-2 -my-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
-      <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">New Session</h1>
+      <h1 className="page-title">New session</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="name">Session name</Label>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Whist Night" />
+          <Input id="name" {...dirAuto} value={name} onChange={(e) => setName(e.target.value)} placeholder="Whist Night" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="date">Date</Label>
@@ -66,7 +69,7 @@ export default function NewSession() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="location">Location (optional)</Label>
-          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dana's place" />
+          <Input id="location" {...dirAuto} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dana's place" />
         </div>
 
         {/* Scoring rules — chosen per session, frozen once the night starts */}
@@ -75,32 +78,34 @@ export default function NewSession() {
           <div className="flex gap-2">
             {['classic', 'progressive'].map((m) => (
               <button key={m} type="button" onClick={() => setScoringMethod(m)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize ${scoringMethod === m ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                aria-pressed={scoringMethod === m}
+                className={`flex-1 min-h-11 py-2 rounded-lg text-sm font-medium capitalize ${scoringMethod === m ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
                 {m}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Classic = −10 per missed trick. Progressive = escalating penalty by miss size.
+          {/* The numbers come from the scoring engine (scoring-help.js), not from this file. */}
+          <p className="text-xs text-muted-foreground">
+            Classic: {SCORING_METHOD_SUMMARY.classic}. Progressive: {SCORING_METHOD_SUMMARY.progressive}.
           </p>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 p-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 p-3">
           <div>
-            <Label>Advanced rules</Label>
-            <p className="text-[11px] text-muted-foreground">Highest bidder picks trump suit + hierarchy each round.</p>
+            <Label htmlFor="advanced-rules">Advanced rules</Label>
+            <p className="text-xs text-muted-foreground mt-1">Each round must record who won the trump, the suit, and the card order they chose.</p>
           </div>
-          <Switch checked={advancedRules} onCheckedChange={setAdvancedRules} />
+          <Switch id="advanced-rules" checked={advancedRules} onCheckedChange={setAdvancedRules} />
         </div>
 
-        <p className="text-[11px] text-muted-foreground italic">
-          These rules are frozen for the whole session. (Defaults come from the group — a group admin can change them in Admin.)
+        <p className="text-xs text-muted-foreground">
+          These rules can't be changed once the session has started. (The starting choice comes from the group — a group admin can change it in Admin.)
         </p>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <ErrorState inline message={error} />
 
-        <Button type="submit" disabled={submitting || !activeGroupId} className="w-full">
-          {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting…</> : 'Start Session'}
+        <Button type="submit" size="lg" disabled={submitting || !activeGroupId} className="w-full">
+          {submitting ? <><Loader2 className="animate-spin" /> Starting…</> : 'Start session'}
         </Button>
       </form>
     </div>

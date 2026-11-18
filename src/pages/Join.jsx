@@ -26,13 +26,13 @@ export default function Join() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 text-center bg-background">
         <Logo size="xl" showText />
         <div>
-          <h1 className="font-heading text-2xl font-bold uppercase tracking-wide text-foreground">You're Invited</h1>
+          <h1 className="page-title">You're invited</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-xs">
             Sign in to join{code ? <> the group with code <span className="font-mono font-semibold text-foreground">{code}</span></> : ' the group'} and track your whist nights.
           </p>
         </div>
-        <Button onClick={() => base44.auth.redirectToLogin(window.location.href)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <LogIn className="w-4 h-4 mr-2" /> Sign In to Join
+        <Button size="lg" onClick={() => base44.auth.redirectToLogin(window.location.href)}>
+          <LogIn /> Sign in to join
         </Button>
       </div>
     );

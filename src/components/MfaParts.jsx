@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { loadSignInOptions } from "@/lib/authMfaFlow";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import ErrorState from '@/components/ErrorState';
 
 // Building blocks shared by MfaFlow, MfaMethodSetup and MfaManage.
 
@@ -81,7 +82,7 @@ export function ResendLine({ cooldown, disabled, onResend, error }) {
           </button>
         )}
       </p>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ErrorState inline message={error} />
     </div>
   );
 }
@@ -134,7 +135,7 @@ function DialCodePicker({ value, onChange }) {
     <Popover open={open} onOpenChange={handleOpenChange} modal>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label="Country code"
-          className="h-10 w-[100px] justify-between px-2.5 font-normal shadow-none">
+          className="w-[100px] justify-between px-2.5 font-normal shadow-none">
           {value}
           <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
         </Button>
@@ -173,10 +174,10 @@ export function PhoneField({ countryCode, onCountryCodeChange, phoneNumber, onPh
           placeholder="5551234567" aria-invalid={Boolean(message)}
           onChange={(e) => { onPhoneNumberChange(e.target.value.replace(/\D/g, "")); setTouched(true); }}
           onKeyDown={(e) => { if (e.key === "Enter" && onSubmit) { e.preventDefault(); onSubmit(); } }}
-          className={cn("h-10 flex-1", message && "border-destructive focus-visible:ring-destructive")} />
+          className={cn("flex-1", message && "border-destructive focus-visible:ring-destructive")} />
       </div>
       {message
-        ? <p className="text-sm text-destructive">{message}</p>
+        ? <p className="text-sm text-negative">{message}</p>
         : <p className="text-sm text-muted-foreground">Standard message and data rates may apply.</p>}
     </div>
   );
@@ -192,7 +193,7 @@ export function CopyKeyButton({ text, wide = false }) {
   };
   if (wide) {
     return (
-      <Button type="button" variant="outline" className="w-full h-11" onClick={copy}>
+      <Button type="button" variant="outline" className="w-full" onClick={copy}>
         {copied ? "Copied" : "Copy key"}
       </Button>
     );
@@ -212,7 +213,7 @@ export function MfaNotice({ error, signInPath = "/login" }) {
   if (!error) return null;
   const returnTo = safeReturnTo();
   return (
-    <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+    <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-negative text-sm text-center">
       {error.mustSignInAgain ? (
         <>
           Your sign-in expired.{" "}

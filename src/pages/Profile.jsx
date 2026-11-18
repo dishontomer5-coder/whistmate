@@ -11,6 +11,11 @@ import ScoreChart from '@/components/ScoreChart';
 import TableTalkFeed from '@/components/TableTalkFeed';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import NoGroupState from '@/components/NoGroupState';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import PlayerAvatar from '@/components/PlayerAvatar';
+import { Name } from '@/components/UserText';
+import { errorMessage } from '@/lib/format';
 
 const EMPTY_STATS = {
   performance: { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, wins: 0, podiums: 0, win_ratio: 0 },
@@ -53,7 +58,7 @@ export default function Profile() {
     } catch (err) {
       console.error(err);
       setStatsError(true);
-      setStatsErrorMsg(err.response?.data?.error || err.message || '');
+      setStatsErrorMsg(errorMessage(err, ''));
     } finally {
       setLoading(false);
     }
@@ -65,17 +70,14 @@ export default function Profile() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center mb-5">
-          <User className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h1 className="font-heading text-xl font-bold text-foreground uppercase tracking-wide mb-2">Your Profile</h1>
-        <p className="text-sm text-muted-foreground max-w-xs mb-6">Sign in to view your dashboard, track your whist stats, and see what other players say about you.</p>
-        <div className="flex gap-3">
-          <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90"><Link to="/login"><LogIn className="w-4 h-4 mr-1" />Sign In</Link></Button>
-          <Button asChild variant="outline" className="border-border"><Link to="/register">Sign Up</Link></Button>
-        </div>
-      </div>
+      <EmptyState as="h1" icon={User} title="Your profile"
+        description="Sign in to see your whist stats and what other players say about you."
+        action={
+          <div className="flex gap-3">
+            <Button asChild><Link to="/login"><LogIn />Sign in</Link></Button>
+            <Button asChild variant="outline"><Link to="/register">Sign up</Link></Button>
+          </div>
+        } />
     );
   }
 
@@ -83,13 +85,8 @@ export default function Profile() {
 
   if (!player) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center mb-5">
-          <Users className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h1 className="font-heading text-xl font-bold text-foreground uppercase tracking-wide mb-2">No Player Profile</h1>
-        <p className="text-sm text-muted-foreground max-w-xs mb-6">You don't have a player profile in this group yet. Contact a group admin to add you.</p>
-      </div>
+      <EmptyState as="h1" icon={Users} title="No player profile"
+        description="You don't have a player profile in this group yet. Ask a group admin to add you." />
     );
   }
 
@@ -98,21 +95,15 @@ export default function Profile() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <span className="font-heading text-xl font-bold text-primary">{player.name.charAt(0).toUpperCase()}</span>
-        </div>
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground uppercase tracking-wide">{player.name}</h1>
+        <PlayerAvatar name={player.name} size="lg" />
+        <div className="min-w-0">
+          <h1 className="page-title break-words"><Name>{player.name}</Name></h1>
           <p className="text-sm text-muted-foreground mt-0.5">{rounds} round{rounds !== 1 ? 's' : ''} played</p>
         </div>
       </div>
 
       {statsError ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center space-y-2">
-          <p className="text-sm text-destructive">Couldn't load your stats.</p>
-          {statsErrorMsg && <p className="text-xs text-muted-foreground break-words">{statsErrorMsg}</p>}
-          <Button size="sm" variant="outline" className="border-border" onClick={loadProfile}>Try Again</Button>
-        </div>
+        <ErrorState title="Couldn't load your stats" message={statsErrorMsg} onRetry={loadProfile} />
       ) : (
         <>
           <StatGrid stats={stats} />
@@ -122,14 +113,14 @@ export default function Profile() {
 
       {allPlayers.length > 0 && (
         <div className="space-y-2">
-          <label className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> View Another Player
+          <label className="section-label flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" /> View another player
           </label>
           <Select value="none" onValueChange={goToPlayer}>
-            <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Select a player to view" /></SelectTrigger>
+            <SelectTrigger aria-label="View another player"><SelectValue placeholder="Select a player to view" /></SelectTrigger>
             <SelectContent>
               {allPlayers.map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.player_name}{m.id === player.id ? ' (You)' : ''}</SelectItem>
+                <SelectItem key={m.id} value={m.id}><Name>{m.player_name}</Name>{m.id === player.id ? ' (you)' : ''}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -7,10 +7,10 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-10">
           <Logo size="xl" showText />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-6">{title}</h1>
+          <h1 className="page-title mt-6">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
         </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-5 sm:p-8">
           {children}
         </div>
         {footer && (

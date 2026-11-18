@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, UserPlus } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
+import { dirAuto } from '@/components/UserText';
+import { errorMessage } from '@/lib/format';
 
 export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded }) {
   const [playerName, setPlayerName] = useState('');
@@ -33,7 +36,7 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
       onOpenChange(false);
       if (onAdded) onAdded(res.data.member);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to add member.');
+      setError(errorMessage(err, 'Failed to add player.'));
     } finally {
       setSubmitting(false);
     }
@@ -43,24 +46,21 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-heading uppercase tracking-wide text-foreground">
-            Add Player
-          </DialogTitle>
+          <DialogTitle>Add player</DialogTitle>
           <DialogDescription>
-            Add a player who hasn't created an account yet. They can claim their profile later.
+            Add a player who doesn't have an account yet. They can claim this player later, with its history.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-              Player Name
-            </Label>
+            <Label htmlFor="new-player-name">Player name</Label>
             <Input
+              id="new-player-name"
+              {...dirAuto}
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="e.g. Daniel"
-              className="bg-background border-border"
               maxLength={30}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !submitting && playerName.trim()) {
@@ -70,20 +70,19 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
             />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <ErrorState inline message={error} />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={submitting || !playerName.trim()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
-            {submitting ? 'Adding...' : 'Add Player'}
+            {submitting ? <Loader2 className="animate-spin" /> : <UserPlus />}
+            {submitting ? 'Adding...' : 'Add player'}
           </Button>
         </DialogFooter>
       </DialogContent>

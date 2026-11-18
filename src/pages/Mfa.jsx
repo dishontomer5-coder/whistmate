@@ -85,13 +85,13 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
       {options && (
         <div className="space-y-4">
           {providers.map((provider) => (
-            <Button key={provider.id} variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider(provider.id)}>
+            <Button key={provider.id} variant="outline" className="w-full" onClick={() => withProvider(provider.id)}>
               {provider.id === "google" && <GoogleIcon className="w-5 h-5 mr-2" />}
               Continue with {provider.name}
             </Button>
           ))}
           {(options.enable_sso_login || options.use_workspace_sso) && (
-            <Button variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider("sso")}>
+            <Button variant="outline" className="w-full" onClick={() => withProvider("sso")}>
               Continue with SSO
             </Button>
           )}
@@ -102,7 +102,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input id="mfa-email" type="email" autoComplete="email" placeholder="you@example.com" value={email}
-                    onChange={(e) => setEmail(e.target.value)} className="pl-10 h-12" required />
+                    onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
                 </div>
               </div>
               <div className="space-y-2">
@@ -110,10 +110,10 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input id="mfa-password" type="password" autoComplete="current-password" placeholder="••••••••" value={password}
-                    onChange={(e) => setPassword(e.target.value)} className="pl-10 h-12" required />
+                    onChange={(e) => setPassword(e.target.value)} className="pl-10" required />
                 </div>
               </div>
-              <Button type="submit" className="w-full h-12 font-medium" disabled={busy}>
+              <Button type="submit" size="lg" className="w-full" disabled={busy}>
                 {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Continue
               </Button>

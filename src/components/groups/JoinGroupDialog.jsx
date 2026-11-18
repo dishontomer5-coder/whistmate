@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, KeyRound, ArrowLeft, UserCheck, UserPlus, Check } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
+import { Name, UserText, dirAuto } from '@/components/UserText';
+import { errorMessage } from '@/lib/format';
 
 // Two-step claim-by-code join flow (plan.md §11): validate the code, then pick
 // an identity — claim an existing unclaimed player (keeps their history) or
@@ -51,7 +54,7 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
       setChoice(res.data.unclaimed_players.length > 0 ? '' : 'new');
       setStep('identity');
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to check code.');
+      setError(errorMessage(err, 'Failed to check code.'));
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +80,7 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
       onOpenChange(false);
       if (onJoined) onJoined(res.data.group, res.data.groups);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to join group.');
+      setError(errorMessage(err, 'Failed to join group.'));
       // Claim race lost — refresh the list so the taken player disappears
       if (err.response?.status === 409 && choice !== 'new') {
         try {
@@ -99,40 +102,36 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
         {step === 'code' ? (
           <>
             <DialogHeader>
-              <DialogTitle className="font-heading uppercase tracking-wide text-foreground">
-                Join a Group
-              </DialogTitle>
+              <DialogTitle>Join a group</DialogTitle>
               <DialogDescription>
                 Enter the 6-character invite code shared by the group admin.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                Invite Code
-              </Label>
+              <Label htmlFor="invite-code">Invite code</Label>
               <Input
+                id="invite-code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleContinue()}
                 placeholder="e.g. ABC123"
-                className="bg-background border-border text-center text-lg font-mono tracking-widest uppercase"
+                className="text-center text-lg font-mono tracking-widest uppercase"
                 maxLength={6}
                 autoCapitalize="characters"
               />
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              <ErrorState inline message={error} />
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={handleContinue}
                 disabled={submitting || !inviteCode.trim()}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <KeyRound className="w-4 h-4 mr-1" />}
+                {submitting ? <Loader2 className="animate-spin" /> : <KeyRound />}
                 {submitting ? 'Checking...' : 'Continue'}
               </Button>
             </DialogFooter>
@@ -140,12 +139,12 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-heading uppercase tracking-wide text-foreground">
-                Joining {preview?.group?.name}
+              <DialogTitle>
+                Joining <UserText>{preview?.group?.name}</UserText>
               </DialogTitle>
               <DialogDescription>
                 {unclaimed.length > 0
-                  ? 'Are you one of these players? Claiming keeps your game history.'
+                  ? 'Are you one of these players? Claiming one keeps its history.'
                   : 'Choose your display name.'}
               </DialogDescription>
             </DialogHeader>
@@ -158,13 +157,14 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
                       key={p.id}
                       type="button"
                       onClick={() => { setChoice(p.id); setError(''); }}
-                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
-                        choice === p.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
+                      aria-pressed={choice === p.id}
+                      className={`w-full flex items-center justify-between min-h-11 rounded-lg border p-3 text-left transition-colors ${
+                        choice === p.id ? 'border-primary bg-primary/10' : 'border-input bg-background hover:border-primary/50'
                       }`}
                     >
                       <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <UserCheck className="w-4 h-4 text-muted-foreground" />
-                        {p.player_name}
+                        <Name>{p.player_name}</Name>
                       </span>
                       {choice === p.id && <Check className="w-4 h-4 text-primary" />}
                     </button>
@@ -175,8 +175,9 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
               <button
                 type="button"
                 onClick={() => { setChoice('new'); setError(''); }}
-                className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
-                  choice === 'new' ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
+                aria-pressed={choice === 'new'}
+                className={`w-full flex items-center justify-between min-h-11 rounded-lg border p-3 text-left transition-colors ${
+                  choice === 'new' ? 'border-primary bg-primary/10' : 'border-input bg-background hover:border-primary/50'
                 }`}
               >
                 <span className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -188,40 +189,37 @@ export default function JoinGroupDialog({ open, onOpenChange, onJoined, initialC
 
               {choice === 'new' && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                    Your Display Name
-                  </Label>
+                  <Label htmlFor="join-player-name">Your display name</Label>
                   <Input
+                    id="join-player-name"
+                    {...dirAuto}
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
                     placeholder="How others will see you"
-                    className="bg-background border-border"
                     maxLength={30}
                   />
                 </div>
               )}
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              <ErrorState inline message={error} />
             </div>
 
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => { setStep('code'); setError(''); }}
-                className="border-border"
                 disabled={submitting}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" />
+                <ArrowLeft />
                 Back
               </Button>
               <Button
                 onClick={handleJoin}
                 disabled={submitting || !choice || (choice === 'new' && !playerName.trim())}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <KeyRound className="w-4 h-4 mr-1" />}
-                {submitting ? 'Joining...' : 'Join Group'}
+                {submitting ? <Loader2 className="animate-spin" /> : <KeyRound />}
+                {submitting ? 'Joining...' : 'Join group'}
               </Button>
             </DialogFooter>
           </>

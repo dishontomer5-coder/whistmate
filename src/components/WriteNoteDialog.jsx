@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Loader2, MessageSquarePlus } from 'lucide-react';
-import { formatDate } from '@/lib/format';
+import { formatDate, sessionName, errorMessage } from '@/lib/format';
+import ErrorState from '@/components/ErrorState';
+import { Name, UserText, dirAuto } from '@/components/UserText';
 
 export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, onSubmitted }) {
   const { user } = useAuth();
@@ -36,7 +39,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
     }
   }, [open]);
 
-  // The whist nights both players sat at — a note can be pinned to one (P12-4).
+  // The sessions both players sat at — a note can be pinned to one (P12-4).
   // Worked out server-side: getGroupData checks group membership (P12-1).
   const loadSharedSessions = async () => {
     if (!activeGroupId) {
@@ -75,7 +78,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
       onOpenChange(false);
       if (onSubmitted) onSubmitted();
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to submit note.');
+      setError(errorMessage(err, 'Failed to submit note.'));
     } finally {
       setSubmitting(false);
     }
@@ -85,33 +88,29 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-heading uppercase tracking-wide text-foreground">
-            Scouting Note
-          </DialogTitle>
+          <DialogTitle>Leave a note</DialogTitle>
           <DialogDescription>
-            Leave a public note about {targetPlayerName || 'this player'}.
+            A note about {targetPlayerName ? <Name>{targetPlayerName}</Name> : 'this player'}, visible to everyone in the group.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground uppercase tracking-wide font-medium block">
-              Your Note
-            </label>
+            <Label htmlFor="note-text">Your note</Label>
             <Textarea
+              id="note-text"
+              {...dirAuto}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Share your thoughts on their play style..."
-              className="bg-background border-border min-h-[100px] resize-none"
+              className="min-h-[100px] resize-none"
               maxLength={500}
             />
             <p className="text-xs text-muted-foreground text-right">{note.length}/500</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground uppercase tracking-wide font-medium block">
-              Link to Session (Optional)
-            </label>
+            <Label>Link to a session (optional)</Label>
             {loadingSessions ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -119,14 +118,14 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
               </div>
             ) : (
               <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
-                <SelectTrigger className="bg-background border-border">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a shared session" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">General note (no specific session)</SelectItem>
                   {sharedSessions.map(s => (
                     <SelectItem key={s.id} value={s.id}>
-                      {s.name || 'Whist Night'} · {formatDate(s.session_date || s.created_date)}
+                      <UserText>{sessionName(s)}</UserText> · {formatDate(s.session_date || s.created_date)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -134,24 +133,24 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
             )}
           </div>
 
-          <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center justify-between gap-3 bg-background border border-border rounded-lg p-3">
             <div>
-              <p className="text-sm font-medium text-foreground">Post Anonymously</p>
+              <p className="text-sm font-medium text-foreground">Post anonymously</p>
               <p className="text-xs text-muted-foreground">Your name is never stored — truly anonymous.</p>
             </div>
-            <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} />
+            <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} aria-label="Post anonymously" />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <ErrorState inline message={error} />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !note.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            {submitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <MessageSquarePlus className="w-4 h-4 mr-1" />}
-            {submitting ? 'Submitting...' : 'Submit Note'}
+          <Button onClick={handleSubmit} disabled={submitting || !note.trim()}>
+            {submitting ? <Loader2 className="animate-spin" /> : <MessageSquarePlus />}
+            {submitting ? 'Submitting...' : 'Submit note'}
           </Button>
         </DialogFooter>
       </DialogContent>

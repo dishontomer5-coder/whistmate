@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    /* The app is dark only: native controls (date picker icon, select menus, scrollbars)
+       draw light-on-dark instead of the browser's black-on-white. */
+    color-scheme: dark;
     /* Navy app-icon background (#0e1c3e) + yellow accent (#fdd835) */
     --background: 222 63% 15%;
     --foreground: 220 25% 96%;
@@ -22,7 +25,8 @@
     --destructive: 0 72% 56%;
     --destructive-foreground: 220 25% 96%;
     --border: 222 40% 24%;
-    --input: 222 40% 22%;
+    /* Outline of form controls and outline buttons: #6779A2, 3.4:1 on a card. */
+    --input: 222 24% 52%;
     --ring: 49 98% 60%;
     --chart-1: 49 98% 60%;
     --chart-2: 210 60% 55%;
@@ -63,7 +67,7 @@
     --destructive: 0 72% 56%;
     --destructive-foreground: 220 25% 96%;
     --border: 222 40% 24%;
-    --input: 222 40% 22%;
+    --input: 222 24% 52%;
     --ring: 49 98% 60%;
     --sidebar-background: 222 63% 15%;
     --sidebar-foreground: 220 25% 96%;
@@ -92,5 +96,28 @@
   }
   input[type="number"] {
     -moz-appearance: textfield;
+  }
+
+  /* A field may upper-case what is typed (invite codes); its hint stays as written. */
+  ::placeholder {
+    text-transform: none;
+    letter-spacing: normal;
+  }
+}
+
+/* Shared text styles — one of each, used on every page.
+   .page-title    the single <h1> of a page (24px bold, sentence case)
+   .section-title a section heading inside a page (18px bold)
+   .section-label a small label above a block or a form field group (12px, upper-case, muted)
+   Nothing that carries information is set below 12px (text-xs). */
+@layer components {
+  .page-title {
+    @apply font-heading text-2xl font-bold leading-tight text-foreground;
+  }
+  .section-title {
+    @apply font-heading text-lg font-bold text-foreground;
+  }
+  .section-label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
   }
 }

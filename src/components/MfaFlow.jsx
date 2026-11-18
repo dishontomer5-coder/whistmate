@@ -36,8 +36,8 @@ function Enroll({ session, onDone }) {
         <MfaMethodSetup session={session} method={method} onDone={onDone} onBack={() => setMethod(null)} />
       ) : (
         <div className="space-y-3">
-          <Button className="w-full h-12 font-medium" onClick={() => setMethod("totp")}>Set up your authenticator app</Button>
-          <Button variant="outline" className="w-full h-12 font-medium" onClick={() => setMethod("sms")}>Enter your phone number</Button>
+          <Button size="lg" className="w-full" onClick={() => setMethod("totp")}>Set up your authenticator app</Button>
+          <Button variant="outline" size="lg" className="w-full" onClick={() => setMethod("sms")}>Enter your phone number</Button>
         </div>
       )}
     </>
@@ -101,7 +101,7 @@ function Verify({ session, challenge, returnTo, onDone }) {
         </p>
         <CodeField id="mfa-code" value={code} onChange={setCode} onComplete={verify} />
         <RememberDevice checked={remember} onChange={setRemember} />
-        <Button className="w-full h-12 font-medium" disabled={busy || code.length < 6} onClick={() => verify()}>
+        <Button size="lg" className="w-full" disabled={busy || code.length < 6} onClick={() => verify()}>
           {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {busy ? "Verifying..." : "Verify"}
         </Button>

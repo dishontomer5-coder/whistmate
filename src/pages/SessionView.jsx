@@ -6,9 +6,15 @@ import { Button } from '@/components/ui/button';
 import Leaderboard from '@/components/Leaderboard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import TableBadge from '@/components/TableBadge';
+import { Suit } from '@/components/Suit';
+import { Name, UserText } from '@/components/UserText';
+import { useConfirm } from '@/components/ConfirmDialog';
+import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { buildStandings } from '@/lib/standings';
-import { formatScore, formatDate, formatSuit } from '@/lib/format';
+import { formatScore, formatDate, scoreTone, sessionName, errorMessage } from '@/lib/format';
 
 export default function SessionView() {
   const { id } = useParams();
@@ -17,11 +23,15 @@ export default function SessionView() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [session, setSession] = useState(null);
   const [rounds, setRounds] = useState([]);
   const [resultsByRound, setResultsByRound] = useState({});
   const [standings, setStandings] = useState([]);
   const [closing, setClosing] = useState(false);
+  // Which section of "How scoring works" is open (null = closed).
+  const [helpSection, setHelpSection] = useState(null);
+  const [confirm, confirmElement] = useConfirm();
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
@@ -29,6 +39,7 @@ export default function SessionView() {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
       setError('');
+      setNotFound(false);
       // Membership-checked read (P12-1) — session, its rounds and their results in one call.
       const res = await base44.functions.invoke('getGroupData', { scope: 'session', session_id: id });
       const { session: sess, rounds: rnds = [], results = [] } = res.data;
@@ -41,7 +52,8 @@ export default function SessionView() {
       setStandings(buildStandings(results));
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || err.message || 'Failed to load session.');
+      setNotFound(err.response?.status === 404);
+      setError(errorMessage(err, 'Failed to load session.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -49,13 +61,18 @@ export default function SessionView() {
   };
 
   const handleClose = async () => {
-    if (!confirm('Close this session? No more rounds can be added.')) return;
+    const ok = await confirm({
+      title: 'Close this session?',
+      description: 'No more rounds can be added.',
+      confirmLabel: 'Close session',
+    });
+    if (!ok) return;
     setClosing(true);
     try {
       await base44.functions.invoke('closeSession', { session_id: id });
       await load(true);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to close session.');
+      setError(errorMessage(err, 'Failed to close session.'));
     } finally {
       setClosing(false);
     }
@@ -63,11 +80,12 @@ export default function SessionView() {
 
   if (loading) return <LoadingSpinner showLogo />;
   if (error && !session) {
-    return (
-      <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center space-y-2">
-        <p className="text-sm text-destructive">{error}</p>
-        <Button size="sm" variant="outline" onClick={() => load(true)}>Try Again</Button>
-      </div>
+    // A missing session cannot be fixed by trying again — offer the way back instead.
+    return notFound ? (
+      <ErrorState title="Session not found" message="It was deleted, or the link is wrong."
+        action={<Button asChild variant="outline"><Link to="/">Back to sessions</Link></Button>} />
+    ) : (
+      <ErrorState title="Couldn't load this session" message={error} onRetry={() => load(true)} />
     );
   }
 
@@ -77,19 +95,22 @@ export default function SessionView() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <button onClick={() => navigate('/')} className="flex items-center gap-1 min-h-11 pr-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Sessions
         </button>
-        <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={refreshing} onClick={() => load(true)} aria-label="Refresh">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </Button>
+        <div className="flex items-center -mr-2">
+          <ScoringHelpButton />
+          <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground" disabled={refreshing} onClick={() => load(true)} aria-label="Refresh">
+            <RefreshCw className={refreshing ? 'animate-spin' : ''} />
+          </Button>
+        </div>
       </div>
 
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">{session?.name || 'Whist Night'}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="page-title"><UserText>{sessionName(session)}</UserText></h1>
+        <p className="text-sm text-muted-foreground mt-1">
           {formatDate(session?.session_date || session?.created_date)}
-          {session?.location ? ` · ${session.location}` : ''}
+          {session?.location ? <> · <UserText>{session.location}</UserText></> : ''}
           {` · ${isOpen ? 'Open' : 'Closed'}`}
           {session?.advanced_rules_enabled ? ' · Advanced' : ''}
           {` · ${session?.scoring_method === 'progressive' ? 'Progressive' : 'Classic'}`}
@@ -98,86 +119,80 @@ export default function SessionView() {
 
       {/* Primary action */}
       {isOpen && (
-        openRound ? (
-          <Link to={`/round/${openRound.id}`}
-            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg py-4 font-heading font-bold text-lg uppercase tracking-wide hover:bg-primary/90 transition-colors">
-            <Play className="w-5 h-5" /> Resume Round {openRound.round_number}
-          </Link>
-        ) : (
-          <Link to={`/session/${id}/round/new`}
-            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg py-4 font-heading font-bold text-lg uppercase tracking-wide hover:bg-primary/90 transition-colors">
-            <Plus className="w-5 h-5" /> Start Round {rounds.length + 1}
-          </Link>
-        )
+        <Button asChild size="lg" className="w-full">
+          {openRound ? (
+            <Link to={`/round/${openRound.id}`}><Play /> Resume round {openRound.round_number}</Link>
+          ) : (
+            <Link to={`/session/${id}/round/new`}><Plus /> Start round {rounds.length + 1}</Link>
+          )}
+        </Button>
       )}
 
       {/* Standings (cumulative for this session) */}
       <div className="space-y-3">
-        <h2 className="font-heading text-lg font-bold text-foreground">Standings</h2>
+        <h2 className="section-title">Standings</h2>
         <Leaderboard players={standings} sortBy="total" />
       </div>
 
       {/* Round feed */}
       <div className="space-y-3">
-        <h2 className="font-heading text-lg font-bold text-foreground">Rounds</h2>
+        <h2 className="section-title">Rounds</h2>
         {rounds.length === 0 ? (
-          <EmptyState icon="♠" title="No rounds yet" description={isOpen ? 'Start the first round above.' : 'This session had no rounds.'} />
+          <EmptyState compact title="No rounds yet" description={isOpen ? 'Start the first round above.' : 'This session had no rounds.'} />
         ) : (
           rounds.map((round) => (
-            <RoundFeedItem key={round.id} round={round} results={resultsByRound[round.id] || []} editable={isAdmin} />
+            <RoundFeedItem key={round.id} round={round} results={resultsByRound[round.id] || []} editable={isAdmin}
+              onTableHelp={() => setHelpSection('updown')} />
           ))
         )}
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ErrorState inline message={error} />
 
       {isOpen && !openRound && (
-        <Button variant="outline" className="w-full border-border text-muted-foreground" onClick={handleClose} disabled={closing}>
-          {closing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Closing…</> : <><Lock className="w-4 h-4 mr-2" /> Close Session</>}
+        <Button variant="outline" className="w-full text-muted-foreground" onClick={handleClose} disabled={closing}>
+          {closing ? <><Loader2 className="animate-spin" /> Closing…</> : <><Lock /> Close session</>}
         </Button>
       )}
+
+      {confirmElement}
+      <ScoringHelp open={helpSection != null} onOpenChange={(open) => { if (!open) setHelpSection(null); }} section={helpSection || undefined} />
     </div>
   );
 }
 
-function RoundFeedItem({ round, results, editable }) {
+function RoundFeedItem({ round, results, editable, onTableHelp }) {
   const cancelled = round.status === 'cancelled' || round.everyone_falls;
   const inProgress = round.status === 'bidding' || round.status === 'playing';
   return (
     <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-heading font-bold text-foreground">Round {round.round_number}</span>
-        <div className="flex items-center gap-2">
-          {round.table_state && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-              round.table_state === 'up' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-            }`}>{round.table_state}</span>
-          )}
-          {round.trump_suit && <span className="text-[10px] text-muted-foreground">{formatSuit(round.trump_suit)}</span>}
-          {cancelled && <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Everyone fell</span>}
-          {inProgress && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium uppercase">{round.status}</span>}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="font-heading font-bold text-foreground whitespace-nowrap">Round {round.round_number}</span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <TableBadge state={round.table_state} onClick={onTableHelp} />
+          {round.trump_suit && <Suit suit={round.trump_suit} label className="text-xs" />}
+          {cancelled && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase whitespace-nowrap">Everyone fell</span>}
+          {inProgress && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium uppercase">{round.status}</span>}
         </div>
       </div>
       {inProgress ? (
-        <Link to={`/round/${round.id}`} className="text-sm text-primary hover:underline">Open round →</Link>
+        <Link to={`/round/${round.id}`} className="inline-flex min-h-11 items-center text-sm text-primary hover:underline">Open round →</Link>
       ) : (
         <div className="space-y-1">
           {results.map((r) => (
-            <div key={r.id} className="flex items-center justify-between text-sm">
+            <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
               <span className="text-foreground truncate">
-                {r.player_name}
+                <Name>{r.player_name}</Name>
                 {/* Trump winner gets the suit inline, so a scan of the feed shows who took
                     trump in each round without opening it. */}
                 {round.trump_suit && r.player_id === round.highest_bidder_player_id && (
-                  <span className={`ml-1.5 font-bold ${
-                    round.trump_suit === 'hearts' || round.trump_suit === 'diamonds' ? 'text-rose-500' : 'text-foreground'
-                  }`} title="Won the trump">{formatSuit(round.trump_suit)}</span>
+                  <span className="ml-1.5" title="Won the trump"><Suit suit={round.trump_suit} /></span>
                 )}
-                {r.reneged ? <span className="ml-1 text-destructive text-xs">(reneged)</span> : null}
+                {r.reneged ? <span className="ml-1 text-negative text-xs">(reneged)</span> : null}
               </span>
               <span className="flex items-center gap-3 flex-shrink-0">
-                <span className="text-xs text-muted-foreground">bid {r.bid} · won {r.tricks_won}</span>
-                <span className={`font-heading font-bold w-12 text-right ${(r.points ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                <span className="text-xs text-muted-foreground">bid {r.bid} · took {r.tricks_won}</span>
+                <span className={`font-heading font-bold w-12 text-right ${scoreTone(r.points)}`}>
                   {formatScore(r.points)}
                 </span>
               </span>
@@ -186,8 +201,8 @@ function RoundFeedItem({ round, results, editable }) {
         </div>
       )}
       {editable && !inProgress && (
-        <div className="mt-2 pt-2 border-t border-border">
-          <Link to={`/round/${round.id}`} className="text-xs text-muted-foreground hover:text-foreground">Edit round</Link>
+        <div className="mt-2 border-t border-border">
+          <Link to={`/round/${round.id}`} className="inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-foreground">Edit round</Link>
         </div>
       )}
     </div>

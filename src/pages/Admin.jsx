@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { ArrowLeft, Shield, LayoutDashboard } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import NoGroupState from '@/components/NoGroupState';
 import GroupSettings from '@/components/admin/GroupSettings';
@@ -36,32 +37,25 @@ export default function Admin() {
   if (!isAdmin && !isAppAdmin) {
     return (
       <div className="space-y-6">
-        <Link to={activeGroupId ? "/" : "/home"} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link to={activeGroupId ? "/" : "/home"} className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          {activeGroupId ? "Back to Games" : "Back to Home"}
+          {activeGroupId ? "Back to sessions" : "Back to groups"}
         </Link>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Shield className="w-12 h-12 text-muted-foreground mb-4" />
-          <h1 className="font-heading text-xl font-bold text-foreground uppercase tracking-wide">
-            Admins Only
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-            Only group admins can manage settings and members. Ask your group admin to promote you.
-          </p>
-        </div>
+        <EmptyState as="h1" icon={Shield} title="Admins only"
+          description="Only group admins can manage settings and members. Ask a group admin to make you one." />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Link to={activeGroupId ? "/" : "/home"} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <Link to={activeGroupId ? "/" : "/home"} className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        {activeGroupId ? "Back to Games" : "Back to Home"}
+        {activeGroupId ? "Back to sessions" : "Back to groups"}
       </Link>
 
-      <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">
-        {isAdmin ? 'Group Admin' : 'App Admin'}
+      <h1 className="page-title">
+        {isAdmin ? 'Group admin' : 'App admin'}
       </h1>
 
       {isAdmin && (
@@ -81,7 +75,7 @@ export default function Admin() {
         >
           <LayoutDashboard className="w-5 h-5 text-primary flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">App Admin Dashboard</p>
+            <p className="text-sm font-medium text-foreground">App admin dashboard</p>
             <p className="text-xs text-muted-foreground">Manage groups and app admins</p>
           </div>
         </Link>

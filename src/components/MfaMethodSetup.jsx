@@ -6,6 +6,7 @@ import {
   CodeField, CopyKeyButton, INVALID_PHONE, MfaNotice, PhoneField, ResendLine,
   defaultDialCode, isPlausiblePhone, isTouchDevice, useCooldown,
 } from "@/components/MfaParts";
+import { errorMessage } from '@/lib/format';
 
 const SMS_RESEND_SECONDS = 30;
 const FULL_CODE = "Enter the full 6-digit code";
@@ -74,7 +75,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
       await session.sendPhoneCode(fullPhone);
       setCooldown(SMS_RESEND_SECONDS);
     } catch (err) {
-      setResendError(err.message || "Failed to resend");
+      setResendError(errorMessage(err, "Failed to resend"));
     }
   };
 
@@ -89,7 +90,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
     setError(null);
     const result = await run(
       () => (method === "totp" ? session.confirmAuthenticator(value) : session.confirmPhone(value)),
-      (err) => (err.mustSignInAgain ? setError(err) : setFieldError(err.message || "Invalid code")),
+      (err) => (err.mustSignInAgain ? setError(err) : setFieldError(errorMessage(err, "Invalid code"))),
     );
     if (result) onDone(result);
   };
@@ -104,8 +105,8 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
 
   const actions = (secondary, onSecondary, primary, onPrimary, disabled = false) => (
     <div className="grid grid-cols-2 gap-3 pt-2">
-      <Button variant="outline" className="h-11" disabled={busy} onClick={onSecondary}>{secondary}</Button>
-      <Button className="h-11" disabled={busy || disabled} onClick={onPrimary}>
+      <Button variant="outline" disabled={busy} onClick={onSecondary}>{secondary}</Button>
+      <Button disabled={busy || disabled} onClick={onPrimary}>
         {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         {primary}
       </Button>
@@ -175,7 +176,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
       <div className="flex flex-col items-center gap-2">
         <CodeField id="mfa-setup-code" value={code} onChange={(value) => { setCode(value); setFieldError(null); }}
           onComplete={confirm} hasError={Boolean(fieldError)} />
-        {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
+        {fieldError && <p className="text-sm text-negative">{fieldError}</p>}
         {method === "totp"
           ? <p className="text-xs text-muted-foreground">Codes refresh every 30 seconds.</p>
           : <ResendLine cooldown={cooldown} onResend={resend} error={resendError} />}

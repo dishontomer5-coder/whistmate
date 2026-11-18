@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, RefreshCw, ArrowRight } from 'lucide-react';
+import { Plus, RefreshCw, ArrowRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SessionCard from '@/components/SessionCard';
 import Leaderboard from '@/components/Leaderboard';
 import AwardsShowcase from '@/components/AwardsShowcase';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import NoGroupState from '@/components/NoGroupState';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { buildStandings, computeAwardLeaders } from '@/lib/standings';
+import { errorMessage } from '@/lib/format';
 
 export default function Home() {
   const { activeGroupId, activeGroup, loading: groupsLoading } = useActiveGroup();
@@ -54,7 +56,7 @@ export default function Home() {
       setRoundCounts(counts);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || err.message || 'Failed to load sessions.');
+      setError(errorMessage(err, 'Failed to load sessions.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -69,24 +71,18 @@ export default function Home() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">Sessions</h1>
-        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground"
+        <h1 className="page-title">Sessions</h1>
+        <Button size="icon" variant="ghost" className="-my-1 -mr-2 text-muted-foreground hover:text-foreground"
           disabled={refreshing} onClick={() => loadData(true)} aria-label="Refresh">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={refreshing ? 'animate-spin' : ''} />
         </Button>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center space-y-2">
-          <p className="text-sm text-destructive">Couldn't load sessions.</p>
-          <p className="text-xs text-muted-foreground break-words">{error}</p>
-          <Button size="sm" variant="outline" className="border-border" onClick={() => loadData(true)}>Try Again</Button>
-        </div>
-      )}
+      {error && <ErrorState title="Couldn't load sessions" message={error} onRetry={() => loadData(true)} />}
 
       {activeSession ? (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Active session</p>
+          <p className="section-label">Active session</p>
           <SessionCard session={activeSession} roundCount={roundCounts[activeSession.id] || 0} />
         </div>
       ) : isArchived ? (
@@ -94,17 +90,15 @@ export default function Home() {
           <p className="text-sm text-yellow-500 font-medium">This group is archived — read-only.</p>
         </div>
       ) : (
-        <Link to="/session/new"
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg py-4 font-heading font-bold text-lg uppercase tracking-wide hover:bg-primary/90 transition-colors">
-          <Plus className="w-5 h-5" />
-          Start New Session
-        </Link>
+        <Button asChild size="lg" className="w-full">
+          <Link to="/session/new"><Plus /> Start new session</Link>
+        </Button>
       )}
 
       {/* Standings */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-lg font-bold text-foreground">Standings</h2>
+          <h2 className="section-title">Standings</h2>
           {standings.length > 0 && (
             <span className="text-xs text-muted-foreground">overall score · ▲ this session</span>
           )}
@@ -119,8 +113,8 @@ export default function Home() {
       {recentClosed.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-lg font-bold text-foreground">Recent</h2>
-            <Link to="/history" className="text-xs text-primary flex items-center gap-1 hover:underline">
+            <h2 className="section-title">Recent</h2>
+            <Link to="/history" className="text-xs text-primary flex items-center gap-1 min-h-11 hover:underline">
               All history <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -131,7 +125,7 @@ export default function Home() {
       )}
 
       {sessions.length === 0 && !error && (
-        <EmptyState icon="♠" title="No Sessions Yet" description="Start your first whist night to track bids, tricks, and scores." />
+        <EmptyState icon={CalendarDays} title="No sessions yet" description="Start your first session to track bids, tricks and scores." />
       )}
     </div>
   );

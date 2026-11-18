@@ -69,7 +69,7 @@ export default function RulesChat() {
           <button
             onClick={goBack}
             aria-label="Back"
-            className="-ml-1 w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+            className="-ml-2 w-11 h-11 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -77,7 +77,7 @@ export default function RulesChat() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-heading text-lg font-semibold leading-tight truncate">WhistMate Rules</h1>
+            <h1 className="font-heading text-lg font-bold leading-tight truncate">WhistMate rules</h1>
             <p className="text-xs text-muted-foreground">Game rules assistant</p>
           </div>
         </div>
@@ -88,7 +88,8 @@ export default function RulesChat() {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[80%] px-4 py-2.5 text-[15px] leading-relaxed rounded-[1.25rem] ${
+              dir="auto"
+              className={`max-w-[80%] px-4 py-2.5 text-base leading-relaxed rounded-[1.25rem] whitespace-pre-wrap break-words ${
                 m.role === "user"
                   ? "bg-primary text-primary-foreground rounded-br-md"
                   : "bg-card text-card-foreground rounded-bl-md"
@@ -105,7 +106,7 @@ export default function RulesChat() {
               <button
                 key={s}
                 onClick={() => send(s)}
-                className="px-3.5 py-2 rounded-full text-sm bg-card text-card-foreground border border-border active:scale-[0.98] transition"
+                className="min-h-11 px-3.5 py-2 rounded-full text-sm text-left bg-card text-card-foreground border border-border active:scale-[0.98] transition"
               >
                 {s}
               </button>
@@ -131,18 +132,21 @@ export default function RulesChat() {
           className="flex items-center gap-2"
         >
           <Input
+            dir="auto"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about a rule…"
-            className="flex-1 h-11 rounded-full bg-card border-border"
+            aria-label="Your question"
+            className="flex-1 rounded-full bg-card px-4"
           />
           <Button
             type="submit"
             size="icon"
+            aria-label="Send"
             disabled={loading || !input.trim()}
-            className="h-11 w-11 rounded-full bg-primary text-primary-foreground shrink-0"
+            className="rounded-full"
           >
-            <Send className="w-5 h-5" />
+            <Send />
           </Button>
         </form>
       </div>

@@ -67,7 +67,7 @@ export default function MfaManage({ session, returnTo }) {
               </div>
             );
           })}
-          <Button className="w-full h-12 font-medium" onClick={() => { window.location.href = returnTo; }}>
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = returnTo; }}>
             Done
           </Button>
         </div>
@@ -122,14 +122,14 @@ function Disable({ session, method, onDone, onBack }) {
           {method === "sms" && <ResendLine cooldown={cooldown} disabled={busy} onResend={sendCode} />}
         </>
       ) : (
-        <Button className="w-full h-11" disabled={busy} onClick={sendCode}>
+        <Button className="w-full" disabled={busy} onClick={sendCode}>
           {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Send Code
         </Button>
       )}
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button variant="outline" className="h-11" disabled={busy} onClick={onBack}>Cancel</Button>
-        <Button className="h-11" disabled={busy || !codeSent || code.length < 6} onClick={() => confirm()}>
+        <Button variant="outline" disabled={busy} onClick={onBack}>Cancel</Button>
+        <Button disabled={busy || !codeSent || code.length < 6} onClick={() => confirm()}>
           {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Verify & Disable
         </Button>

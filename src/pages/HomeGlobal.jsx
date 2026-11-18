@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import CreateGroupDialog from '@/components/groups/CreateGroupDialog';
 import JoinGroupDialog from '@/components/groups/JoinGroupDialog';
-import { formatScore } from '@/lib/format';
+import { formatScore, scoreTone } from '@/lib/format';
+import EmptyState from '@/components/EmptyState';
+import { UserText } from '@/components/UserText';
 
 export default function HomeGlobal() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
@@ -52,8 +54,8 @@ export default function HomeGlobal() {
         <div className="w-28 h-28 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center text-6xl font-bold mb-6 ring-1 ring-primary/30 shadow-[0_0_60px_-15px] shadow-primary/40">
           ♠
         </div>
-        <h1 className="font-heading text-3xl font-bold text-foreground uppercase tracking-wide">WhistMate</h1>
-        <p className="font-heading text-xs text-primary uppercase tracking-[0.3em] mt-2">Israeli Whist · Companion & Scorekeeper</p>
+        <h1 className="font-heading text-3xl font-bold text-foreground">WhistMate</h1>
+        <p className="font-heading text-xs text-primary uppercase tracking-[0.12em] mt-2">Israeli Whist · Companion & Scorekeeper</p>
 
         <div className="space-y-3 mt-8 mb-10 text-left">
           <div className="flex items-center gap-3">
@@ -70,14 +72,14 @@ export default function HomeGlobal() {
           </div>
         </div>
 
-        <Button asChild className="w-full max-w-xs bg-primary text-primary-foreground hover:bg-primary/90 font-heading font-bold uppercase tracking-wide text-base py-6">
-          <Link to="/login"><LogIn className="w-5 h-5 mr-2" /> Sign In / Sign Up</Link>
+        <Button asChild size="lg" className="w-full max-w-xs">
+          <Link to="/login"><LogIn /> Sign in / Sign up</Link>
         </Button>
         <p className="text-xs text-muted-foreground mt-4">
-          New here? <Link to="/register" className="text-primary hover:underline">Create an account</Link>
+          New here? <Link to="/register" className="inline-flex min-h-11 items-center text-primary hover:underline">Create an account</Link>
         </p>
-        <p className="text-xs text-muted-foreground mt-6">
-          <Link to="/about" className="hover:text-foreground hover:underline">About, contact & privacy</Link>
+        <p className="text-xs text-muted-foreground mt-2">
+          <Link to="/about" className="inline-flex min-h-11 items-center hover:text-foreground hover:underline">About, contact & privacy</Link>
         </p>
       </div>
     );
@@ -90,18 +92,18 @@ export default function HomeGlobal() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-bold text-foreground uppercase tracking-wide">Your Groups</h1>
+      <h1 className="page-title">Your groups</h1>
 
       {myGroups.length > 0 && !statsLoading && globalStats && (
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
             <Globe className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">All-Time Stats</span>
+            <span className="section-label">All-time stats</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <p className="text-xs text-muted-foreground">Total Score</p>
-              <p className={`font-heading text-lg font-bold ${(globalStats.performance?.total_score || 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              <p className="text-xs text-muted-foreground">Total score</p>
+              <p className={`font-heading text-lg font-bold ${scoreTone(globalStats.performance?.total_score)}`}>
                 {formatScore(globalStats.performance?.total_score || 0)}
               </p>
             </div>
@@ -118,22 +120,17 @@ export default function HomeGlobal() {
       )}
 
       <div className="flex gap-3">
-        <Button onClick={() => setShowCreate(true)} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-1" /> Create Group
+        <Button onClick={() => setShowCreate(true)} className="flex-1 px-2">
+          <Plus /> Create group
         </Button>
-        <Button onClick={() => setShowJoin(true)} variant="outline" className="flex-1 border-border">
-          <KeyRound className="w-4 h-4 mr-1" /> Join Group
+        <Button onClick={() => setShowJoin(true)} variant="outline" className="flex-1 px-2">
+          <KeyRound /> Join group
         </Button>
       </div>
 
       {myGroups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center mb-5">
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h2 className="font-heading text-lg font-bold text-foreground uppercase tracking-wide mb-2">No Groups Yet</h2>
-          <p className="text-sm text-muted-foreground max-w-xs">Create a group for your whist circle, or join an existing one with an invite code.</p>
-        </div>
+        <EmptyState icon={Users} title="No groups yet"
+          description="Create a group for your whist circle, or join an existing one with an invite code." />
       ) : (
         <div className="space-y-3">
           {myGroups.map((m) => {
@@ -142,13 +139,13 @@ export default function HomeGlobal() {
               <button key={m.group_id} onClick={() => handleGroupClick(m.group_id)}
                 className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors text-left">
                 <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span className="font-heading text-lg font-bold text-primary">{(m.group_name || '?').charAt(0).toUpperCase()}</span>
+                  <span dir="auto" className="font-heading text-xl font-bold text-primary">{Array.from((m.group_name || '?').trim())[0]?.toUpperCase() || '?'}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {m.group_name}
+                    <UserText>{m.group_name}</UserText>
                     {m.group?.status === 'archived' && (
-                      <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Archived</span>
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Archived</span>
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize">
@@ -156,7 +153,7 @@ export default function HomeGlobal() {
                   </p>
                 </div>
                 {stats && (
-                  <span className={`font-heading font-bold text-sm flex-shrink-0 ${(stats.total_score || 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                  <span className={`font-heading font-bold text-sm flex-shrink-0 ${scoreTone(stats.total_score)}`}>
                     {formatScore(stats.total_score)}
                   </span>
                 )}

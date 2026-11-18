@@ -23,7 +23,7 @@ export default function HamburgerMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-secondary transition-colors" aria-label="Menu">
+        <button className="flex items-center justify-center w-11 h-11 -mr-2 rounded-lg hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground" aria-label="Menu">
           <Menu className="w-5 h-5 text-foreground" />
         </button>
       </DropdownMenuTrigger>
@@ -34,30 +34,30 @@ export default function HamburgerMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/account')}>
           <User className="w-4 h-4 mr-2" />
-          My Account
+          My account
         </DropdownMenuItem>
         {/* Rules assistant: group-agnostic, so it lives here rather than in either
             bottom nav — reachable from both the global and group shells. */}
         <DropdownMenuItem onClick={() => navigate('/rules')}>
           <Sparkles className="w-4 h-4 mr-2" />
-          Ask About the Game
+          Ask about the game
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/about')}>
           <Info className="w-4 h-4 mr-2" />
-          About & Privacy
+          About & privacy
         </DropdownMenuItem>
         {/* Global menu → global admin only. Group admin lives in the group's
             own bottom-nav Admin tab, so it doesn't belong here (P11). */}
         {isAppAdmin && (
           <DropdownMenuItem onClick={() => navigate('/app-admin')}>
             <LayoutDashboard className="w-4 h-4 mr-2" />
-            App Admin Dashboard
+            App admin dashboard
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+        <DropdownMenuItem onClick={handleSignOut} className="text-negative focus:text-negative">
           <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

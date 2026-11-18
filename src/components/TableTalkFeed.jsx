@@ -35,15 +35,13 @@ export default function TableTalkFeed({ playerId, refreshKey = 0 }) {
     <div className="space-y-4 mt-2">
       <div className="flex items-center gap-2">
         <MessageCircle className="w-4 h-4 text-primary" />
-        <h2 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-          Table Talk
-        </h2>
+        <h2 className="section-label">Table talk</h2>
       </div>
 
       {loading ? (
         <LoadingSpinner className="py-8" />
       ) : notes.length === 0 ? (
-        <EmptyState icon="💬" title="No Notes Yet" description="Notes left by other players will show up here." />
+        <EmptyState compact icon={MessageCircle} title="No notes yet" description="Notes left by other players will show up here." />
       ) : (
         <div className="space-y-4">
           {notes.map(note => (

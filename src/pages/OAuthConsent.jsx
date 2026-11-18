@@ -3,6 +3,7 @@ import { appParams } from "@/lib/app-params";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import ErrorState from '@/components/ErrorState';
 
 const OPERATION_VERBS = { read: "view", create: "create", update: "edit", delete: "delete" };
 const COLLAPSED_DATA_ROWS = 6;
@@ -44,7 +45,7 @@ function OperationSummary({ operations }) {
         return (
           <React.Fragment key={op}>
             {separator}
-            <span className={op === "delete" ? "font-medium text-destructive" : undefined}>
+            <span className={op === "delete" ? "font-medium text-negative" : undefined}>
               {i === 0 ? verb[0].toUpperCase() + verb.slice(1) : verb}
             </span>
           </React.Fragment>
@@ -234,7 +235,7 @@ export default function OAuthConsent() {
   if (reconnect) {
     return (
       <AuthLayout icon={ShieldCheck} title="Reconnect required">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="p-3 rounded-lg bg-destructive/10 text-negative text-sm">
           {reconnect}
         </div>
       </AuthLayout>
@@ -247,7 +248,7 @@ export default function OAuthConsent() {
   if (error && !info) {
     return (
       <AuthLayout icon={ShieldCheck} title="Authorize access">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="p-3 rounded-lg bg-destructive/10 text-negative text-sm">
           {error}
         </div>
       </AuthLayout>
@@ -263,11 +264,7 @@ export default function OAuthConsent() {
       title="Authorize access"
       subtitle={`${client} wants to access ${appName} on your behalf`}
     >
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      <ErrorState inline message={error} className="mb-4" />
 
       <p className="text-sm font-medium text-foreground mb-3">
         {tools.length ? `${client} will be able to:` : "No tools requested"}
@@ -318,14 +315,14 @@ export default function OAuthConsent() {
       <div className="flex gap-3">
         <Button
           variant="outline"
-          className="flex-1 h-12 font-medium"
+          size="lg" className="flex-1"
           disabled={submitting}
           onClick={() => respond("deny")}
         >
           Deny
         </Button>
         <Button
-          className="flex-1 h-12 font-medium"
+          size="lg" className="flex-1"
           disabled={submitting}
           onClick={() => respond("approve")}
         >

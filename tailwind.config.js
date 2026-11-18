@@ -2,6 +2,9 @@
 module.exports = {
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
+  // Hover styles only where a pointer can hover. On a phone a tapped button otherwise
+  // keeps its hover look until the next tap (a ghost button stuck on a filled background).
+  future: { hoverOnlyWhenSupported: true },
   theme: {
   	extend: {
   		borderRadius: {
@@ -36,10 +39,14 @@ module.exports = {
   				DEFAULT: 'hsl(var(--accent))',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
+  			// Red comes in two tokens. `destructive` (#E03E3E) is for fills and borders only —
+  			// it is too dim to read as text on navy. `negative` (#F87171) is the red TEXT colour:
+  			// lost scores, error lines, destructive labels, hearts and diamonds.
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			negative: '#F87171',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

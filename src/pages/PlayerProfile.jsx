@@ -3,15 +3,18 @@ import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { ArrowLeft, MessageSquarePlus, Lock } from 'lucide-react';
+import { ArrowLeft, MessageSquarePlus, Lock, UserX } from 'lucide-react';
 import StatGrid from '@/components/StatGrid';
 import ScoreChart from '@/components/ScoreChart';
 import TableTalkFeed from '@/components/TableTalkFeed';
 import WriteNoteDialog from '@/components/WriteNoteDialog';
 import { Button } from '@/components/ui/button';
-import { formatScore, formatDate } from '@/lib/format';
+import { formatScore, formatDate, scoreTone, errorMessage } from '@/lib/format';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import PlayerAvatar from '@/components/PlayerAvatar';
+import { Name } from '@/components/UserText';
 
 const EMPTY_STATS = {
   performance: { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, wins: 0, podiums: 0, win_ratio: 0 },
@@ -59,7 +62,7 @@ export default function PlayerProfile() {
       setGameMap(map);
     } catch (err) {
       console.error(err);
-      if (err.response?.status !== 404) setLoadError(err.response?.data?.error || err.message || 'Failed to load player.');
+      if (err.response?.status !== 404) setLoadError(errorMessage(err, 'Failed to load player.'));
     } finally {
       setLoading(false);
     }
@@ -70,18 +73,17 @@ export default function PlayerProfile() {
   if (loadError) {
     return (
       <div className="space-y-6">
-        <Link to="/history" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back</Link>
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center space-y-2">
-          <p className="text-sm text-destructive">Couldn't load this player.</p>
-          <p className="text-xs text-muted-foreground break-words">{loadError}</p>
-          <Button size="sm" variant="outline" className="border-border" onClick={loadData}>Try Again</Button>
-        </div>
+        <Link to="/history" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back</Link>
+        <ErrorState title="Couldn't load this player" message={loadError} onRetry={loadData} />
       </div>
     );
   }
 
   if (!player) {
-    return <EmptyState icon="♠" title="Player Not Found" action={<Link to="/history" className="text-primary">Back</Link>} />;
+    return (
+      <EmptyState as="h1" icon={UserX} title="Player not found" description="They were removed, or the link is wrong."
+        action={<Button asChild variant="outline"><Link to="/history">Back</Link></Button>} />
+    );
   }
 
   const rounds = stats.performance?.rounds_played || 0;
@@ -92,14 +94,12 @@ export default function PlayerProfile() {
 
   return (
     <div className="space-y-6">
-      <Link to="/history" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back</Link>
+      <Link to="/history" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back</Link>
 
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <span className="font-heading text-xl font-bold text-primary">{player.name.charAt(0).toUpperCase()}</span>
-        </div>
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground uppercase tracking-wide">{player.name}</h1>
+        <PlayerAvatar name={player.name} size="lg" />
+        <div className="min-w-0">
+          <h1 className="page-title break-words"><Name>{player.name}</Name></h1>
           <p className="text-sm text-muted-foreground mt-0.5">{rounds} round{rounds !== 1 ? 's' : ''} played</p>
         </div>
       </div>
@@ -109,10 +109,10 @@ export default function PlayerProfile() {
       <ScoreChart timeline={stats.timeline} />
 
       {sorted.length === 0 ? (
-        <EmptyState icon="♠" title="No Rounds Yet" description="This player hasn't played any rounds." />
+        <EmptyState compact title="No rounds yet" description="This player hasn't played any rounds." />
       ) : (
         <div>
-          <h2 className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Round History</h2>
+          <h2 className="section-label mb-2">Round history</h2>
           <div className="space-y-2">
             {sorted.slice(0, 50).map((r) => {
               const g = gameMap[r.game_id];
@@ -122,10 +122,10 @@ export default function PlayerProfile() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Round {g?.round_number ?? '?'}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(g?.created_date)} · bid {r.bid} · won {r.tricks_won}{r.reneged ? ' · reneged' : ''}
+                      {formatDate(g?.created_date)} · bid {r.bid} · took {r.tricks_won}{r.reneged ? ' · reneged' : ''}
                     </p>
                   </div>
-                  <span className={`font-heading font-bold ${(r.points ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatScore(r.points)}</span>
+                  <span className={`font-heading font-bold ${scoreTone(r.points)}`}>{formatScore(r.points)}</span>
                 </Link>
               );
             })}
@@ -139,9 +139,9 @@ export default function PlayerProfile() {
         <Button
           onClick={() => { if (!isAuthenticated) base44.auth.redirectToLogin(window.location.href); else setNoteDialogOpen(true); }}
           variant={isAuthenticated ? 'default' : 'outline'}
-          className={`w-full ${isAuthenticated ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border-border'}`}>
-          {isAuthenticated ? <MessageSquarePlus className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-          {isAuthenticated ? 'Leave a Note' : 'Sign In to Leave a Note'}
+          className="w-full">
+          {isAuthenticated ? <MessageSquarePlus /> : <Lock />}
+          {isAuthenticated ? 'Leave a note' : 'Sign in to leave a note'}
         </Button>
       )}
 

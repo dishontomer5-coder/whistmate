@@ -9,7 +9,10 @@ import GlobalProfileIcon from '@/components/GlobalProfileIcon';
 import StatGrid from '@/components/StatGrid';
 import ScoreChart from '@/components/ScoreChart';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { formatScore } from '@/lib/format';
+import { formatScore, scoreTone, errorMessage } from '@/lib/format';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import { UserText } from '@/components/UserText';
 
 const EMPTY_STATS = {
   performance: { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, wins: 0, podiums: 0, win_ratio: 0 },
@@ -45,7 +48,7 @@ export default function GlobalProfile() {
       setTotalGroups(res.data.total_groups || 0);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || err.message || 'Failed to load stats.');
+      setError(errorMessage(err, 'Failed to load stats.'));
     } finally {
       setLoading(false);
     }
@@ -55,39 +58,25 @@ export default function GlobalProfile() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center mb-5">
-          <Globe className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h1 className="font-heading text-xl font-bold text-foreground uppercase tracking-wide mb-2">Global Profile</h1>
-        <p className="text-sm text-muted-foreground max-w-xs mb-6">Sign in to view your aggregated stats across all your whist groups.</p>
-        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90"><Link to="/login"><LogIn className="w-4 h-4 mr-1" />Sign In</Link></Button>
-      </div>
+      <EmptyState as="h1" icon={Globe} title="Global profile"
+        description="Sign in to see your stats across all your whist groups."
+        action={<Button asChild><Link to="/login"><LogIn />Sign in</Link></Button>} />
     );
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <Link to="/home" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to Groups</Link>
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center space-y-2">
-          <p className="text-sm text-destructive">Couldn't load your global stats.</p>
-          <p className="text-xs text-muted-foreground break-words">{error}</p>
-          <Button size="sm" variant="outline" className="border-border" onClick={loadGlobalStats}>Try Again</Button>
-        </div>
+        <Link to="/home" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to groups</Link>
+        <ErrorState title="Couldn't load your global stats" message={error} onRetry={loadGlobalStats} />
       </div>
     );
   }
 
   if (totalGroups === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center mb-5">
-          <Globe className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h1 className="font-heading text-xl font-bold text-foreground uppercase tracking-wide mb-2">No Groups Yet</h1>
-        <p className="text-sm text-muted-foreground max-w-xs mb-6">Join or create a group to start tracking your stats.</p>
-      </div>
+      <EmptyState as="h1" icon={Globe} title="No groups yet"
+        description="Join or create a group to start tracking your stats." />
     );
   }
 
@@ -95,14 +84,14 @@ export default function GlobalProfile() {
 
   return (
     <div className="space-y-6">
-      <Link to="/home" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to Groups</Link>
+      <Link to="/home" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to groups</Link>
 
       <div className="flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
           <GlobalProfileIcon className="w-7 h-7 text-primary" />
         </div>
         <div>
-          <h1 className="font-heading text-3xl font-bold text-foreground uppercase tracking-wide">Global Stats</h1>
+          <h1 className="page-title">Global stats</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Across {totalGroups} group{totalGroups !== 1 ? 's' : ''} · {rounds} round{rounds !== 1 ? 's' : ''} played
           </p>
@@ -115,17 +104,17 @@ export default function GlobalProfile() {
 
       {groupsBreakdown.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Groups Breakdown</h2>
+          <h2 className="section-label">Groups breakdown</h2>
           <div className="space-y-2">
             {groupsBreakdown.map((g) => (
               <div key={g.group_id} className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
                 <div>
-                  <p className="text-sm font-medium text-foreground">{g.group_name}</p>
+                  <p className="text-sm font-medium text-foreground"><UserText>{g.group_name}</UserText></p>
                   <p className="text-xs text-muted-foreground">
                     {g.rounds_played} round{g.rounds_played !== 1 ? 's' : ''} · {formatScore(g.avg_score)} avg
                   </p>
                 </div>
-                <span className={`font-heading font-bold ${(g.total_score || 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                <span className={`font-heading font-bold ${scoreTone(g.total_score)}`}>
                   {formatScore(g.total_score)}
                 </span>
               </div>
