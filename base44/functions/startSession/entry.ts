@@ -1,5 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// The membership cache on the user record (user.groups) is a hint, never proof (P12-9):
+// a user can write their own record. It only rides out read-after-write lag (P7-9) — the
+// GroupMember row it points at is re-read by id and counts only if it really belongs to
+// the caller and to this group. Role and player_name come from that row, never the cache.
+async function hintedMemberRow(base44, user, groupId) {
+  if (!groupId) return null;
+  for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
+    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
+    if (row && row.user_id === user.id && row.group_id === groupId) return row;
+  }
+  return null;
+}
+
 // Start a new whist Session (a meetup/night) in a group. Session/Game/RoundResult
 // create RLS is platform-admin only — sessions are created through this function,
 // which enforces group membership + the group lifecycle and freezes the scoring
@@ -22,11 +36,14 @@ Deno.serve(async (req) => {
     // Any member of the group may start a session (app admins allowed for support).
     if (user.role !== 'admin') {
       const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
-      // Resilient membership lookup: user_id-only query, group matched in memory,
-      // session-cache fallback -- compound (group_id, user_id) reads can lag for
-      // freshly-claimed membership rows.
+      // Resilient membership lookup: user_id-only query, group matched in memory --
+      // compound (group_id, user_id) reads can lag for freshly-claimed membership
+      // rows. If the query is empty, the cache may point at the caller's own row.
       let mine = rows.filter((m) => m.group_id === group_id);
-      if (mine.length === 0 && (user.groups || []).some((g) => g.group_id === group_id)) mine = [1];
+      if (mine.length === 0) {
+        const hinted = await hintedMemberRow(base44, user, group_id);
+        if (hinted) mine = [hinted];
+      }
       if (mine.length === 0) {
         return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
       }

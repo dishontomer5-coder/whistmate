@@ -1,5 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// The membership cache on the user record (user.groups) is a hint, never proof (P12-9):
+// a user can write their own record. It only rides out read-after-write lag (P7-9) — the
+// GroupMember row it points at is re-read by id and counts only if it really belongs to
+// the caller and to this group. Role and player_name come from that row, never the cache.
+async function hintedMemberRow(base44, user, groupId) {
+  if (!groupId) return null;
+  for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
+    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
+    if (row && row.user_id === user.id && row.group_id === groupId) return row;
+  }
+  return null;
+}
+
 // Rename a member / player. Group admins can rename anyone; a claimed member can
 // rename their own profile. Enforces (group_id, player_name) uniqueness and sweeps
 // the denormalized name on RoundResult so standings and round results all update.
@@ -28,8 +42,8 @@ Deno.serve(async (req) => {
       const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
       let mine = rows.filter(m => m.group_id === group_id);
       if (mine.length === 0) {
-        const cached = (user.groups || []).find(g => g.group_id === group_id);
-        if (cached) mine = [cached];
+        const hinted = await hintedMemberRow(base44, user, group_id);
+        if (hinted) mine = [hinted];
       }
       allowed = mine.length > 0 && mine[0].role === 'admin';
     }

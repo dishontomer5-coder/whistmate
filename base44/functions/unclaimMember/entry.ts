@@ -1,5 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// The membership cache on the user record (user.groups) is a hint, never proof (P12-9):
+// a user can write their own record. It only rides out read-after-write lag (P7-9) — the
+// GroupMember row it points at is re-read by id and counts only if it really belongs to
+// the caller and to this group. Role and player_name come from that row, never the cache.
+async function hintedMemberRow(base44, user, groupId) {
+  if (!groupId) return null;
+  for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
+    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
+    if (row && row.user_id === user.id && row.group_id === groupId) return row;
+  }
+  return null;
+}
+
 // Mis-claim remedy (plan.md §11.2): a group admin detaches a user from a
 // player — the player becomes an unclaimed ghost again (history preserved)
 // and the freed user can rejoin with the invite code and claim correctly.
@@ -18,12 +32,12 @@ Deno.serve(async (req) => {
     if (user.role !== 'admin') {
       const myMembershipRows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
       // Resilient membership lookup (P7-9): user_id-only query, group matched in
-      // memory, session-cache fallback -- compound (group_id, user_id) reads can
+      // memory, cache-hinted row re-read by id -- compound (group_id, user_id) reads can
       // lag for freshly-claimed membership rows
       let myMembership = myMembershipRows.filter(m => m.group_id === group_id);
       if (myMembership.length === 0) {
-        const cachedMembership = (user.groups || []).find(g => g.group_id === group_id);
-        if (cachedMembership) myMembership = [{ id: cachedMembership.member_id, group_id: cachedMembership.group_id, user_id: user.id, role: cachedMembership.role, player_name: cachedMembership.player_name }];
+        const hinted = await hintedMemberRow(base44, user, group_id);
+        if (hinted) myMembership = [hinted];
       }
       if (myMembership.length === 0 || myMembership[0].role !== 'admin') {
         return Response.json({ error: 'Only group admins can unclaim players' }, { status: 403 });

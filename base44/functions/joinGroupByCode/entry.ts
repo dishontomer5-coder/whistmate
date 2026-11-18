@@ -3,6 +3,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const RATE_LIMIT_MAX_ATTEMPTS = 10;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
+// The membership cache on the user record (user.groups) is a hint, never proof (P12-9):
+// a user can write their own record. It only rides out read-after-write lag (P7-9) — the
+// GroupMember row it points at is re-read by id and counts only if it really belongs to
+// the caller and to this group. Role and player_name come from that row, never the cache.
+async function hintedMemberRow(base44, user, groupId) {
+  if (!groupId) return null;
+  for (const hint of (Array.isArray(user.groups) ? user.groups : [])) {
+    if (!hint || hint.group_id !== groupId || !hint.member_id) continue;
+    const row = await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null);
+    if (row && row.user_id === user.id && row.group_id === groupId) return row;
+  }
+  return null;
+}
+
 async function refreshUserGroups(base44, userId, knownMember = null) {
   const memberships = await base44.asServiceRole.entities.GroupMember.filter({ user_id: userId });
   // P7-9: a membership written moments ago can be missing from this query
@@ -86,12 +100,13 @@ Deno.serve(async (req) => {
     // Check if user is already a member
     const existingRows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
     // Resilient membership lookup (P7-9): user_id-only query, group matched in
-    // memory, session-cache fallback -- compound (group_id, user_id) reads can
-    // lag for freshly-claimed membership rows
+    // memory, cache-hinted row re-read by id -- compound (group_id, user_id) reads can
+    // lag for freshly-claimed membership rows. Only a real row of the caller's counts
+    // as "already a member"; a cache entry on its own says nothing.
     let existing = existingRows.filter(m => m.group_id === group.id);
     if (existing.length === 0) {
-      const cachedMembership = (user.groups || []).find(g => g.group_id === group.id);
-      if (cachedMembership) existing = [{ id: cachedMembership.member_id, group_id: cachedMembership.group_id, user_id: user.id, role: cachedMembership.role, player_name: cachedMembership.player_name }];
+      const hinted = await hintedMemberRow(base44, user, group.id);
+      if (hinted) existing = [hinted];
     }
 
     if (existing.length > 0) {
