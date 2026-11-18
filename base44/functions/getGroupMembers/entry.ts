@@ -20,8 +20,12 @@ Deno.serve(async (req) => {
     // lag for freshly-claimed membership rows
     let myMembership = myMembershipRows.filter(m => m.group_id === group_id);
     if (myMembership.length === 0) {
-      const cachedMembership = (user.groups || []).find(g => g.group_id === group_id);
-      if (cachedMembership) myMembership = [{ id: cachedMembership.member_id, group_id: cachedMembership.group_id, user_id: user.id, role: cachedMembership.role, player_name: cachedMembership.player_name }];
+      // The cache is only a hint (P12-1): a user can write their own record, and this
+      // endpoint returns the roster (plus emails to admins). So the hinted row is re-read
+      // by id and must really be the caller's — its role comes from the row, not the cache.
+      const hint = (user.groups || []).find(g => g && g.group_id === group_id && g.member_id);
+      const row = hint ? await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null) : null;
+      if (row && row.user_id === user.id && row.group_id === group_id) myMembership = [row];
     }
 
     if (myMembership.length === 0) {

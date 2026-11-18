@@ -120,11 +120,9 @@ export default function RoundView() {
   const load = async () => {
     try {
       setLoading(true);
-      const rnd = await base44.entities.Game.get(id);
-      const [sess, rr] = await Promise.all([
-        base44.entities.Session.get(rnd.session_id),
-        base44.entities.RoundResult.filter({ game_id: id }, '-created_date', 20),
-      ]);
+      // Membership-checked read (P12-1) — the round, its session and its four results.
+      const res = await base44.functions.invoke('getGroupData', { scope: 'round', round_id: id });
+      const { round: rnd, session: sess, results: rr = [] } = res.data;
       const sorted = [...rr].sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0));
       setRound(rnd); setSession(sess); setResults(sorted);
       // seed editors from existing data (for resume / edit)

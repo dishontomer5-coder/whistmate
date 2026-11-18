@@ -13,19 +13,30 @@ Deno.serve(async (req) => {
     let groupId = body.group_id || null;
     if (!playerId) return Response.json({ error: 'player_id is required' }, { status: 400 });
 
-    // GroupMember is the canonical identity; derive the group from it.
-    let player = await base44.asServiceRole.entities.GroupMember.get(playerId).catch(() => null);
-    if (!player) return Response.json({ error: 'Player not found' }, { status: 404 });
-    if (!groupId) groupId = player.group_id;
-    player = { ...player, name: player.player_name };
+    // GroupMember is the canonical identity; the group comes from it, never from the
+    // request (P12-1): a caller-supplied group_id used to be what membership was checked
+    // against, which let a member of one group fetch another group's player.
+    const memberRow = await base44.asServiceRole.entities.GroupMember.get(playerId).catch(() => null);
+    if (!memberRow) return Response.json({ error: 'Player not found' }, { status: 404 });
+    if (groupId && groupId !== memberRow.group_id) return Response.json({ error: 'Player not found' }, { status: 404 });
+    groupId = memberRow.group_id;
+    // claim_token stays on the server.
+    const { claim_token: _claimToken, ...publicRow } = memberRow;
+    const player = { ...publicRow, name: memberRow.player_name };
 
     // Members of the group may view; self-view + app admin bypass.
     const isSelfView = !!player.user_id && player.user_id === user.id;
     if (user.role !== 'admin' && !isSelfView) {
       const rows = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
-      let mine = rows.filter((m) => m.group_id === groupId);
-      if (mine.length === 0 && (user.groups || []).some((g) => g.group_id === groupId)) mine = [1];
-      if (mine.length === 0) return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
+      let isMember = rows.some((m) => m.group_id === groupId);
+      if (!isMember) {
+        // The user-record cache is only a hint for read-after-write lag: the hinted row
+        // is re-read by id and must really be the caller's.
+        const hint = (user.groups || []).find((g) => g && g.group_id === groupId && g.member_id);
+        const row = hint ? await base44.asServiceRole.entities.GroupMember.get(hint.member_id).catch(() => null) : null;
+        isMember = !!row && row.user_id === user.id && row.group_id === groupId;
+      }
+      if (!isMember) return Response.json({ error: 'You are not a member of this group' }, { status: 403 });
     }
 
     const empty = {

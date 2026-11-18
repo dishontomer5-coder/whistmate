@@ -47,6 +47,12 @@ Base44 backend
 - **Frontend never trusts the client for authorization.** Sensitive multi-entity writes
   (create group, start/settle round, member role changes, deletes) go through backend
   **functions** that re-check role server-side. Entity RLS is the second line of defense.
+- **Game data is never read from the browser.** `Group`, `Session`, `Game`, `RoundResult` and
+  `TableTalkNote` have entity read RLS = app admin only. Every screen reads through a backend function
+  that checks group membership first: `getGroupData` (scopes `group` / `session` / `round` / `player` /
+  `shared_sessions`), `getPlayerNotes`, and the older `getGroupMembers` / `getMyGroups` /
+  `getActivityFeed` / `computePlayerStats` / `computeGlobalStats`. A signed-out visitor, or a signed-in
+  user who is not in the group, gets nothing.
 - **Entry points:** `src/main.jsx` (mount) → `src/App.jsx` (routes) → `src/components/Layout.jsx`
   (chrome/nav) → `src/pages/*`.
 - **Base44 SDK client:** `src/api/base44Client.js` (+ `src/lib/app-params.js` for app id/token).
@@ -99,7 +105,9 @@ Per-player round score:
 | Service | Purpose | Auth / access | Constraint |
 |---------|---------|---------------|-----------|
 | Base44 platform | Auth, entity storage, serverless functions, hosting | Base44 app id + token (`app-params.js`); managed via Base44 MCP / `base44 dev` | App source of truth is this git repo. |
-| Base44 auth providers | Google / Apple / Email login for registered users | Handled by Base44 | Guest/ghost players have no account until they claim. |
+| Base44 auth providers | Google or email + password login for registered users (the only two the login UI offers) | Handled by Base44 | Guest/ghost players have no account until they claim. |
+| Base44 Core integration `InvokeLLM` | The rules assistant (`askRules`): the question + recent chat + the rulebook go to an LLM | Service role inside the function | Nothing is stored; every call spends integration credits; no rate limit yet (todo P9-4). |
+| Base44 hosting | Serves the site; injects page-view logging, usage analytics and a 30-day referral cookie; serves the web manifest (name, icons, standalone) | Platform-managed | Not in this repo — check the PUBLISHED page, not `index.html`, for what a visitor gets. |
 | npm registry | Installing deps for local build/dev | Wix internal `npm.dev.wixpress.com` (per `~/.npmrc`) — **requires Wix VPN** | Public `registry.npmjs.org` is firewalled on this machine; the local npm cache is incomplete. So `npm install` / `npm run build` / `base44 dev` only work on VPN. Code authoring needs none of them; build validation happens on VPN or Base44's cloud build. |
 
 ## Constraints & invariants (must always hold)
@@ -109,7 +117,14 @@ Per-player round score:
 - **Authorization is server-side.** Every privileged mutation re-checks role in a backend
   function; RLS is the backstop, not the primary guard.
 - **Tenant isolation:** every game/round/result/note row carries `group_id`; all reads are
-  group-scoped. A user only ever sees groups they're a member of.
+  group-scoped and membership-checked on the server. A user only ever sees groups they're a member of.
+- **No entity is open.** No `rls` rule is the literal `true` — every create/read/update/delete either
+  names the app admin or compares a field to the caller. `scripts/functions-access.test.mjs` fails if
+  one is, or if `src/` reads a game-data entity directly.
+- **The membership cache is a hint, never proof.** `user.groups` (written by `getMyGroups`,
+  `createGroup`, `joinGroupByCode`) exists to ride out read-after-write lag, but it is written with the
+  caller's own token, so a user can write it. A read path may use it only to find a `GroupMember` row to
+  re-read by id, and that row must belong to the caller. (The write functions still trust it — todo P12-9.)
 - **Scoring is deterministic & pure.** `lib/scoring.js` has no I/O; given bids+tricks+options
   it returns the same points. It is the single source of scoring truth (frontend preview +
   backend settle both call it).
@@ -123,6 +138,9 @@ Per-player round score:
 - Backend functions: one folder per function, `entry.ts`; guard role first, then do the work.
 - Frontend: pages in `src/pages`, reusable UI in `src/components` (shadcn primitives in
   `src/components/ui`), cross-cutting logic in `src/lib`. Path alias `@/` → `src/`.
+- Who is accountable: the developer name and support contact live in `src/lib/app-info.js` (shown on
+  `/about`); `README.md` and the store listing repeat them. The "Your data" statements on `/about` and
+  in `README.md` must match what the code does — change them together.
 - Mobile-first: the logging flow is one-handed/thumb-driven; prefer large tap targets, sheets,
   and number pads over typed input.
 - Naming carried from poker where semantics match (Group, GroupMember, invite/claim flow); new
@@ -147,3 +165,8 @@ Per-player round score:
 
 - **Jul 18 2026:** Initial design authored — ported stack/architecture from EOS-Poker-Nights;
   defined whist Session→Round→RoundResult model and the scoring engine spec. See plan.md §0–§2.
+- **Nov 18 2026:** Read path became a constant (Phase 12): game-data entities are app-admin-read only and
+  every screen reads through membership-checked functions (`getGroupData`, `getPlayerNotes`); added the
+  "no open entity" and "cache is a hint" invariants; recorded the `InvokeLLM` and hosting integrations that
+  were missing; corrected the sign-in methods (Google + email, no Apple); added the accountability
+  convention (`src/lib/app-info.js`). See plan.md Phase 12.

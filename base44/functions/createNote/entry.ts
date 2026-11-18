@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { group_id, target_player_id, note, is_anonymous, game_id } = await req.json();
+    const { group_id, target_player_id, note, is_anonymous, session_id } = await req.json();
 
     if (!group_id || !target_player_id) {
       return Response.json({ error: 'group_id and target_player_id are required' }, { status: 400 });
@@ -46,12 +46,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'That player is not in this group' }, { status: 404 });
     }
 
-    // Game link is validated + enriched server-side (never trust client fields)
+    // A note can be pinned to a whist night. The entity's game_* fields are inherited from
+    // the poker app, where a "game" was a whole night — today's Session — so the link is
+    // to a Session (P12-4; a whist Game is a single round with no name or date). Validated
+    // + enriched server-side (never trust client fields).
     let gameFields = { game_id: null, game_name: null, game_date: null };
-    if (game_id) {
-      const game = await base44.asServiceRole.entities.Game.get(game_id).catch(() => null);
-      if (game && game.group_id === group_id) {
-        gameFields = { game_id: game.id, game_name: game.name || null, game_date: game.game_date || null };
+    if (session_id) {
+      const session = await base44.asServiceRole.entities.Session.get(session_id).catch(() => null);
+      if (session && session.group_id === group_id) {
+        gameFields = {
+          game_id: session.id,
+          game_name: session.name || 'Whist Night',
+          game_date: session.session_date || String(session.created_date || '').slice(0, 10) || null,
+        };
       }
     }
 

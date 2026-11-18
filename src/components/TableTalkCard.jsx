@@ -23,7 +23,8 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted }) {
   const [deleting, setDeleting] = useState(false);
   const isAnonymous = note.is_anonymous;
   const displayName = isAnonymous ? 'Anonymous' : (note.author_name || 'Unknown Player');
-  const gameLabel = note.game_name || 'Poker Night';
+  // game_name/game_date hold the whist night (Session) a note was pinned to, if any.
+  const gameLabel = note.game_name || (note.game_date ? 'Whist Night' : 'General note');
   const gameDate = formatDate(note.game_date);
   const initial = displayName.charAt(0).toUpperCase();
   const avatarColor = getAvatarColor(displayName);

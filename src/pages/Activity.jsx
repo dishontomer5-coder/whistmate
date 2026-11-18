@@ -77,7 +77,7 @@ export default function Activity() {
           Activity
         </h1>
         <p className="text-sm text-muted-foreground max-w-xs mb-6">
-          Sign in to see the latest table talk from your poker groups.
+          Sign in to see the latest table talk from your whist groups.
         </p>
         <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Link to="/login"><LogIn className="w-4 h-4 mr-1" />Sign In</Link>

@@ -28,6 +28,7 @@ import HomeGlobal from './pages/HomeGlobal';
 import Account from './pages/Account';
 import Activity from './pages/Activity';
 import RulesChat from './pages/RulesChat';
+import About from './pages/About';
 import Layout from './components/Layout';
 import { ActiveGroupProvider } from '@/lib/ActiveGroupContext';
 
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
         <Route path="/home" element={<HomeGlobal />} />
         <Route path="/account" element={<Account />} />
         <Route path="/activity" element={<Activity />} />
+        <Route path="/about" element={<About />} />
         <Route path="/" element={<Home />} />
         <Route path="/session/new" element={<NewSession />} />
         <Route path="/session/:id" element={<SessionView />} />

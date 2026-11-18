@@ -34,11 +34,10 @@ export default function Home() {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
       setError('');
-      const [sess, rounds, results] = await Promise.all([
-        base44.entities.Session.filter({ group_id: activeGroupId }, '-created_date', 200),
-        base44.entities.Game.filter({ group_id: activeGroupId }, '-created_date', 5000),
-        base44.entities.RoundResult.filter({ group_id: activeGroupId }, '-created_date', 8000),
-      ]);
+      // Game data is read through getGroupData, which checks group membership server-side
+      // (P12-1) — the entities themselves are not readable from the browser.
+      const res = await base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId });
+      const { sessions: sess = [], rounds = [], results = [] } = res.data;
       const sorted = [...sess].sort(
         (a, b) => new Date(b.session_date || b.created_date) - new Date(a.session_date || a.created_date)
       );

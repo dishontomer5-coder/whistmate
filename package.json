@@ -2,6 +2,12 @@
   "name": "base44-app",
   "private": true,
   "version": "0.0.0",
+  "description": "WhistMate: a scorekeeper and stats tracker for Israeli Whist.",
+  "author": "Tomer Dishon",
+  "homepage": "https://whist-mate-pro.base44.app",
+  "bugs": {
+    "email": "dishontomer5@gmail.com"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

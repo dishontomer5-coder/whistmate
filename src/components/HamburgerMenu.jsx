@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Menu, User, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Sparkles, Info } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import {
   DropdownMenu,
@@ -41,6 +41,10 @@ export default function HamburgerMenu() {
         <DropdownMenuItem onClick={() => navigate('/rules')}>
           <Sparkles className="w-4 h-4 mr-2" />
           Ask About the Game
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/about')}>
+          <Info className="w-4 h-4 mr-2" />
+          About & Privacy
         </DropdownMenuItem>
         {/* Global menu → global admin only. Group admin lives in the group's
             own bottom-nav Admin tab, so it doesn't belong here (P11). */}

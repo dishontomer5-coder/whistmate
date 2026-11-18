@@ -44,19 +44,18 @@ export default function PlayerProfile() {
     try {
       setLoading(true);
       setLoadError('');
-      const [statsRes, rr] = await Promise.all([
+      // Round history comes through getGroupData (membership-checked, P12-1): the player's
+      // latest scored rounds plus the round records they belong to.
+      const [statsRes, historyRes] = await Promise.all([
         base44.functions.invoke('computePlayerStats', { player_id: id, group_id: activeGroupId }),
-        base44.entities.RoundResult.filter({ player_id: id }, '-created_date', 2000),
+        base44.functions.invoke('getGroupData', { scope: 'player', player_id: id }),
       ]);
       if (statsRes.data.error) throw new Error(statsRes.data.error);
       setPlayer(statsRes.data.player);
       setStats(statsRes.data);
-      const scoped = rr.filter((r) => r.points != null);
-      setResults(scoped);
-      const gameIds = [...new Set(scoped.map((r) => r.game_id))];
-      const games = await Promise.all(gameIds.map((gid) => base44.entities.Game.get(gid).catch(() => null)));
+      setResults(historyRes.data.results || []);
       const map = {};
-      games.forEach((g) => { if (g) map[g.id] = g; });
+      (historyRes.data.rounds || []).forEach((g) => { map[g.id] = g; });
       setGameMap(map);
     } catch (err) {
       console.error(err);

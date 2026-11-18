@@ -22,19 +22,18 @@ export default function NewRound() {
   const load = async () => {
     try {
       setLoading(true);
-      const sess = await base44.entities.Session.get(sessionId);
+      // Membership-checked read (P12-1) — the session with its rounds and results.
+      const dataRes = await base44.functions.invoke('getGroupData', { scope: 'session', session_id: sessionId });
+      const { session: sess, rounds = [], results = [] } = dataRes.data;
       setSession(sess);
-      const [membersRes, rounds] = await Promise.all([
-        base44.functions.invoke('getGroupMembers', { group_id: sess.group_id }),
-        base44.entities.Game.filter({ session_id: sessionId }, '-created_date', 500),
-      ]);
+      const membersRes = await base44.functions.invoke('getGroupMembers', { group_id: sess.group_id });
       const roster = membersRes.data.members || [];
       setMembers(roster);
 
       // Most recent round's table (in bid order), limited to players still on the roster.
       const prev = [...rounds].sort((a, b) => (b.round_number ?? 0) - (a.round_number ?? 0))[0];
       if (prev) {
-        const rr = await base44.entities.RoundResult.filter({ game_id: prev.id }, 'bid_order', 20);
+        const rr = results.filter((r) => r.game_id === prev.id);
         const rosterIds = new Set(roster.map((m) => m.id));
         const ids = rr.sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0))
           .map((r) => r.player_id)

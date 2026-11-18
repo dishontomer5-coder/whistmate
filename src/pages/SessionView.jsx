@@ -29,11 +29,9 @@ export default function SessionView() {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
       setError('');
-      const [sess, rnds, results] = await Promise.all([
-        base44.entities.Session.get(id),
-        base44.entities.Game.filter({ session_id: id }, '-created_date', 500),
-        base44.entities.RoundResult.filter({ session_id: id }, '-created_date', 4000),
-      ]);
+      // Membership-checked read (P12-1) — session, its rounds and their results in one call.
+      const res = await base44.functions.invoke('getGroupData', { scope: 'session', session_id: id });
+      const { session: sess, rounds: rnds = [], results = [] } = res.data;
       setSession(sess);
       const byRound = {};
       results.forEach((r) => { (byRound[r.game_id] ||= []).push(r); });

@@ -76,6 +76,9 @@ export default function HomeGlobal() {
         <p className="text-xs text-muted-foreground mt-4">
           New here? <Link to="/register" className="text-primary hover:underline">Create an account</Link>
         </p>
+        <p className="text-xs text-muted-foreground mt-6">
+          <Link to="/about" className="hover:text-foreground hover:underline">About, contact & privacy</Link>
+        </p>
       </div>
     );
   }

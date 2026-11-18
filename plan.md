@@ -43,6 +43,10 @@ Source spec: `~/Downloads/israeli_whist_gameapp_plan.md`. Reference code (read-o
 | 6 | Stats, leaderboard, awards | CORE done Jul 18 (P6-3 polish open) | Whist metrics UI + badges (Leaderboard + StatGrid). |
 | 7 | Live Base44 backend + E2E | CLOSED Jul 19 (verified live) | Connect the repo to a Base44 app, push, cloud-build, verify a real session end to end. |
 | 8 | Owner adjustments (frontend) | CLOSED Jul 19 | Profile score chart; same-players-as-last-round; standings overall score + session-over-session delta. |
+| 9 | AI "Ask about the game" chat | CLOSED Aug 3 (deployed) | Rules assistant grounded in `docs/whist-rules.md`. Detail lives in todo.md (no plan section was written). |
+| 10 | Trump winner tracking + suit-rank fix | CLOSED Aug 3 (deployed; live round test never recorded) | Record the auction winner instead of deriving it. Detail in todo.md. |
+| 11 | Fix locked bids + phase colours | CLOSED Aug 3 in code (function deploy never recorded) | Edit bids after locking; bidding vs results visually distinct. Detail in todo.md. |
+| 12 | Public-listing readiness (Clonitt) | OPEN — code done Nov 18, deploy pending | Close the open data API, name who is accountable, remove poker leftovers, so the app can be listed publicly. |
 
 Ordered by dependency and risk: scaffold → data → pure logic → server logic → UI shell → the
 flow that depends on all of it → stats → deploy. Scoring (Phase 2) is sequenced early and
@@ -281,3 +285,73 @@ standalone because it's the highest-risk domain logic and fully testable without
   live-updating during an open session, and directly answering "how much did my score move this session".
 - **Decision (Jul 19 2026):** Home standings switched from avg-score to **total (overall) score** as the
   primary metric (avg kept in the subtitle) per owner request.
+
+---
+
+## Phase 12: Public-listing readiness — OPEN (v1 — Nov 2026; code done Nov 18, not yet deployed)
+
+> The owner wants WhistMate listed on Clonitt, a hub where a person reviews each app against eight
+> standards (v1.2). It is a web app, so the download standards do not apply. An audit on Nov 17 2026
+> against the live site found the app is not fit to list as it stands: anyone, signed out, could read
+> every group's data straight from the entity API. This phase makes the listing's claims true —
+> lock the read path, say who is accountable, remove what is left of the poker app, and prove the
+> access rules with a test — then deploys and re-checks the live site. Gate: nothing is submitted
+> until the live site, probed signed out, returns no group data.
+
+### Findings & rationale (by priority)
+
+| # | Finding | Root cause | Fix direction |
+|---|---------|-----------|---------------|
+| P12-1 | **Signed-out visitors could read every group's data.** Verified on the live API Nov 17 and 18 2026: `Group` (with `invite_code`), `Session` (names, locations), `Game`, `RoundResult` (player names, scores) all returned rows with no login. With a leaked invite code anyone who signs up can join that group and claim an unclaimed player's history. | `"read": true` on five entities, carried over from the poker app ("group-scoping enforced in functions" — but the screens read the entities directly), plus app visibility `public_without_login`. | Read RLS → app admin only; every screen reads through a function that checks membership. |
+| P12-1b | **Read functions accepted a forgeable membership.** `getGroupMembers` (roster, and emails for admins), `getActivityFeed` and `computePlayerStats` fell back to `user.groups` when the membership query came back empty. | That cache is written by `auth.updateMe` with the caller's own token, so a user can write it — including `role: 'admin'`. Reproduced in the test harness against the old code. | Treat the cache as a hint: re-read the hinted `GroupMember` row by id; it must belong to the caller. |
+| P12-1c | `computePlayerStats` checked membership against the `group_id` in the request, not the player's group — a member of one group could fetch another group's player row (with `claim_token`). | Trusted client input. | Derive the group from the player row; mismatch → 404; never return `claim_token`. |
+| P12-5 | Group-level reads silently stopped at 500 rows (Home standings/awards, History counts). | The entity store caps one `filter()` at 500; the screens asked for 5000–10000 and got 500. | `getGroupData` paginates by cursor (same loop as `fetch-all.js` / `computeGlobalStats`). Fixed as a side effect of P12-1. |
+| P12-2 | The live `/join` page showed the poker app's logo and "track your poker nights"; "poker" also survived in `Activity.jsx`, `TableTalkCard.jsx`, `WriteNoteDialog.jsx`, and an unused `EditGameForm.jsx`. | Missed in the Phase 4 port. | Replace with WhistMate's own logo and wording; delete the unused form. |
+| P12-3 | Nobody is named as accountable: README was the Base44 template, `package.json` had no author, the app had no About or contact screen. | Never written. | `/about` page (public), README, `package.json`, one source in `src/lib/app-info.js`. |
+| P12-4 | Table talk's "link to game" list was always empty. | `WriteNoteDialog` queried `GamePlayer`, an entity deleted in Phase 1; `createNote` validated the link against `Game`, which in whist is a single round with no name or date. | Link notes to a **Session**; shared sessions come from `getGroupData`. |
+| P12-9 | **Not fixed:** 18 write functions still trust `user.groups` for membership or admin role (`startRound`, `submitBids`, `saveRoundResults`, `updateRound`, `deleteRound`, `startSession`, `closeSession`, `createNote`, `deleteNote`, `addGhostMember`, `removeMember`, `renameMember`, `unclaimMember`, `updateMemberRole`, `updateGroupSettings`, `setGroupStatus`, `regenerateInviteCode`, `joinGroupByCode`). A signed-in user who knows a group id could forge membership, and a member could forge the admin role. | Same root cause as P12-1b. | Same hint-not-proof fix in each. Deferred — see the decision below. |
+
+### Execution order
+
+1. **Wave 12a (read path):** P12-1 entities + `getGroupData` + `getPlayerNotes` + the eight screens → P12-1b/1c
+   the three older read functions → P12-5 access test. Gate: the access test passes on the new code and
+   fails on the old code.
+2. **Wave 12b (honesty + accountability):** P12-2 poker leftovers → P12-4 table-talk session link →
+   P12-3 About page, README, manifest.
+3. **Wave 12c (ship):** P12-6 deploy functions first, then push `main` (site + entities) → P12-7 re-probe
+   the live site signed out → P12-8 owner's signed-in smoke test → submit the listing.
+
+### Decisions
+
+- **Decision (Nov 18 2026):** Lock reads with **functions + admin-only read RLS**, not membership-aware
+  RLS rules. — Base44 RLS can compare a field to `{{user.id}}` / `{{user.data.*}}` and supports `$in`, but
+  the docs do not cover "is this record's `group_id` in the caller's list of groups", and the only such
+  list (`user.groups`) is user-writable, so it could not be trusted even if the rule worked. Every write
+  already goes through a service-role function with a membership check; reads now follow the same shape.
+  Options considered: membership-aware RLS / require login at the app level only (any signed-up stranger
+  would still read everything) / functions.
+- **Decision (Nov 18 2026):** Also set `Group.create` and `JoinAttempt.create` to app admin only. — Both
+  were the literal `true`; every create already goes through a service-role function, so nothing
+  legitimate used the open rule. Whether a signed-out caller could create rows was NOT tested (it would
+  have written junk to the live app).
+- **Decision (Nov 18 2026):** Keep app visibility `public_without_login`. — A listed web app must open for
+  anyone; the landing, sign-up and `/about` pages need it. The data is now protected at the entity and
+  function level instead.
+- **Decision (Nov 18 2026):** A note's `game_id` / `game_name` / `game_date` now hold the **Session** it is
+  pinned to, with no schema change. — In the poker app a "game" was a whole night, which is today's
+  Session; a whist `Game` is one round. Nothing reads `game_id` back. Options considered: rename the fields
+  (a migration for a low-priority feature) / reuse them.
+- **Decision (Nov 18 2026):** **Defer P12-9** (the write functions' cache trust). — It is 18 privileged
+  write paths that cannot be exercised without a signed-in test account, and after P12-1 a non-member has
+  no way to learn a group id. What remains is a member promoting themselves inside their own group. It
+  is real and is the next thing to fix, but not in a phase whose changes could only be verified by the
+  owner clicking through every admin action. The owner was told.
+- **Decision (Nov 18 2026):** Deploy order is **functions first, then push `main`**. — The git sync
+  publishes the site and the entities but not functions; if the site went first every screen would call
+  functions that do not exist yet, and if the entity rules went first the old site would read nothing.
+- **Decision (Nov 18 2026, supersedes Jul 19):** Canonical repo = **dishontomer5-coder/whistmate** (the
+  owner's personal GitHub). The local clone's `origin` points there; the old `tomerdi-blip` remote is kept
+  as `old-blip` with pushing disabled. The owner allows pushing and deploying only on this repo.
+- **Owner's answers (Nov 18 2026, via AskUserQuestion):** developer name **Tomer Dishon**; support contact
+  the personal Gmail address (published in the app, README and listing); the jester app icon and the
+  EOS Poker Nights app this was ported from are both the owner's own.

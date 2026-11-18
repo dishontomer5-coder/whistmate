@@ -20,9 +20,16 @@ Deno.serve(async (req) => {
     const memberships = await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id });
     const memberIds = new Set(memberships.map(m => m.id));
     const groupIdSet = new Set(memberships.map(m => m.group_id));
+    // The cache covers read-after-write lag, but it is only a hint (P12-1): a user can
+    // write their own record, so each hinted membership is re-read by id and must really
+    // be the caller's before its group's notes are included.
     for (const cached of (user.groups || [])) {
-      if (cached.group_id) groupIdSet.add(cached.group_id);
-      if (cached.member_id) memberIds.add(cached.member_id);
+      if (!cached || !cached.member_id || memberIds.has(cached.member_id)) continue;
+      const row = await base44.asServiceRole.entities.GroupMember.get(cached.member_id).catch(() => null);
+      if (row && row.user_id === user.id) {
+        memberIds.add(row.id);
+        groupIdSet.add(row.group_id);
+      }
     }
 
     if (groupIdSet.size === 0) {

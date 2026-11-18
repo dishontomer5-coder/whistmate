@@ -20,12 +20,10 @@ export default function TableTalkFeed({ playerId, refreshKey = 0 }) {
   const loadNotes = async () => {
     try {
       setLoading(true);
-      const result = await base44.entities.TableTalkNote.filter(
-        { target_player_id: playerId },
-        '-created_date',
-        50
-      );
-      setNotes(result);
+      // Notes are read through getPlayerNotes (membership-checked, P12-1). It never sends
+      // an author's user id — it flags the caller's own notes with `is_mine` instead.
+      const res = await base44.functions.invoke('getPlayerNotes', { player_id: playerId });
+      setNotes(res.data.notes || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -52,7 +50,7 @@ export default function TableTalkFeed({ playerId, refreshKey = 0 }) {
             <TableTalkCard
               key={note.id}
               note={note}
-              canDelete={(!!note.author_user_id && note.author_user_id === user?.id) || isAdmin || user?.role === 'admin'}
+              canDelete={!!note.is_mine || isAdmin || user?.role === 'admin'}
               onDeleted={(id) => setNotes(prev => prev.filter(n => n.id !== id))}
             />
           ))}

@@ -4,39 +4,43 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Aug 3 2026): CANONICAL REPO = **tomerdi-blip/whistmate**, local clone
-> **~/Personal/whistmate** (the old ~/whistmate and ~/israeli-whist clones are gone), two-way-synced to
-> the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`, status ready).
-> Phases 1–8 DONE + verified LIVE by owner. Phase 9 (AI rules chat) DONE + DEPLOYED + owner-tested.
-> Phase 10 (trump winner tracking + suit-rank fix) DONE + DEPLOYED; owner's live round test outstanding.
-> Phase 11 (edit locked bids + phase colours) DONE in code.
-> Build GREEN + lint clean (0 errors) + scoring 36/36 + stats 5/5 + `rules:check` in sync.
-> in_progress: none — awaiting next request.
-> ✅ DEPLOYED Aug 3 2026: all 29 functions (incl. `askRules`) + entities + site are live at
-> **https://whist-mate-pro.base44.app**. Only the owner's live smoke-test of /rules is outstanding.
-> ✅ CLI IS AUTHENTICATED on this machine (`npx base44@latest whoami` → dishontomer5@gmail.com) — the old
-> "not authed / whoami hangs" note was stale, an agent CAN deploy. `deploy` needs BOTH
-> `--app-id 6a5be77702d0c74b5a13cfea` (no base44/.app.jsonc → not linked) AND `--yes` (it refuses to
-> prompt non-interactively). Its PostHog telemetry errors in the output are harmless.
-> ⚠️ Local `npm install` is BLOCKED and deliberately left alone (owner's call, Aug 3): the global registry
-> is the internal mirror `npm.dev.wixpress.com`, which 404s on `axios@1.19.0` (transitive of
-> @base44/sdk 0.8.41). Harmless — node_modules has sdk 0.8.39, build is green, and package-lock resolves
-> every dep from registry.npmjs.org, which is why Base44's own cloud build installs 0.8.41 fine.
-> Don't "fix" it with `--registry=https://registry.npmjs.org` without asking — the mirror is a
-> supply-chain control. (Related: `.npmrc`'s `min-release-age=7` is NOT enforced — npm 11.9.0 reports it
-> as `Unknown project config`. Unresolved; owner was told.)
-> ⚠️ Base44 serves `index.html` with NO cache-control, so browsers heuristically cache it and keep loading
-> the OLD hashed bundle after a deploy. A frontend change that "didn't ship" is usually this — verify with
-> `curl -s <app-url> | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'` against local `dist/` before debugging code.
-> ⚠️ Reminder: `base44 deploy` is required after ANY change to base44/functions/** (sync deploys entities+site only).
-> ⚠️ Two-way sync is ACTIVE + confirmed BOTH ways: Base44 pushes commits back — the Builder authored the whole
-> `askRules` function + the RulesChat refactor and they arrived as "File changes" commits (Aug 3 2026).
-> ALWAYS `git pull --rebase` before push, or you'll be rejected — and re-read files after pulling.
+> ▶ RESUME HERE (Nov 18 2026): **Phase 12 (Clonitt listing readiness) — code DONE and committed on
+> branch `p12-clonitt-readiness`, NOT deployed.** Next action = **P12-6** (deploy), which is blocked on
+> the owner: the Base44 CLI on this machine is logged in as the work account (`tomerdi@base44.com`), and
+> the WhistMate app refuses it ("You don't have permission"). The owner runs `npx base44@latest login`
+> with the account that owns the app; then follow P12-6 exactly — **functions first, then push `main`**.
+> CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
+> **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
+> disabled — never push there. The owner allows pushing and deploying on this repo only. Two-way-synced
+> to the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`), live at
+> **https://whist-mate-pro.base44.app**.
+> Phases 1–11 are done (10 and 11 never had their live round test recorded — P12-8 covers it).
+> Checks at the branch tip (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
+> **functions-access 89/89**, `rules:check` in sync.
+> in_progress: P12-6.
+> ⚠️ The live site is still the OLD code (checked Nov 18 2026): a signed-out request to the entity API
+> returns group data. Nothing may be submitted to Clonitt until P12-7 passes.
+> ⚠️ `node_modules` is behind `package.json`: installed `@base44/sdk` 0.8.39 / `@base44/vite-plugin` 1.0.30,
+> wanted ^0.8.63 / ^1.0.52 since the Builder's Nov 17 "Update base44 packages" commit. The build is green
+> anyway (nothing imports the new auth boilerplate). Local `npm install` was blocked in August (the
+> global registry is an internal mirror) and deliberately left alone — owner's call; don't "fix" it with
+> `--registry` without asking. So prefer Base44's cloud build for the site (push `main`) over
+> `deploy --build` from this machine. (`.npmrc`'s `min-release-age=7` is still not enforced by npm 11.)
+> ⚠️ CLI facts (base44@latest, Nov 18 2026): `--app-id <id>` is a GLOBAL option and is required (no
+> `base44/.app.jsonc` → not linked); `deploy` needs `--yes` when non-interactive and builds only with
+> `--build`; `functions deploy [names...]`, `functions list`, `entities push`, `site deploy` exist;
+> `exec` runs a script as the signed-in CLI user. Its PostHog telemetry errors are harmless.
+> ⚠️ `base44 deploy` (or `functions deploy`) is required after ANY change to base44/functions/** — the
+> git sync deploys entities + site only.
+> ⚠️ Base44 now serves `index.html` with `cache-control: private, no-store` (checked Nov 17 2026), so the
+> August "browser keeps the old bundle" gotcha should be gone. Still verify a deploy with
+> `curl -s <app-url> | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'`.
+> ⚠️ Two-way sync is ACTIVE: the Builder pushes commits here (Nov 17 2026: package update + unused auth
+> boilerplate — `Mfa*.jsx`, `OAuthConsent.jsx`, `ProtectedRoute.jsx`, `lib/authMfa*.js`; nothing imports
+> them, left alone). ALWAYS `git pull --rebase` before push, and re-read files after pulling.
 > ⚠️ Rules knowledge has ONE source: `docs/whist-rules.md` → `npm run rules:gen` → askRules/entry.ts.
 > Never hand-edit `RULES_DOC`; `npm run rules:check` fails on drift (incl. drift pushed back by the Builder).
->
-> ⚠️ This repo two-way-syncs with Base44: edits made in the Base44 Builder land here as commits — pull
-> before starting a session, and keep changes here in sync (push after committing).
+> ⚠️ What `/about` and `README.md` say about data must stay true — change them with the code.
 
 ## Phase 0: Scaffold & baseline (Jul 2026 — kickoff)
 
@@ -364,8 +368,94 @@
 > whist-stats 5/5, `rules:check` in sync. ⚠️ Visual result NOT screenshot-verified, and the re-lock path
 > needs a live round (Deno can't run locally). `submitBids` changed → `base44 deploy` required.
 
+## Phase 12: Public-listing readiness for Clonitt (Nov 2026)
+
+> Make the app fit to list publicly: close the open data API, name who is accountable, remove the
+> poker leftovers. Findings, decisions and the deploy order are in plan.md Phase 12.
+
+### 12a. Read path
+
+- [x] **P12-1** *(done Nov 18 2026)*: **game data is no longer readable from the browser.** Entity read
+  RLS on `Group`, `Session`, `Game`, `RoundResult`, `TableTalkNote` went from `true` to app-admin only
+  (`Group.create` and `JoinAttempt.create` too — no rule is the literal `true` any more). Two new
+  functions carry the reads and check group membership first: `getGroupData` (scopes `group`,
+  `session`, `round`, `player`, `shared_sessions`) and `getPlayerNotes`. Rewired onto them: `Home`,
+  `History`, `SessionView`, `NewRound`, `RoundView`, `PlayerProfile`, `TableTalkFeed`,
+  `WriteNoteDialog` — `src/` now has no direct read of a game-data entity. `getPlayerNotes` never sends
+  an author's user id; the feed gets `is_mine` instead. A soft-deleted group is 404 for its members.
+- [x] **P12-1b** *(new, found during Wave 12a; done Nov 18 2026)*: **read functions no longer accept a
+  forged membership.** `getGroupMembers`, `getActivityFeed` and `computePlayerStats` used the
+  user-writable `user.groups` cache as proof; they now re-read the hinted `GroupMember` row by id and it
+  must belong to the caller (role comes from the row, not the cache). The two new functions do the same.
+- [x] **P12-1c** *(new, found during Wave 12a; done Nov 18 2026)*: `computePlayerStats` derives the
+  group from the player row instead of trusting the request's `group_id` (mismatch → 404) and no longer
+  returns `claim_token`.
+- [x] **P12-5** *(done Nov 18 2026)*: `scripts/functions-access.test.mjs` — loads the REAL `entry.ts`
+  files under plain `node` with a stub in place of `npm:@base44/sdk` and an in-memory backend, and checks
+  who can read what: signed out, in no group, in another group, five kinds of forged cache, honest
+  read-after-write lag, app admin, deleted group, pagination past 500 rows, anonymous-author stripping.
+  Also two static guards: no entity rule is `true`, and `src/` never reads a game-data entity directly.
+  Side effect of `getGroupData`'s cursor pagination: group-level reads no longer stop at 500 rows
+  (Home standings and awards were silently truncated past ~125 rounds).
+
+> **Wave 12a verification (Nov 18 2026):** `node scripts/functions-access.test.mjs` → **89 passed, 0
+> failed**; the same test run against the pre-change code (scratch copy) → **14 failed**, each one a hole
+> listed in plan.md (forged cache on the three read functions, the `group_id` bypass, the open entity
+> rules, the direct entity reads). Build GREEN, `eslint --quiet` exit 0, scoring 38/38, stats 5/5,
+> `rules:check` in sync. ⚠️ NOT verified against the real backend — that is P12-7 and P12-8.
+
+### 12b. Honesty and accountability
+
+- [x] **P12-2** *(done Nov 18 2026)*: **poker leftovers removed.** `/join` (signed out) showed the poker
+  app's logo and "track your poker nights" on the live site; it now uses WhistMate's own `Logo` and says
+  whist. Also: `Activity.jsx` "poker groups" → "whist groups"; `TableTalkCard` no longer labels every
+  note "Poker Night" (shows the pinned session's name, or "General note"); deleted the unused
+  `EditGameForm.jsx`. `grep -ri poker src` is empty.
+- [x] **P12-4** *(done Nov 18 2026)*: **table-talk notes can be pinned to a whist night again.** The
+  dialog's list queried the deleted `GamePlayer` entity and was always empty; it now lists the sessions
+  both players sat at (`getGroupData` scope `shared_sessions`), and `createNote` takes `session_id` and
+  stores the session's id, name and date in the note's inherited `game_*` fields — see plan.md Phase 12.
+- [x] **P12-3** *(done Nov 18 2026)*: **someone is accountable.** New public `/about` page (reachable
+  signed out; linked from the landing page and the hamburger menu): what the app is, made by Tomer
+  Dishon, the support address, and what happens to your data. One source for the name and contact:
+  `src/lib/app-info.js`. `README.md` rewritten from the Base44 template to say the same, with the dev
+  instructions kept underneath; `package.json` gained `description` / `author` / `homepage` / `bugs`.
+
+> **Wave 12b verification (Nov 18 2026):** ran the frontend locally against the live backend
+> (`VITE_BASE44_APP_BASE_URL` proxy) in a clean headless Chrome, signed out: `/about` renders with the
+> name, the address and the six data statements at 320, 390 and 1440 px wide with no horizontal overflow;
+> `/join?code=…` shows the spade logo + "track your whist nights"; the landing page links to `/about`.
+> ⚠️ Signed-in screens were NOT rendered (no test account) — P12-8.
+
+### 12c. Ship
+
+- [ ] 🔄 **P12-6:** deploy. Blocked on the owner logging the Base44 CLI in as the account that owns the
+  app (`npx base44@latest login`; check with `whoami`, then
+  `npx base44@latest functions list --app-id 6a5be77702d0c74b5a13cfea` must succeed). Then, in this order:
+  (1) `git checkout main && git pull --rebase`, merge `p12-clonitt-readiness` (fast-forward);
+  (2) `npx base44@latest functions deploy --app-id 6a5be77702d0c74b5a13cfea` — ALL functions, so the
+  never-recorded P10/P11 `submitBids` / `updateRound` deploy is covered too — and confirm
+  `functions list` shows `getGroupData` and `getPlayerNotes`; (3) `git push origin main` → the sync
+  cloud-builds the site and pushes the entity rules; (4) if the site or the rules have not changed after
+  a few minutes, fall back to `entities push` / `site deploy` (or `deploy --yes --build`) with the same
+  `--app-id`. Never push to `old-blip`.
+- [ ] **P12-7:** re-probe the live site signed out. Pass = `GET /api/apps/<id>/entities/{Group,Session,Game,RoundResult,TableTalkNote}`
+  with no token returns no rows; the served bundle contains "About, contact & privacy" and no
+  "poker"; `/about` and `/join` render as in Wave 12b; the landing page still opens with no login.
+- [ ] **P12-8** *(owner)*: signed-in smoke test on the live site — sign up with a fresh email in a
+  private window, create a group, start a session, play a full round including **Edit bids**, open
+  History / a player profile / the Activity tab, leave a note pinned to a session, and Add to Home
+  Screen on a phone. This is also the P10/P11 live test that was never recorded.
+- [ ] **P12-10:** submit the Clonitt listing (the owner pastes the block; no Clonitt connector is
+  attached to the agent). Needs a square icon ≥ 256 px; screenshots are optional but must be real.
+
 ## Backlog
 
+- [ ] **P12-9** *(found Nov 18 2026, deferred — see plan.md Phase 12)*: the 18 WRITE functions still
+  trust the user-writable `user.groups` cache for membership or admin role. Apply the same
+  hint-not-proof check the read functions got in P12-1b (re-read the hinted `GroupMember` row by id; it
+  must be the caller's; take the role from the row), and extend `scripts/functions-access.test.mjs` to
+  cover them. Needs a signed-in test account to verify the admin actions live afterwards.
 - [ ] **P10-4** *(offered, not built)*: now that the trump winner is recorded per round, a "trumps won"
   stat / award becomes possible in `computePlayerStats` + `StatGrid` (e.g. who takes the most auctions,
   and their contract accuracy when they do). Nothing consumes `highest_bidder_player_id` in stats yet.

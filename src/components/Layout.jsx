@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 
-const GLOBAL_ROUTES = ['/home', '/activity', '/profile/global', '/account', '/select-player', '/app-admin'];
+const GLOBAL_ROUTES = ['/home', '/activity', '/profile/global', '/account', '/select-player', '/app-admin', '/about'];
 
 const globalNavItems = [
   { icon: HomeIcon, label: 'Groups', path: '/home' },

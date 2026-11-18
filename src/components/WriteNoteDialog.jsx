@@ -13,18 +13,17 @@ import { formatDate } from '@/lib/format';
 export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, onSubmitted }) {
   const { user } = useAuth();
   const { activeGroupId } = useActiveGroup();
-  const [myMember, setMyMember] = useState(null);
   const [note, setNote] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [selectedGameId, setSelectedGameId] = useState('none');
-  const [sharedGames, setSharedGames] = useState([]);
-  const [loadingGames, setLoadingGames] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState('none');
+  const [sharedSessions, setSharedSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (open && user && targetPlayerId) {
-      loadSharedGames();
+      loadSharedSessions();
     }
   }, [open, user, targetPlayerId, activeGroupId]);
 
@@ -32,43 +31,27 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
     if (open) {
       setNote('');
       setIsAnonymous(false);
-      setSelectedGameId('none');
+      setSelectedSessionId('none');
       setError('');
     }
   }, [open]);
 
-  const loadSharedGames = async () => {
+  // The whist nights both players sat at — a note can be pinned to one (P12-4).
+  // Worked out server-side: getGroupData checks group membership (P12-1).
+  const loadSharedSessions = async () => {
+    if (!activeGroupId) {
+      setSharedSessions([]);
+      return;
+    }
     try {
-      setLoadingGames(true);
-      // Author identity comes from GroupMember in the active group — the legacy
-      // Player entity is deprecated and empty for post-migration users (P0-4)
-      if (!activeGroupId) {
-        setSharedGames([]);
-        return;
-      }
-      const myMembers = await base44.entities.GroupMember.filter({ group_id: activeGroupId, user_id: user.id });
-      if (myMembers.length === 0) {
-        setMyMember(null);
-        setSharedGames([]);
-        return;
-      }
-      setMyMember(myMembers[0]);
-      const [myGamePlayers, targetGamePlayers] = await Promise.all([
-        base44.entities.GamePlayer.filter({ player_id: myMembers[0].id }),
-        base44.entities.GamePlayer.filter({ player_id: targetPlayerId })
-      ]);
-      const myGameIds = new Set(myGamePlayers.map(gp => gp.game_id));
-      const sharedIds = targetGamePlayers.map(gp => gp.game_id).filter(gid => myGameIds.has(gid));
-      if (sharedIds.length === 0) {
-        setSharedGames([]);
-        return;
-      }
-      const games = await Promise.all(sharedIds.map(gid => base44.entities.Game.get(gid).catch(() => null)));
-      setSharedGames(games.filter(g => g).sort((a, b) => new Date(b.game_date || b.created_date) - new Date(a.game_date || a.created_date)));
+      setLoadingSessions(true);
+      const res = await base44.functions.invoke('getGroupData', { scope: 'shared_sessions', player_id: targetPlayerId });
+      setSharedSessions(res.data.sessions || []);
     } catch (err) {
       console.error(err);
+      setSharedSessions([]);
     } finally {
-      setLoadingGames(false);
+      setLoadingSessions(false);
     }
   };
 
@@ -87,7 +70,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
         target_player_id: targetPlayerId,
         note: note.trim(),
         is_anonymous: isAnonymous,
-        game_id: selectedGameId !== 'none' ? selectedGameId : undefined
+        session_id: selectedSessionId !== 'none' ? selectedSessionId : undefined
       });
       onOpenChange(false);
       if (onSubmitted) onSubmitted();
@@ -127,23 +110,23 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
 
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground uppercase tracking-wide font-medium block">
-              Link to Game (Optional)
+              Link to Session (Optional)
             </label>
-            {loadingGames ? (
+            {loadingSessions ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Loading shared games...
+                Loading shared sessions...
               </div>
             ) : (
-              <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+              <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
                 <SelectTrigger className="bg-background border-border">
-                  <SelectValue placeholder="Select a shared game" />
+                  <SelectValue placeholder="Select a shared session" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">General note (no specific game)</SelectItem>
-                  {sharedGames.map(g => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.name || 'Poker Night'} · {formatDate(g.game_date || g.created_date)}
+                  <SelectItem value="none">General note (no specific session)</SelectItem>
+                  {sharedSessions.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name || 'Whist Night'} · {formatDate(s.session_date || s.created_date)}
                     </SelectItem>
                   ))}
                 </SelectContent>

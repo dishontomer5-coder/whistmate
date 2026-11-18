@@ -24,10 +24,9 @@ export default function History() {
   const loadData = async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
-      const [sess, rounds] = await Promise.all([
-        base44.entities.Session.filter({ group_id: activeGroupId }, '-created_date', 500),
-        base44.entities.Game.filter({ group_id: activeGroupId }, '-created_date', 10000),
-      ]);
+      // Membership-checked read (P12-1). The session log only needs round counts, so skip results.
+      const res = await base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId, include_results: false });
+      const { sessions: sess = [], rounds = [] } = res.data;
       setSessions([...sess].sort((a, b) => new Date(b.session_date || b.created_date) - new Date(a.session_date || a.created_date)));
       const counts = {};
       rounds.forEach((r) => { counts[r.session_id] = (counts[r.session_id] || 0) + 1; });
