@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { formatDate, errorMessage } from '@/lib/format';
+import { formatDate, errorMessage, noteSessionName } from '@/lib/format';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import ErrorState from '@/components/ErrorState';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,9 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted, high
   const isAnonymous = note.is_anonymous;
   const displayName = isAnonymous ? 'Anonymous' : (note.author_name || 'Unknown player');
   // game_name/game_date hold the session a note was pinned to, if any — always that
-  // session's own date, never the day the note was written.
-  const sessionLabel = note.game_name || (note.game_date ? 'Session' : 'General note');
+  // session's own date, never the day the note was written. The name is the session's
+  // name as shown everywhere else.
+  const sessionLabel = noteSessionName(note) || 'General note';
   const sessionDate = formatDate(note.game_date);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted, high
   return (
     <div ref={cardRef}
       className={`scroll-mt-24 bg-card border rounded-lg p-4 space-y-3 transition-colors ${
-        highlight ? 'border-primary ring-1 ring-primary/40' : 'border-border'
+        highlight ? 'border-primary' : 'border-border'
       }`}>
       <div className="flex items-center gap-3">
         <PlayerAvatar name={displayName} />

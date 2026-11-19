@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import {
   parseDate, formatDate, todayLocalISO, defaultSessionName, sessionName,
-  formatScore, scoreTone, formatAvg, formatPct, errorMessage, OFFLINE_MESSAGE,
+  formatScore, scoreTone, formatAvg, formatPct, errorMessage, OFFLINE_MESSAGE, noteSessionName,
 } from './format.js';
 
 let passed = 0;
@@ -107,6 +107,12 @@ test('the default session name is the weekday and date of that calendar day', ()
 });
 
 // ---- scores ----------------------------------------------------------------------
+
+test('noteSessionName: a note names its session as the session is named everywhere', () => {
+  assert.equal(noteSessionName({ game_name: 'Whist Night', game_date: '2026-07-16' }), defaultSessionName('2026-07-16'));
+  assert.equal(noteSessionName({ game_name: 'Rematch', game_date: '2026-11-05' }), 'Rematch');
+  assert.equal(noteSessionName({ game_name: null, game_date: null }), null);
+});
 
 test('formatAvg: one decimal, signed, everywhere', () => {
   assert.equal(formatAvg(11.923), '+11.9');

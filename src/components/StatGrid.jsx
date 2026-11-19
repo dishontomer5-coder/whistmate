@@ -73,7 +73,7 @@ function figures(stats) {
     podiums: { value: perf.podiums || 0 },
     accuracy: { value: pct(strat.contract_accuracy), subtext: rounds > 0 && strat.made_count != null ? `${strat.made_count} of ${rounds} made` : undefined },
     zero: { value: pct(strat.zero_bid_success_rate), subtext: zeroBids > 0 ? `${strat.zero_bid_success || 0} of ${plural(zeroBids, 'zero bid')}` : 'No zero bids yet' },
-    avgBid: { value: rounds > 0 ? (strat.bid_aggressiveness ?? 0) : '—' },
+    avgBid: { value: rounds > 0 ? Math.round((Number(strat.bid_aggressiveness) || 0) * 10) / 10 : '—' },
     tooFew: { value: formatScore(tooFew), score: tooFew },
     tooMany: { value: formatScore(tooMany), score: tooMany },
     fell: { value: awards.destroyer_count || 0 },

@@ -127,7 +127,6 @@ export default function ResetPassword() {
               type="password"
               autoComplete="new-password"
               autoFocus
-              placeholder="••••••••"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); }}
               className="pl-10"
@@ -147,7 +146,6 @@ export default function ResetPassword() {
               id="confirm"
               type="password"
               autoComplete="new-password"
-              placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); setConfirmError(""); }}
               className="pl-10"

@@ -226,7 +226,6 @@ export default function Register() {
               id="password"
               type="password"
               autoComplete="new-password"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
               className="pl-10"
@@ -247,7 +246,6 @@ export default function Register() {
               id="confirm"
               type="password"
               autoComplete="new-password"
-              placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); setConfirmError(""); }}
               className="pl-10"

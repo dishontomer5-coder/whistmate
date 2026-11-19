@@ -3,12 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { Plus, KeyRound, Users, Globe, LogIn, ChevronRight, Trophy, Target, Spade, CheckCircle2, X } from 'lucide-react';
+import { Plus, KeyRound, Users, Globe, LogIn, ChevronRight, Trophy, Target, Spade, CheckCircle2, X, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import CreateGroupDialog from '@/components/groups/CreateGroupDialog';
 import JoinGroupDialog from '@/components/groups/JoinGroupDialog';
-import { formatScore, scoreTone } from '@/lib/format';
+import { formatScore, scoreTone, sessionName } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
 import EmptyState from '@/components/EmptyState';
 import { UserText } from '@/components/UserText';
 import { BOOT_PATH, inviteFromPath, pendingReturnTo, withReturnTo } from '@/lib/authReturnTo';
@@ -35,6 +36,9 @@ export default function HomeGlobal() {
   const [showJoin, setShowJoin] = useState(() => !!location.state?.invite);
   const [globalStats, setGlobalStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  // group_id -> { session, round } for each group with a session open: the card says so and
+  // offers "Resume", so getting back to a game in progress is one tap (scorekeeper-5).
+  const [inPlay, setInPlay] = useState({});
 
   // A notice is said once: drop it from the history entry so a reload or a Back press does
   // not repeat it. The invite stays there until its dialog closes, so a reload in the
@@ -76,6 +80,28 @@ export default function HomeGlobal() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoadingAuth, isAuthenticated, user, groupsLoading, myGroups.length]);
+
+  // Which of the user's active groups has a session open (sessions and rounds only — no
+  // results). One light, membership-checked read per group.
+  const groupKey = myGroups.filter((m) => m.group?.status !== 'archived').map((m) => m.group_id).join(',');
+  useEffect(() => {
+    if (!isAuthenticated || !groupKey) return;
+    let cancelled = false;
+    Promise.all(groupKey.split(',').map((groupId) =>
+      base44.functions.invoke('getGroupData', { scope: 'group', group_id: groupId, include_results: false })
+        .then((res) => {
+          const { sessions = [], rounds = [] } = res.data;
+          const session = sessions.find((x) => x.status === 'open');
+          if (!session) return null;
+          const round = rounds.find((g) => g.session_id === session.id && (g.status === 'bidding' || g.status === 'playing')) || null;
+          return [groupId, { session, round }];
+        })
+        .catch(() => null)))
+      .then((entries) => { if (!cancelled) setInPlay(Object.fromEntries(entries.filter(Boolean))); });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, groupKey]);
+
+  const resume = (groupId, sessionId) => { setActiveGroup(groupId); navigate(`/session/${sessionId}`); };
 
   const loadGlobalStats = async () => {
     try {
@@ -202,30 +228,44 @@ export default function HomeGlobal() {
         <div className="space-y-3">
           {myGroups.map((m) => {
             const stats = statsByGroup[m.group_id];
+            const live = inPlay[m.group_id];
             return (
-              <button key={m.group_id} onClick={() => handleGroupClick(m.group_id)}
-                className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors text-left">
-                <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span dir="auto" className="font-heading text-xl font-bold text-primary">{Array.from((m.group_name || '?').trim())[0]?.toUpperCase() || '?'}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    <UserText>{m.group_name}</UserText>
-                    {m.group?.status === 'archived' && (
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Archived</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="capitalize">{m.role}</span>{stats ? ` · ${stats.rounds_played} round${stats.rounds_played !== 1 ? 's' : ''}` : ''}
-                  </p>
-                </div>
-                {stats && (
-                  <span className={`font-heading font-bold text-sm flex-shrink-0 ${scoreTone(stats.total_score)}`}>
-                    {formatScore(stats.total_score)}
-                  </span>
+              <div key={m.group_id} className="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/50">
+                <button onClick={() => handleGroupClick(m.group_id)}
+                  className="flex w-full items-center gap-3 p-4 text-left">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-secondary">
+                    <span dir="auto" className="font-heading text-xl font-bold text-foreground">{Array.from((m.group_name || '?').trim())[0]?.toUpperCase() || '?'}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground break-words [overflow-wrap:anywhere]">
+                      <UserText>{m.group_name}</UserText>
+                      {m.group?.status === 'archived' && (
+                        <span className="ml-2 inline-block align-middle text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Archived</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="capitalize">{m.role}</span>{stats ? ` · ${stats.rounds_played} round${stats.rounds_played !== 1 ? 's' : ''}` : ''}
+                    </p>
+                  </div>
+                  {stats && (
+                    <span className={`font-heading font-bold text-sm flex-shrink-0 ${scoreTone(stats.total_score)}`}>
+                      {formatScore(stats.total_score)}
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </button>
+                {live && (
+                  <div className="flex items-center gap-3 border-t border-border px-4 py-2">
+                    <div className="min-w-0 flex-1">
+                      <Badge>{live.round ? `Round ${live.round.round_number} in play` : 'Session open'}</Badge>
+                      <p className="mt-1 text-xs text-muted-foreground break-words [overflow-wrap:anywhere]"><UserText>{sessionName(live.session)}</UserText></p>
+                    </div>
+                    <Button variant="outline" className="flex-shrink-0" onClick={() => resume(m.group_id, live.session.id)}>
+                      <Play /> Resume
+                    </Button>
+                  </div>
                 )}
-                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              </button>
+              </div>
             );
           })}
         </div>

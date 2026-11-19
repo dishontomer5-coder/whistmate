@@ -10,7 +10,8 @@ import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name, UserText } from '@/components/UserText';
-import { formatDate, errorMessage } from '@/lib/format';
+import { formatDate, errorMessage, noteSessionName } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
 
 // When a note was written, in the words people use: "today", "yesterday", "3 days ago",
 // and the date itself once it is a week or more old.
@@ -103,7 +104,7 @@ export default function Activity() {
                 key={n.id}
                 onClick={() => openNote(n)}
                 className={`w-full text-left bg-card border rounded-lg p-4 space-y-2 transition-colors hover:border-primary/50 ${
-                  n.is_about_me ? 'border-primary/50 bg-primary/5' : 'border-border'
+                  n.is_about_me ? 'border-primary/50' : 'border-border'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -113,7 +114,7 @@ export default function Activity() {
                     <p className="text-sm text-foreground">
                       <span className="font-medium">{isMine ? 'You' : <Name>{displayAuthor}</Name>}</span>
                       <span className="text-muted-foreground"> left a note about </span>
-                      <span className={`font-medium ${n.is_about_me ? 'text-primary' : ''}`}>
+                      <span className="font-medium">
                         {n.is_about_me ? 'you' : <Name>{n.target_player_name}</Name>}
                       </span>
                     </p>
@@ -121,14 +122,14 @@ export default function Activity() {
                         the note was written is said as such. */}
                     <p className="text-xs text-muted-foreground">
                       <UserText>{n.group_name}</UserText>
-                      {n.game_name ? <> · <UserText>{n.game_name}</UserText>{n.game_date ? `, ${formatDate(n.game_date)}` : ''}</> : ''}
+                      {noteSessionName(n) ? <> · <UserText>{noteSessionName(n)}</UserText>{n.game_date ? `, ${formatDate(n.game_date)}` : ''}</> : ''}
                       {' · '}written {writtenWhen(n.created_date)}
                     </p>
                   </div>
                   {n.is_unseen && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium flex-shrink-0">
+                    <Badge className="flex-shrink-0">
                       New
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="flex items-start gap-2">

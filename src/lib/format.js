@@ -75,6 +75,17 @@ export function sessionName(session) {
   return given || defaultSessionName(session?.session_date || session?.created_date);
 }
 
+// The session a note was pinned to, by the same name the session has everywhere else
+// (returning-player-6), or null for a note not pinned to a session. A note stores a copy of
+// the session's name (game_name) and date (game_date); a session without a name was stored
+// as "Whist Night", which is read as no name, so it gets the usual "Thursday, 16 Jul".
+export const UNNAMED_NOTE_SESSION = 'Whist Night';
+export function noteSessionName(note) {
+  if (!note?.game_name && !note?.game_date) return null;
+  const given = note.game_name === UNNAMED_NOTE_SESSION ? '' : note.game_name;
+  return sessionName({ name: given, session_date: note.game_date });
+}
+
 // The sentence to show when a request fails. Prefers what the server said; a request
 // that never reached the server (axios reports "Network Error") gets plain words
 // instead of the library's.

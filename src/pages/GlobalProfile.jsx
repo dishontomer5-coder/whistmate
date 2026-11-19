@@ -9,7 +9,7 @@ import StatGrid from '@/components/StatGrid';
 import ScoreChart from '@/components/ScoreChart';
 import NightCards from '@/components/NightCards';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { formatScore, scoreTone, errorMessage } from '@/lib/format';
+import { formatScore, formatAvg, scoreTone, errorMessage } from '@/lib/format';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
@@ -109,9 +109,9 @@ export default function GlobalProfile() {
                 {groupsBreakdown.map((g) => (
                   <div key={g.group_id} className="flex items-center justify-between gap-3 bg-card border border-border rounded-lg p-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate"><UserText>{g.group_name}</UserText></p>
+                      <p className="text-sm font-medium text-foreground break-words [overflow-wrap:anywhere]"><UserText>{g.group_name}</UserText></p>
                       <p className="text-xs text-muted-foreground">
-                        {plural(g.rounds_played, 'round')} · {formatScore(g.avg_score)} avg
+                        {plural(g.rounds_played, 'round')} · {formatAvg(g.avg_score)} avg
                       </p>
                     </div>
                     <span className={`flex-shrink-0 font-heading font-bold ${scoreTone(g.total_score)}`}>
