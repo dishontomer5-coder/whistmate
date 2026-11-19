@@ -94,12 +94,12 @@ export default function Profile() {
             return (
               <li key={p.id}>
                 <Link to={`/player/${p.id}`}
-                  className={`flex min-h-14 items-center gap-3 rounded-lg bg-secondary p-3 transition-colors hover:bg-secondary/80 ${isMe ? 'ring-1 ring-inset ring-primary/40' : ''}`}>
+                  className={`flex min-h-14 items-center gap-3 rounded-lg p-3 transition-colors hover:bg-secondary/80 ${isMe ? 'bg-accent ring-1 ring-inset ring-input/60' : 'bg-secondary'}`}>
                   <PlayerAvatar name={p.name} />
                   <span className="min-w-0 flex-1">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="min-w-0 truncate text-sm font-medium text-foreground"><Name>{p.name}</Name></span>
-                      {isMe && <Badge variant="selected" className="flex-shrink-0">You</Badge>}
+                      {isMe && <Badge className="flex-shrink-0">You</Badge>}
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       {s

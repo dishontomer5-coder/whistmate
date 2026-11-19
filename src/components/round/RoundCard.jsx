@@ -58,7 +58,7 @@ export function ResultLines({ results, onHelp, size = 'sm', linkPlayers = false 
         )}>
           <span className="flex min-w-0 items-center gap-1.5 text-foreground">
             {linkPlayers ? (
-              <Link to={`/player/${r.player_id}`} className="-my-2 flex min-h-11 min-w-0 items-center underline decoration-muted-foreground/50 underline-offset-4 hover:decoration-foreground">
+              <Link to={`/player/${r.player_id}`} className="-my-2 flex min-h-11 min-w-11 items-center underline decoration-muted-foreground/50 underline-offset-4 hover:decoration-foreground">
                 <span className="truncate"><Name>{r.player_name}</Name></span>
               </Link>
             ) : <span className="truncate"><Name>{r.player_name}</Name></span>}

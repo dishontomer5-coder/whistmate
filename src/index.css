@@ -11,7 +11,8 @@
      - a disabled primary button: neutral grey, not faded gold (button.jsx);
      - hover and focus of menu items: the raised navy `accent` token, not gold;
      - a caution in text (not an error): `text-warning` (orange-300), never yellow/gold.
-   Gold TEXT or a gold outline may mark "you" and the selected thing; keep it rare. */
+   Your own row is marked without gold: the raised navy `accent` fill, a neutral ring and the
+   neutral "You" badge. Gold TEXT or a gold outline may mark the selected thing; keep it rare. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

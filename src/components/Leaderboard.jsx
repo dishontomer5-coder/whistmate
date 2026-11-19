@@ -75,7 +75,7 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
             key={player.player_id}
             to={`/player/${player.player_id}`}
             className={`flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-secondary/80 ${
-              isMe ? 'bg-secondary ring-1 ring-inset ring-primary/40' : 'bg-secondary'
+              isMe ? 'bg-accent ring-1 ring-inset ring-input/60' : 'bg-secondary'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
@@ -87,7 +87,7 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
               <div className="min-w-0">
                 <span className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-medium text-foreground truncate"><Name>{player.player_name}</Name></span>
-                  {isMe && <Badge variant="selected" className="flex-shrink-0">You</Badge>}
+                  {isMe && <Badge className="flex-shrink-0">You</Badge>}
                   {/* One session's own table: the top player leads while it is open and has won once it is closed. */}
                   {singleSession && player.leading && <Badge className="flex-shrink-0">Leading</Badge>}
                   {singleSession && !player.leading && player.wins > 0 && (

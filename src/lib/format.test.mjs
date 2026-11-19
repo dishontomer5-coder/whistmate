@@ -118,9 +118,14 @@ test('formatAvg: one decimal, signed, everywhere', () => {
   assert.equal(formatAvg(11.923), '+11.9');
   assert.equal(formatAvg(-0.54), '-0.5');
   assert.equal(formatAvg(2.66), '+2.7');
-  assert.equal(formatAvg(3), '+3');
-  assert.equal(formatAvg(-0.04), '0');
-  assert.equal(formatAvg(null), '0');
+  // A whole average keeps its decimal, so it lines up with the others (+11.0 beside +11.7).
+  assert.equal(formatAvg(3), '+3.0');
+  assert.equal(formatAvg(11), '+11.0');
+  assert.equal(formatAvg(-10), '-10.0');
+  assert.equal(formatAvg(10.96), '+11.0');
+  assert.equal(formatAvg(-0.04), '0.0');
+  assert.equal(formatAvg(0), '0.0');
+  assert.equal(formatAvg(null), '0.0');
 });
 
 test('formatScore and scoreTone: gained, zero, lost', () => {
