@@ -220,7 +220,7 @@ export default function RoundView() {
     // An edit of a scored round that another admin deleted meanwhile: nothing to save to.
     return (
       <EmptyState as="h1" icon={Trash2} title="This round was deleted"
-        description="Another admin deleted it while you were editing it. Your changes were not saved."
+        description="It was deleted on another phone while you were editing it. Your changes were not saved."
         action={<Button variant="outline" onClick={() => returnToSession({ navigate, location, sessionId: round.session_id })}>Back to session</Button>} />
     );
   }
