@@ -87,16 +87,20 @@ export default function GroupDangerZone({ group, openSession = null, onGroupChan
                 stats stay, and you can unarchive it.
               </p>
             </div>
-            <Button onClick={() => { setArchiveError(''); setAsking('archive'); }} variant="outline" className={dangerButton}>
+            <Button onClick={() => { setArchiveError(''); setAsking('archive'); }} variant="outline" className={dangerButton}
+              disabled={!!openSession} aria-describedby={openSession ? 'archive-blocked' : undefined}>
               <Archive />
               Archive
             </Button>
           </div>
+          {/* Archiving is refused while a session is open, so the button is off and says why. */}
           {openSession && !archiveError && (
-            <p className="text-xs text-muted-foreground">
-              A session is still open (<Link to={`/session/${openSession.id}`} className="text-primary hover:underline"><UserText>{sessionName(openSession)}</UserText></Link>)
-              — close it before archiving.
-            </p>
+            <div id="archive-blocked" className="flex flex-wrap items-center gap-x-3 text-sm">
+              <p className="text-muted-foreground">Close the open session first.</p>
+              <Link to={`/session/${openSession.id}`} className="inline-flex min-h-11 min-w-0 max-w-full items-center text-primary hover:underline">
+                <span className="truncate">Go to <UserText>{sessionName(openSession)}</UserText></span>
+              </Link>
+            </div>
           )}
           {archiveError && (
             <div className="space-y-1">

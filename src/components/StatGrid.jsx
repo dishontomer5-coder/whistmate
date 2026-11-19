@@ -49,7 +49,7 @@ export default function StatGrid({ stats, allGroups = false }) {
   const perf = stats.performance || {};
   const strat = stats.strategy || {};
   const awards = stats.awards || {};
-  // A rate with nothing to count yet (null: no zero bids, no closed session, no rounds) is a dash, not 0%.
+  // An average or rate with nothing to count yet (null: no zero bids, no closed session, no rounds) is a dash, not 0%.
   const pct = (ratio) => (ratio == null ? '—' : formatPct(ratio));
 
   const total = perf.total_score || 0;
@@ -70,7 +70,7 @@ export default function StatGrid({ stats, allGroups = false }) {
         <div className="grid grid-cols-2 gap-3">
           <StatTile icon={total < 0 ? TrendingDown : TrendingUp} label="Total score" value={formatScore(total)} score={total}
             explanation="The points of every scored round, added up." />
-          <StatTile icon={BarChart3} label="Avg / round" value={formatScore(avg)} score={avg}
+          <StatTile icon={BarChart3} label="Avg / round" value={rounds > 0 ? formatScore(avg) : '—'} score={rounds > 0 ? avg : undefined}
             explanation="Total score divided by rounds played." />
           <StatTile icon={Hash} label="Rounds" value={rounds}
             explanation="Every scored round the player sat in. A round where everyone fell counts too: the hand was played and scored zero." />
@@ -94,7 +94,7 @@ export default function StatGrid({ stats, allGroups = false }) {
           <StatTile icon={Percent} label="Zero-bid success" value={pct(strat.zero_bid_success_rate)}
             subtext={zeroBids > 0 ? `${strat.zero_bid_success || 0} of ${plural(zeroBids, 'zero bid')}` : 'No zero bids yet'}
             explanation="Of the rounds bid at zero, how many ended with no trick taken." />
-          <StatTile icon={Zap} label="Average bid" value={strat.bid_aggressiveness ?? 0}
+          <StatTile icon={Zap} label="Average bid" value={rounds > 0 ? (strat.bid_aggressiveness ?? 0) : '—'}
             explanation="The average number of tricks bid. Higher means committing to more tricks." />
           <StatTile icon={HandCoins} label="Lost taking too few" value={formatScore(tooFew)} score={tooFew}
             explanation={`Points lost in rounds that ended below the bid. Rounds with a renege are left out.${holds('The Greedy')}`} />

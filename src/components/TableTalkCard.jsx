@@ -64,8 +64,10 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted, high
           <p className="text-sm font-medium text-foreground truncate">
             <Name>{displayName}</Name>
           </p>
-          <p className="text-xs text-muted-foreground truncate">
-            <UserText>{sessionLabel}</UserText>{sessionDate && ` · ${sessionDate}`}
+          {/* Wraps rather than cuts: the date stays whole on a narrow phone. */}
+          <p className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere]">
+            <UserText>{sessionLabel}</UserText>
+            {sessionDate && <> · <span className="whitespace-nowrap">{sessionDate}</span></>}
           </p>
         </div>
         {canDelete && (

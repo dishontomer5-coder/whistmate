@@ -172,7 +172,7 @@ export default function Register() {
       footer={
         <>
           Already have an account?{" "}
-          <Link to={withReturnTo("/login", returnTo)} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
+          <Link to={withReturnTo("/login", returnTo)} className="inline-flex min-h-11 min-w-11 items-center justify-center text-primary font-medium hover:underline">
             Log in
           </Link>
           <span aria-hidden="true" className="mx-2">·</span>

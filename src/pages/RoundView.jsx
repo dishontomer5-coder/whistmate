@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Pencil, Trash2, SearchX } from 'lucide-react';
+import { Loader2, Pencil, Trash2, SearchX, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import TableBadge from '@/components/TableBadge';
-import { Name } from '@/components/UserText';
+import { Name, UserText } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
 import BackLink from '@/components/BackLink';
 import ArchivedBanner from '@/components/ArchivedBanner';
 import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { tableState, highestBidderIndex } from '@/lib/scoring';
-import { errorMessage } from '@/lib/format';
+import { errorMessage, formatDate, sessionName } from '@/lib/format';
 import { readDraft, writeDraft, clearDraft, pruneDrafts, applyDraft, describeRestored } from '@/lib/round-drafts';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
@@ -99,6 +99,8 @@ export default function RoundView() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Set when locking or saving finds the round gone: another player discarded it meanwhile.
+  const [discarded, setDiscarded] = useState(false);
   const [help, setHelp] = useState(null); // the section of "How scoring works" that is open
   const [confirm, confirmElement] = useConfirm();
 
@@ -112,7 +114,7 @@ export default function RoundView() {
   };
 
   const load = useCallback(async () => {
-    setLoading(true); setLoadError(''); setNotFound(false); setHydratedFor(null);
+    setLoading(true); setLoadError(''); setNotFound(false); setHydratedFor(null); setDiscarded(false);
     try {
       // Membership-checked read — the round, its session and its four results.
       const res = await base44.functions.invoke('getGroupData', { scope: 'round', round_id: id });
@@ -155,7 +157,7 @@ export default function RoundView() {
   const status = round?.status;
   const stamp = round?.created_date; // ties a draft to this very round
   useEffect(() => {
-    if (hydratedFor !== id || !status || archived) return;
+    if (hydratedFor !== id || !status || archived || discarded) return;
     if (status === 'bidding') {
       writeDraft(id, { stamp, bids, trump, trumpOwner, hierarchy });
     } else if (status === 'playing') {
@@ -163,9 +165,16 @@ export default function RoundView() {
     } else {
       clearDraft(id);
     }
-  }, [hydratedFor, id, status, stamp, archived, bids, trump, trumpOwner, hierarchy, tricks, reneges, editBids]);
+  }, [hydratedFor, id, status, stamp, archived, discarded, bids, trump, trumpOwner, hierarchy, tricks, reneges, editBids]);
 
   if (loading) return <LoadingSpinner showLogo />;
+  if (discarded && round) {
+    return (
+      <EmptyState as="h1" icon={Ban} title="This round was discarded — nothing to save"
+        description="Another player discarded it while you were entering it. What you typed here was dropped."
+        action={<Button variant="outline" onClick={() => returnToSession({ navigate, location, sessionId: round.session_id, top: true })}>Back to session</Button>} />
+    );
+  }
   if (!round) {
     // A missing round cannot be fixed by trying again — offer the way back instead.
     return notFound || !loadError ? (
@@ -271,6 +280,7 @@ export default function RoundView() {
       setTrickIndex(Math.max(nextEmptyIndex(trickVals, -1), 0));
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch (err) {
+      if (err.response?.status === 404) { roundGone(); return; }
       setError(errorMessage(err, 'Failed to lock bids.'));
     } finally {
       setSaving(false);
@@ -297,6 +307,14 @@ export default function RoundView() {
     setRestoredNote('');
   };
 
+  // Locking or saving found no round: someone discarded it meanwhile. Drop the draft and
+  // say so, instead of leaving a Save button that can never work.
+  const roundGone = () => {
+    clearDraft(id);
+    setDiscarded(true);
+    setSaving(false);
+  };
+
   const saveResults = async () => {
     setSaving(true); setError('');
     try {
@@ -307,6 +325,7 @@ export default function RoundView() {
       clearDraft(id);
       goToSession(true); // the session page opens on the result of this round
     } catch (err) {
+      if (err.response?.status === 404) { roundGone(); return; }
       setError(errorMessage(err, 'Failed to save results.'));
       setSaving(false);
     }
@@ -582,6 +601,11 @@ export default function RoundView() {
               {(round.everyone_falls || status === 'cancelled') && <EveryoneFellBadge onClick={() => setHelp('everyone-falls')} />}
             </div>
           </div>
+          {session && (
+            <p className="text-sm text-muted-foreground" data-round-session>
+              <UserText>{sessionName(session)}</UserText> · {formatDate(session.session_date || session.created_date)}
+            </p>
+          )}
           <TrumpLine round={round} players={players} className="block" />
         </div>
         <ResultLines results={players} onHelp={setHelp} size="lg" />
