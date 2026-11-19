@@ -14,6 +14,7 @@ import GhostMemberDialog from '@/components/groups/GhostMemberDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
+import { Badge } from '@/components/ui/badge';
 import { Name, UserText, dirAuto } from '@/components/UserText';
 import { adminError, isGone } from '@/components/admin/messages';
 
@@ -289,7 +290,7 @@ export default function MemberList({ groupId, groupName, isAdmin, readOnly = fal
           Members ({present.length})
         </h2>
         {canManage && (
-          <Button onClick={() => setShowAddGhost(true)}>
+          <Button variant="outline" onClick={() => setShowAddGhost(true)}>
             <UserPlus />
             Add player
           </Button>
@@ -363,12 +364,10 @@ export default function MemberList({ groupId, groupName, isAdmin, readOnly = fal
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="min-w-0 truncate text-sm font-medium text-foreground"><Name>{member.player_name}</Name></span>
                           {member.role === 'admin' && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium flex-shrink-0">
-                              Admin
-                            </span>
+                            <Badge className="flex-shrink-0">Admin</Badge>
                           )}
                           {claimed ? (
-                            <span className="flex flex-shrink-0 items-center gap-1 text-xs text-primary">
+                            <span className="flex flex-shrink-0 items-center gap-1 text-xs text-muted-foreground">
                               <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> Claimed
                             </span>
                           ) : (

@@ -108,7 +108,7 @@ export default function InviteCard({ group, onRegenerated }) {
 
       {/* One under the other on a narrow phone, where the two labels do not fit side by side */}
       <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
-        <Button onClick={handleShare} className="px-3">
+        <Button onClick={handleShare} variant="outline" className="px-3">
           <Share2 /> Share invite link
         </Button>
         <Button onClick={() => copy(link, 'Link', 'link')} variant="outline" className="px-3">

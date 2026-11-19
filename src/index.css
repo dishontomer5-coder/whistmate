@@ -1,3 +1,16 @@
+/* GOLD IS RATIONED. Solid gold (bg-primary) is for three things only:
+     1. the ONE primary action of a screen (<Button> default variant; size="lg" for the main step),
+     2. the brand mark (the spade tile and the WhistMate word),
+     3. the active tab of the tab bar.
+   Everything else stays neutral:
+     - gained scores: foreground, bold, with the "+" (scoreTone in src/lib/format.js);
+     - status badges (You, Leading, Open, Winner, Admin, Claimed, In play, Everyone fell):
+       <Badge> default = neutral outline;
+     - a selected segment or option: gold OUTLINE (border-primary), never a gold fill;
+     - every other button: outline / secondary / ghost;
+     - a disabled primary button: neutral grey, not faded gold (button.jsx);
+     - hover and focus of menu items: the raised navy `accent` token, not gold.
+   Gold TEXT or a gold outline may mark "you" and the selected thing; keep it rare. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,8 +33,9 @@
     --secondary-foreground: 220 25% 96%;
     --muted: 222 35% 18%;
     --muted-foreground: 218 18% 68%;
-    --accent: 49 98% 60%;
-    --accent-foreground: 222 63% 15%;
+    /* Hover / focus fill of menu items and toggles: raised navy, never gold. */
+    --accent: 222 40% 26%;
+    --accent-foreground: 220 25% 96%;
     --destructive: 0 72% 56%;
     --destructive-foreground: 220 25% 96%;
     --border: 222 40% 24%;
@@ -62,8 +76,9 @@
     --secondary-foreground: 220 25% 96%;
     --muted: 222 35% 18%;
     --muted-foreground: 218 18% 68%;
-    --accent: 49 98% 60%;
-    --accent-foreground: 222 63% 15%;
+    /* Hover / focus fill of menu items and toggles: raised navy, never gold. */
+    --accent: 222 40% 26%;
+    --accent-foreground: 220 25% 96%;
     --destructive: 0 72% 56%;
     --destructive-foreground: 220 25% 96%;
     --border: 222 40% 24%;

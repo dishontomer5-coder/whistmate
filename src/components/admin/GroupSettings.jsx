@@ -92,7 +92,7 @@ export default function GroupSettings({ group, onSaved, readOnly = false }) {
           {['classic', 'progressive'].map((m) => (
             <button key={m} type="button" onClick={() => edit(setScoringMethod)(m)} disabled={readOnly}
               aria-pressed={scoringMethod === m}
-              className={`flex-1 min-h-11 py-2 rounded-lg text-sm font-medium disabled:opacity-60 ${scoringMethod === m ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+              className={`flex-1 min-h-11 py-2 rounded-lg border-2 text-sm font-medium disabled:opacity-60 ${scoringMethod === m ? 'border-primary bg-secondary text-foreground' : 'border-transparent bg-secondary text-muted-foreground'}`}>
               {SCORING_METHOD_LABEL[m]}
             </button>
           ))}

@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import {
   parseDate, formatDate, todayLocalISO, defaultSessionName, sessionName,
-  formatScore, scoreTone, formatPct, errorMessage, OFFLINE_MESSAGE,
+  formatScore, scoreTone, formatAvg, formatPct, errorMessage, OFFLINE_MESSAGE,
 } from './format.js';
 
 let passed = 0;
@@ -108,13 +108,22 @@ test('the default session name is the weekday and date of that calendar day', ()
 
 // ---- scores ----------------------------------------------------------------------
 
+test('formatAvg: one decimal, signed, everywhere', () => {
+  assert.equal(formatAvg(11.923), '+11.9');
+  assert.equal(formatAvg(-0.54), '-0.5');
+  assert.equal(formatAvg(2.66), '+2.7');
+  assert.equal(formatAvg(3), '+3');
+  assert.equal(formatAvg(-0.04), '0');
+  assert.equal(formatAvg(null), '0');
+});
+
 test('formatScore and scoreTone: gained, zero, lost', () => {
   assert.equal(formatScore(26), '+26');
   assert.equal(formatScore(-10), '-10');
   assert.equal(formatScore(0), '0');
   assert.equal(formatScore(null), '0');
-  assert.equal(scoreTone(26), 'text-primary');
-  assert.equal(scoreTone(0.5), 'text-primary');
+  assert.equal(scoreTone(26), 'text-foreground');
+  assert.equal(scoreTone(0.5), 'text-foreground');
   assert.equal(scoreTone(-10), 'text-negative');
   assert.equal(scoreTone(0), 'text-muted-foreground');
   assert.equal(scoreTone(null), 'text-muted-foreground');

@@ -5,14 +5,22 @@ export function formatScore(points) {
 }
 
 // The text colour of a score — one meaning per colour, everywhere a score is shown:
-// gained = gold, zero = muted, lost = the red text colour. Use it instead of deciding
+// gained = the foreground colour (gold is rationed — src/index.css; the "+" and a bold
+// weight say "gained"), zero = muted, lost = the red text colour. Use it instead of deciding
 // the colour at the call site:  <span className={scoreTone(points)}>{formatScore(points)}</span>
 // (The three class names are written out in full so Tailwind keeps them.)
 export function scoreTone(points) {
   const v = Number(points) || 0;
-  if (v > 0) return 'text-primary';
+  if (v > 0) return 'text-foreground';
   if (v < 0) return 'text-negative';
   return 'text-muted-foreground';
+}
+
+// An average with one decimal, signed like a score: 11.923 -> "+11.9", -0.54 -> "-0.5",
+// 3 -> "+3". The one way an average is shown, on every screen.
+export function formatAvg(value) {
+  const v = Math.round((Number(value) || 0) * 10) / 10;
+  return formatScore(Object.is(v, -0) ? 0 : v);
 }
 
 // A percentage from a 0..1 ratio, e.g. 0.42 -> "42%".
