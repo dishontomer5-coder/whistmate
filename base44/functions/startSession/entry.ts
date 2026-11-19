@@ -126,7 +126,8 @@ Deno.serve(async (req) => {
 
     const session = await base44.asServiceRole.entities.Session.create({
       group_id,
-      name: sessionName || 'Whist Night',
+      // No name given: store none; every screen names it by its weekday and date (sessionName()).
+      name: sessionName || '',
       status: 'open',
       // No date sent: today's date in UTC — the server does not know the scorer's time
       // zone, so late in the evening west of UTC or just after midnight east of it this

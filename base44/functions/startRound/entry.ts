@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     if (session.game_limit != null) {
       const completed = rounds.filter((r) => r.status === 'complete').length;
       if (completed >= session.game_limit) {
-        return Response.json({ error: `Session game limit (${session.game_limit}) reached` }, { status: 409 });
+        return Response.json({ error: `This session has reached its round limit (${session.game_limit})` }, { status: 409 });
       }
     }
 

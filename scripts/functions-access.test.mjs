@@ -1394,7 +1394,7 @@ await check('startRound', 'allowed', 'a new round is numbered after the highest 
     assert.equal((await play(scored)).data.round.status, 'complete');
     assert.equal((await play(everyoneFalls)).data.round.status, 'cancelled');
     assert.equal((await play(scored)).data.round.status, 'complete'); // the second scored round
-    assert.deepEqual(outcome(await play(scored)), [409, 'Session game limit (2) reached']);
+    assert.deepEqual(outcome(await play(scored)), [409, 'This session has reached its round limit (2)']);
     assert.equal(db.Game.filter((g) => g.session_id === session.id).length, 3);
   });
 }
@@ -1943,7 +1943,7 @@ await check('getActivityFeed', 'allowed', 'a note the caller wrote is never unse
       const res = await start({ session_date });
       assert.equal(res.status, 200, `${JSON.stringify(session_date)} -> ${res.status}: ${res.data.error}`);
       assert.equal(res.data.session.session_date, new Date().toISOString().slice(0, 10)); // the server's (UTC) day
-      assert.equal(res.data.session.name, 'Whist Night');
+      assert.equal(res.data.session.name, ''); // shown as the weekday and date
     }
   });
 }
