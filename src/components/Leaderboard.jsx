@@ -77,7 +77,8 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <span className="font-heading font-bold text-sm text-muted-foreground flex-shrink-0 w-6">
+              {/* Wide enough for "#10": a two-digit rank must not run into the avatar. */}
+              <span className="font-heading font-bold text-sm text-muted-foreground flex-shrink-0 w-7">
                 #{rank}
               </span>
               <PlayerAvatar name={player.player_name} />
