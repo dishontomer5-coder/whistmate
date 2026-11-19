@@ -1,0 +1,121 @@
+[
+ {
+  "id": "verifier-1",
+  "title": "'You' badge and row keep a gold outline",
+  "where": "Standings /, session standings",
+  "steps": [
+   "Open Thursday Whist Standings as Maya"
+  ],
+  "expected": "Status badges outline, neutral (RULINGS visual-designer-1 lists 'You')",
+  "actual": "'You' badge border rgba(253,216,53,0.7) and the 'You' row has a gold border; 'Leading' is neutral",
+  "why_it_matters": "Gold is meant for the primary action/brand/active tab only",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-003-lastnight.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-011-session-open.png"
+  ],
+  "suggested_fix": "Use the neutral outline badge for 'You'; drop the gold row border or make it neutral"
+ },
+ {
+  "id": "verifier-2",
+  "title": "Player-name links on a scored round are narrower than 44px",
+  "where": "/round/<scored id>",
+  "steps": [
+   "Open /round/579ae075098281d89c967fb0",
+   "Measure name links"
+  ],
+  "expected": "Targets ≥44px both ways",
+  "actual": "Dan 26x44, נועה 26x44, Maya 34x44 at 320/390/1440",
+  "why_it_matters": "Short names are hard to hit; the round rows are the only route to a player's page here",
+  "severity": "minor",
+  "evidence": [
+   "eval: ['Maya 34x44','Dan 26x44','Rachel 44x44','נועה 26x44']"
+  ],
+  "suggested_fix": "Make the whole row the link, or give the name link a min-width/hit area"
+ },
+ {
+  "id": "verifier-3",
+  "title": "Open session with no scored round: figures labelled with another session of the same date",
+  "where": "Standings /",
+  "steps": [
+   "Close a session on 19 Nov",
+   "Start another session the same day and a round (bidding)",
+   "Open Standings"
+  ],
+  "expected": "Clear which night the small figure is (switch, or a label that cannot be confused with tonight)",
+  "actual": "'SESSION IN PROGRESS ערב…' card above 'Total score · Thursday, 19 Nov' — the previous closed session, same date; no Tonight/Last night switch until a round is scored",
+  "why_it_matters": "Reads as tonight's result when it is not",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-037-standings-320.png"
+  ],
+  "suggested_fix": "Show the switch as soon as a session is open (Tonight empty: 'no rounds yet'), or prefix 'Last night:'"
+ },
+ {
+  "id": "verifier-4",
+  "title": "Dashed 'Trump' marker text touches its box",
+  "where": "Round bidding step",
+  "steps": [
+   "Start a round",
+   "Look at the unmarked Trump buttons"
+  ],
+  "expected": "Label with padding inside the dashed 44x44 box",
+  "actual": "'Trump' fills the 44px box edge to edge (scrollWidth 42 of 44, padding 0); letters touch the dashed border, box sits against the row edge",
+  "why_it_matters": "Looks cramped/clipped on every row",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-019-bidding-hebrew.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-035-bidding-320.png"
+  ],
+  "suggested_fix": "Widen the box or use a smaller label/glyph"
+ },
+ {
+  "id": "verifier-5",
+  "title": "Round page of a 5-player session does not say who sat out",
+  "where": "/round/60a3d56e0f61d426edaa7062",
+  "steps": [
+   "Open Rematch round 12"
+  ],
+  "expected": "A line naming the player who sat out",
+  "actual": "Four rows only (Rachel, נועה, Maya, Dan); Omer not mentioned",
+  "why_it_matters": "Leftover from returning-player-7",
+  "severity": "minor",
+  "evidence": [
+   "look: Rematch round 12 rows Rachel/נועה/Maya/Dan"
+  ],
+  "suggested_fix": "Add 'Sat out: Omer'"
+ },
+ {
+  "id": "verifier-6",
+  "title": "After leaving a group, Back shows the other group's Players list without notice",
+  "where": "/profile after Leave",
+  "steps": [
+   "As Dan open Players > own page > Leave this group > Leave group",
+   "Press Back"
+  ],
+  "expected": "Redirect with the 'not in its group' notice, or stay on Groups",
+  "actual": "Lands on /profile showing OLD CREW ARCHIVED Players; a further Back gives the clean notice",
+  "why_it_matters": "Briefly confusing context switch; no error",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-b-003-after-leave-back.png"
+  ],
+  "suggested_fix": "Replace history on leave, or redirect /profile to Groups when the group changed"
+ },
+ {
+  "id": "verifier-7",
+  "title": "Whole averages drop the decimal",
+  "where": "Standings, session standings, player pages",
+  "steps": [
+   "Look at נועה's avg after closing sessions"
+  ],
+  "expected": "One decimal everywhere (+11.0)",
+  "actual": "'+11 avg', '-10 avg', '+7 avg' beside '+11.7 avg'",
+  "why_it_matters": "Small inconsistency against the 'one decimal' ruling",
+  "severity": "minor",
+  "evidence": [
+   "look: '450 behind · 4 wins · +11 avg', '#4 יוסי … -10 avg'"
+  ],
+  "suggested_fix": "Format with toFixed(1)"
+ }
+]

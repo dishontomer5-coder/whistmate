@@ -1,0 +1,601 @@
+[
+ {
+  "id": "newcomer-1",
+  "verdict": "fixed",
+  "observed": "'?' on Standings ('What the standings show') opens the help sheet scrolled to a new 'The standings' section: Total, Average per round (everyone-falls counts as played), Wins (closed sessions; shared win on tie; no-counted-round session has no winner), Behind, The small figure, and The Greedy/Coward/Destroyer definitions plus a worked example.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-002-help-standings.png"
+  ]
+ },
+ {
+  "id": "returning-player-14",
+  "verdict": "fixed",
+  "observed": "Same as newcomer-1: 'Wins: Sessions finished in first place...' defined in the standings help.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-002-help-standings.png"
+  ]
+ },
+ {
+  "id": "returning-player-1",
+  "verdict": "fixed",
+  "observed": "With Midweek special open: switch 'Tonight · Last night'; Tonight rows read 'tonight: +35'; Last night rows read 'Last Thursday: +143' with header 'Total score · Last Thursday'. With no open session the header names the last closed session ('Total score · Thursday, 19 Nov').",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-003-lastnight.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-001-standings-390.png"
+  ]
+ },
+ {
+  "id": "returning-player-2",
+  "verdict": "fixed",
+  "observed": "Group menu lists 'Activity 9 new'; tapping opens /activity; Back returns to the group page. (The results feed stays an idea, not checked.)",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-007-menu.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-008-activity.png"
+  ]
+ },
+ {
+  "id": "returning-player-3",
+  "verdict": "fixed",
+  "observed": "Players tab (/profile) is a list: Maya 'You' first, then by total, each row 'N rounds · avg' and total, rows link to /player/<id>.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-004-players-390.png"
+  ]
+ },
+ {
+  "id": "newcomer-2",
+  "verdict": "fixed",
+  "observed": "See returning-player-3.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-004-players-390.png"
+  ]
+ },
+ {
+  "id": "returning-player-4",
+  "verdict": "fixed",
+  "observed": "Dan's page as Maya: 'You: +1586 in 133 rounds · 9 wins in 13 sessions' under the headline and 'You: …' under every tile (TOTAL, AVG, ROUNDS, SESSIONS, WIN RATE, PODIUMS, CONTRACT ACCURACY 'You: 62%', etc.).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-005-dan-page.png"
+  ]
+ },
+ {
+  "id": "returning-player-5",
+  "verdict": "fixed",
+  "observed": "Menu > Rules & scoring opens /rules with tabs 'How scoring works' (selected, full guide incl. '## The standings') and 'Ask a question' (chat with 4 suggestions).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-009-rules-guide.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-010-rules-ask.png"
+  ]
+ },
+ {
+  "id": "visual-designer-1",
+  "verdict": "partly",
+  "observed": "Mostly applied: positive scores are foreground bold (+90, +35); Leading/In play/Everyone fell/Bidding chips are neutral outlines; selected segment (Last night, Classic in admin) is a gold outline; admin shows a single solid gold button (Save settings), Add player and Share are outlined; disabled primary is neutral grey. Remaining: the 'You' badge has a gold outline (computed border rgba(253,216,53,0.7)) and the 'You' row has a gold border on Standings and session standings, though the ruling lists 'You' among neutral status badges.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-003-lastnight.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-011-session-open.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-040-admin-390.png",
+   "eval: You badge color rgb(242,244,247) border rgba(253, 216, 53, 0.7)"
+  ]
+ },
+ {
+  "id": "visual-designer-2",
+  "verdict": "skipped",
+  "observed": "Owner's decision.",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-3",
+  "verdict": "fixed",
+  "observed": "Results rows show a neutral outlined 'Renege' text button (44px tall incl. hit area), turning red-filled '−100' when on; row preview reads 'bid 3 · 1 off −10 − 100 renege'.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-014-round-wrong-total.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-015-renege-on.png"
+  ]
+ },
+ {
+  "id": "newcomer-6",
+  "verdict": "fixed",
+  "observed": "See visual-designer-3.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-015-renege-on.png"
+  ]
+ },
+ {
+  "id": "whist-player-1",
+  "verdict": "fixed",
+  "observed": "Advanced session, Rachel 5, Maya 5, Dan 2, אבי 2: nothing pre-marked; '(alert) Tie on the top bid — tap who won the auction'; Lock bids disabled; tied players' Trump buttons highlighted and labelled '(tied on the top bid)'. Single top bidder (Maya 6) is still pre-marked.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-025-tie-top-bid.png"
+  ]
+ },
+ {
+  "id": "qa-tester-1",
+  "verdict": "fixed",
+  "observed": "Session 'Falls only', limit 1, only round everyone fell, closed: 'FINAL RESULT No winner — no round counted', no Winner badge; Sessions list 'No winner — no round counted'; Maya stays 9 wins on Standings, Omer '0 wins in 8 sessions'.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-023-no-winner.png"
+  ]
+ },
+ {
+  "id": "qa-tester-2",
+  "verdict": "fixed",
+  "observed": "Post note clicked 3x synchronously via eval: one note (count 14 = 12 seed + 2 posts). Replaying the captured createNote request twice concurrently returned the existing note (same id) and the note count did not grow (15 after the third UI post).",
+  "evidence": [
+   "TableTalkNote 12 -> 14 -> 15 (sandbox info counts)",
+   "replay response: both {note:{id:'486f963eab2098553768115d',...}}"
+  ]
+ },
+ {
+  "id": "scorekeeper-1",
+  "verdict": "fixed",
+  "observed": "Device A (v2) had unsaved tricks; device B (v2-b, same sandbox) saved the round; A tapped Save round: http 409, then the page reloads the saved round with '(alert) Already saved from another phone — here is what was saved. What you typed on this phone was not used.', a 'Back to session' primary button, plus Edit round / Delete round for the admin.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-016-second-device.png"
+  ]
+ },
+ {
+  "id": "scorekeeper-2",
+  "verdict": "fixed",
+  "observed": "Results sheet begins with the trump winner then follows seat order (נועה, יוסי, Maya, Dan for round 4; Rachel, Dan, Maya, אבי after Rachel won the trump).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-012-round-results.png"
+  ]
+ },
+ {
+  "id": "scorekeeper-3",
+  "verdict": "fixed",
+  "observed": "Tapping נועה's row and typing 5,3,2,3 filled נועה, יוסי, Maya, Dan in turn.",
+  "evidence": [
+   "look: 'נועה bid 5 · made +35', 'יוסי … 1 off', 'Maya … 1 off', 'Dan … 1 off'"
+  ]
+ },
+ {
+  "id": "scorekeeper-4",
+  "verdict": "fixed",
+  "observed": "'Edit round' on session round cards is an outlined button with a pencil icon (111x36, 44px with hit area).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-029-adv-session-r3.png"
+  ]
+ },
+ {
+  "id": "visual-designer-4",
+  "verdict": "fixed",
+  "observed": "Keypad top at 650.4px before and after the 4th bid.",
+  "evidence": [
+   "eval: 650.40625 / 650.40625"
+  ]
+ },
+ {
+  "id": "visual-designer-5",
+  "verdict": "fixed",
+  "observed": "'Tricks must total 13 — now 12' in red, chip '12 / 13 tricks' red outline.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-014-round-wrong-total.png"
+  ]
+ },
+ {
+  "id": "whist-player-3",
+  "verdict": "fixed",
+  "observed": "'Maya bid 5 · made +35 − 100 renege'; missed: 'bid 3 · 1 off −10 − 100 renege'.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-015-renege-on.png"
+  ]
+ },
+ {
+  "id": "whist-player-4",
+  "verdict": "fixed",
+  "observed": "'Rachel zero bid failed (3 tricks) −30'.",
+  "evidence": [
+   "look: button 'Rachel zero bid failed (3 tricks) −30'"
+  ]
+ },
+ {
+  "id": "whist-player-5",
+  "verdict": "fixed",
+  "observed": "Editing round 1 of closed Midweek special (renege on נועה) and Save: dialog 'Change a round of a closed session? Saving changes who won this closed session: נועה won — after this change Maya wins.' with Keep editing.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-017-closed-edit-warn.png"
+  ]
+ },
+ {
+  "id": "whist-player-6",
+  "verdict": "fixed",
+  "observed": "אבי 13 tricks: '13 / 13 tricks' with '(alert) All 13 tricks are given out — enter 0 for the other 3 players'.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-028-thirteen.png"
+  ]
+ },
+ {
+  "id": "whist-player-9",
+  "verdict": "fixed",
+  "observed": "Sessions list during a round in play: 'Falls only Open … 0 rounds · round 1 in play'.",
+  "evidence": [
+   "look: link 'Falls only Open Nov 19, 2026 0 rounds · round 1 in play Classic'"
+  ]
+ },
+ {
+  "id": "returning-player-13",
+  "verdict": "fixed",
+  "observed": "Seed: 'Midweek special Open … 3 rounds · round 4 in play'.",
+  "evidence": [
+   "look on /history"
+  ]
+ },
+ {
+  "id": "whist-player-10",
+  "verdict": "fixed",
+  "observed": "Round card / results header read 'No trump · יוסי' (no 'Trump No trump').",
+  "evidence": [
+   "look: '[6] ▲ | UP | · 14 | No trump · יוסי'"
+  ]
+ },
+ {
+  "id": "whist-player-11",
+  "verdict": "fixed",
+  "observed": "After Discard round 2, session offers 'Redeal — same table, Maya bids first'; picker pre-selects the four seats.",
+  "evidence": [
+   "look: '[9] Redeal — same table, Maya bids first'"
+  ]
+ },
+ {
+  "id": "qa-tester-7",
+  "verdict": "fixed",
+  "observed": "/session/<id>/round/new at limit shows 'Round limit reached — 1 of 1 rounds counted' with Close session / Back to session; no picker.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-030-limit-picker.png"
+  ]
+ },
+ {
+  "id": "qa-tester-8",
+  "verdict": "fixed",
+  "observed": "Bidding rows read '3. אבי', '4. יוסי' with the number on the left.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-019-bidding-hebrew.png"
+  ]
+ },
+ {
+  "id": "whist-player-2",
+  "verdict": "fixed",
+  "observed": "יוסי (bid 2) marked trump winner with NT: amber hint 'יוסי bid 2, below the top bid of 4 — is that the right trump winner?'; Lock bids still enabled.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-020-trump-low-hint.png"
+  ]
+ },
+ {
+  "id": "newcomer-7",
+  "verdict": "fixed",
+  "observed": "See whist-player-2.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-020-trump-low-hint.png"
+  ]
+ },
+ {
+  "id": "scorekeeper-6",
+  "verdict": "fixed",
+  "observed": "Open session with a round in play has one CTA 'Resume round 4'; the round card has no second link.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-011-session-open.png"
+  ]
+ },
+ {
+  "id": "visual-designer-16",
+  "verdict": "fixed",
+  "observed": "See scorekeeper-6.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-011-session-open.png"
+  ]
+ },
+ {
+  "id": "visual-designer-14",
+  "verdict": "fixed",
+  "observed": "Scored round: full-width outlined 'Edit round', 'Delete round' as a red text button well below.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-016-second-device.png"
+  ]
+ },
+ {
+  "id": "newcomer-10",
+  "verdict": "fixed",
+  "observed": "Start round at 320x568 opens at scrollTop 0 with the header and 'TRUMP WINNER (OPTIONAL)' visible.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-035-bidding-320.png"
+  ]
+ },
+ {
+  "id": "qa-tester-4",
+  "verdict": "fixed",
+  "observed": "Group '🃏קבוצה '+50 x: scrollWidth 390/390 and 320/320; header truncates with an ellipsis; onboarding card wraps; app-admin 390/390. 60-char Hebrew session name wraps on the session page (320/320).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-041-longgroup-390.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-036-longname-session-320.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-c-002-app-admin.png"
+  ]
+ },
+ {
+  "id": "qa-tester-6",
+  "verdict": "fixed",
+  "observed": "Dan left Thursday Whist -> /home. Back to his Thursday player page redirected to /home with '(alert) That page isn't available — you're not in its group.' No raw error. (One Back step landed on /profile showing Old Crew's Players list — see new finding.)",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-b-003-after-leave-back.png"
+  ]
+ },
+ {
+  "id": "newcomer-5",
+  "verdict": "fixed",
+  "observed": "About: 'The admins of a group you join can see your email address next to your player name, in the group’s member list; other players cannot.'",
+  "evidence": [
+   "look on /about"
+  ]
+ },
+ {
+  "id": "returning-player-6",
+  "verdict": "fixed",
+  "observed": "Note tag on Dan's page 'Thursday, 16 Jul · Jul 16, 2026', same name as Sessions and Worst session card.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-005-dan-page.png"
+  ]
+ },
+ {
+  "id": "returning-player-7",
+  "verdict": "fixed",
+  "observed": "Scored round page has the bottom bar, a back 'Session' button, the session name as a link, and every player name as a link to their page. Not addressed: a round of a 5-player session (Rematch round 12) still does not say who sat out.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-031-scored-round.png"
+  ]
+ },
+ {
+  "id": "returning-player-11",
+  "verdict": "fixed",
+  "observed": "Same values in both places: Maya '+11.9 avg' on Standings and on her page; נועה '+11 avg' on Standings and 'AVG / ROUND +11' on her page. Note a whole average is shown without '.0' ('+11', '-10', '+7') while others have one decimal.",
+  "evidence": [
+   "look: '#2 נועה 406 behind · 4 wins · +11 avg'; 'AVG / ROUND +11 You: +11.8'"
+  ]
+ },
+ {
+  "id": "newcomer-8",
+  "verdict": "fixed",
+  "observed": "Rounding as returning-player-11; fallen rounds counting toward the average is now explained in the standings help (by design).",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-002-help-standings.png"
+  ]
+ },
+ {
+  "id": "returning-player-12",
+  "verdict": "fixed",
+  "observed": "Player/Me cards say 'BEST SESSION'/'WORST SESSION'; standings uses 'tonight' or the session's name; Sessions tab.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-032-me.png"
+  ]
+ },
+ {
+  "id": "scorekeeper-5",
+  "verdict": "fixed",
+  "observed": "Groups list card for Thursday Whist shows 'Round 1 in play · Falls only' with a Resume button.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-b-001-groups-inplay.png"
+  ]
+ },
+ {
+  "id": "visual-designer-9",
+  "verdict": "fixed",
+  "observed": "Measured every link/button/tab/switch on 15 screens at 320/390/1440 (counting ::after hit areas): all ≥44px except player-name links on the scored-round page (Dan 26x44, נועה 26x44, Maya 34x44) — see new finding.",
+  "evidence": [
+   "eval pass output in verification notes"
+  ]
+ },
+ {
+  "id": "visual-designer-10",
+  "verdict": "fixed",
+  "observed": "Maya's avatar is pink 'M' (color rgb(249,168,212), bg rgba(236,72,153,.2)) on Me and on Standings; יוסי gets single 'י'.",
+  "evidence": [
+   "eval avatar colours"
+  ]
+ },
+ {
+  "id": "scorekeeper-7",
+  "verdict": "fixed",
+  "observed": "Session page back link reads 'Sessions' whether opened from Sessions, from the Standings in-progress card, or from a round's session link.",
+  "evidence": [
+   "look: [3] button 'Sessions' in all three"
+  ]
+ },
+ {
+  "id": "visual-designer-20",
+  "verdict": "fixed",
+  "observed": "Unmarked rows show a dashed 'Trump' button; a marked row shows the chosen suit glyph (♠︎) or 'NT'.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-026-advanced-trump-panel.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-020-trump-low-hint.png"
+  ]
+ },
+ {
+  "id": "visual-designer-15",
+  "verdict": "fixed",
+  "observed": "/register and /login password inputs have no placeholder.",
+  "evidence": [
+   "look: input:password 'Password' empty required (no placeholder)"
+  ]
+ },
+ {
+  "id": "returning-player-10",
+  "verdict": "fixed",
+  "observed": "'Leave this group' is at the bottom of your own page under '## MEMBERSHIP'; absent from the hero.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-006-maya-own-bottom.png"
+  ]
+ },
+ {
+  "id": "visual-designer-13",
+  "verdict": "fixed",
+  "observed": "See returning-player-10.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-006-maya-own-bottom.png"
+  ]
+ },
+ {
+  "id": "visual-designer-19",
+  "verdict": "fixed",
+  "observed": "Disabled Lock bids / Save round / Start session are neutral grey.",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-019-bidding-hebrew.png"
+  ]
+ },
+ {
+  "id": "qa-tester-3",
+  "verdict": "fixed",
+  "observed": "As Dan, turning on Post anonymously shows 'Only a group admin can delete an anonymous note — not even you.'",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r2/verify/shots/v2-b-002-dan-anon-warn.png"
+  ]
+ },
+ {
+  "id": "newcomer-3",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "newcomer-4",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "newcomer-9",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "newcomer-11",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "newcomer-12",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "scorekeeper-8",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "scorekeeper-9",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "returning-player-8",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "returning-player-9",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "returning-player-15",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-6",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-7",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-8",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-11",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-12",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-17",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-18",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "visual-designer-21",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "whist-player-7",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "whist-player-8",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "whist-player-12",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "whist-player-13",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "qa-tester-5",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "qa-tester-9",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ },
+ {
+  "id": "qa-tester-10",
+  "verdict": "skipped",
+  "observed": "Left as idea / by design / later phase in RULINGS.md (or not listed as fixed this round).",
+  "evidence": []
+ }
+]
