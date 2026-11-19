@@ -759,14 +759,16 @@ export default function RoundView() {
                 className="-my-3 inline-flex min-h-11 items-center text-foreground underline underline-offset-2 hover:text-primary">
                 <UserText>{sessionName(session)}</UserText>
               </Link>
-              {' · '}{formatDate(session.session_date || session.created_date)}
-              {' · '}
+              {' · '}{formatDate(session.session_date || session.created_date)}{' '}
               {/* How this round was scored: a progressive miss looks wrong to someone who
                   expects classic (qa-tester-3). Opens the help at the misses. */}
-              <button type="button" onClick={() => setHelp('miss')} data-round-method
-                className="-my-3 inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4 hover:text-foreground">
-                {SCORING_METHOD_LABEL[session.scoring_method === 'progressive' ? 'progressive' : 'classic']} scoring
-              </button>
+              <span className="whitespace-nowrap">
+                {'· '}
+                <button type="button" onClick={() => setHelp('miss')} data-round-method
+                  className="-my-3 inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4 hover:text-foreground">
+                  {SCORING_METHOD_LABEL[session.scoring_method === 'progressive' ? 'progressive' : 'classic']} scoring
+                </button>
+              </span>
             </p>
           )}
           <TrumpLine round={round} players={players} className="block" showMissing />

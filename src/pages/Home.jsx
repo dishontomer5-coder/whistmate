@@ -204,7 +204,15 @@ export default function Home() {
                     <span className="flex-shrink-0" aria-hidden="true">·</span>
                     <ArrowUp className="h-3 w-3 flex-shrink-0 text-emerald-400" aria-hidden="true" />
                     <ArrowDown className="-ml-1 h-3 w-3 flex-shrink-0 text-negative" aria-hidden="true" />
-                    <UserText className="min-w-0 break-words [overflow-wrap:anywhere]">{deltaLabel}</UserText>
+                    {deltaSession?.status !== 'open' ? (
+                      // "Last session: Last Thursday, Nov 12" — the date never splits.
+                      <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                        Last session: <UserText>{deltaName}</UserText>
+                        {deltaDate ? <>, <span className="whitespace-nowrap">{deltaDate}</span></> : null}
+                      </span>
+                    ) : (
+                      <UserText className="min-w-0 break-words [overflow-wrap:anywhere]">{deltaLabel}</UserText>
+                    )}
                   </>
                 )}
               </p>
