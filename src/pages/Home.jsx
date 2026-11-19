@@ -112,7 +112,12 @@ export default function Home() {
   // last closed one, by name.
   const deltaSession = standings.find((p) => p.delta_session)?.delta_session || null;
   const deltaRecord = deltaSession ? sessions.find((s) => s.id === deltaSession.id) : null;
-  const deltaLabel = deltaSessionLabel(deltaSession, deltaRecord ? sessionName(deltaRecord) : null);
+  const deltaName = deltaSessionLabel(deltaSession, deltaRecord ? sessionName(deltaRecord) : null);
+  // While a session is open the figure is tonight's — except before tonight's first round is
+  // scored, or under "Last night": then it is an earlier session, often of the same date as
+  // tonight's card, so the label says outright that it is the last session.
+  const deltaLabel = deltaName && openSession && deltaSession?.status !== 'open'
+    ? `Last session: ${deltaName}` : deltaName;
 
   return (
     <div className="space-y-6">

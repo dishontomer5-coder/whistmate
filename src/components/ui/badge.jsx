@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils"
 // top of src/index.css). Variants:
 //   default      neutral outline — every ordinary status
 //   negative     red outline + red text — a bad outcome the reader must notice
-//   selected     gold outline — "this is you / the chosen one", used sparingly
+//   selected     gold outline — "the chosen one" (a selection), used sparingly; "You" is
+//                an ordinary status and takes the neutral default
 //   secondary    a quiet filled chip (counts)
 // Sentence case ("Leading", not "LEADING"); do not add uppercase at the call site.
 const badgeVariants = cva(

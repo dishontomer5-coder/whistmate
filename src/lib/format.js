@@ -16,11 +16,12 @@ export function scoreTone(points) {
   return 'text-muted-foreground';
 }
 
-// An average with one decimal, signed like a score: 11.923 -> "+11.9", -0.54 -> "-0.5",
-// 3 -> "+3". The one way an average is shown, on every screen.
+// An average, always with one decimal and signed like a score: 11.923 -> "+11.9",
+// -0.54 -> "-0.5", 3 -> "+3.0", 0 -> "0.0". The one way an average is shown, on every screen.
 export function formatAvg(value) {
   const v = Math.round((Number(value) || 0) * 10) / 10;
-  return formatScore(Object.is(v, -0) ? 0 : v);
+  if (v === 0) return '0.0'; // also -0, so a tiny loss never shows as "-0.0"
+  return `${v > 0 ? '+' : ''}${v.toFixed(1)}`;
 }
 
 // A percentage from a 0..1 ratio, e.g. 0.42 -> "42%".

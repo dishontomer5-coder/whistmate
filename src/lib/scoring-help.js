@@ -39,6 +39,13 @@ export function signed(points) {
   return '0';
 }
 
+// An average the way the app shows one: signed, always one decimal ("+2.0", "−0.5").
+export function signedAvg(value) {
+  const v = Math.round((Number(value) || 0) * 10) / 10;
+  if (v === 0) return '0.0';
+  return `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`;
+}
+
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const list = (numbers) => numbers.join(', ');
 
@@ -338,7 +345,7 @@ function buildStandingsHelp() {
       ...AWARD_HELP.map((a) => ({ label: a.title, value: `${a.definition} A tie gives the award to everyone on the top figure.` })),
     ],
     example: {
-      text: `Three rounds scoring ${list(roundPoints.map(signed))} (everyone fell in the middle one): total ${signed(total)}, average ${signed(avg)} a round.`,
+      text: `Three rounds scoring ${list(roundPoints.map(signed))} (everyone fell in the middle one): total ${signed(total)}, average ${signedAvg(avg)} a round.`,
       checks: [],
       roundPoints,
       total,

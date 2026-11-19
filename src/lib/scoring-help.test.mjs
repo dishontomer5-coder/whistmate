@@ -12,7 +12,7 @@ import {
 } from './scoring.js';
 import {
   SCORING_HELP, SCORING_HELP_SECTION_IDS, SCORING_METHOD_SUMMARY, SCORING_METHOD_LABEL,
-  PROGRESSIVE_TIERS, CLASSIC_RATE, MADE_BONUS, CARD_ORDER_LABEL, CARD_ORDER_DETAIL, signed, tierRange,
+  PROGRESSIVE_TIERS, CLASSIC_RATE, MADE_BONUS, CARD_ORDER_LABEL, CARD_ORDER_DETAIL, signed, signedAvg, tierRange,
   STANDINGS_HELP, HELP_SECTIONS, AWARD_HELP,
 } from './scoring-help.js';
 
@@ -258,7 +258,9 @@ test('standings: explains total, average, wins, behind, the small figure and eve
   const { roundPoints, total, avg } = s.example;
   assert.equal(roundPoints.reduce((a, b) => a + b, 0), total);
   assert.equal(avg, Math.round((total / roundPoints.length) * 10) / 10);
-  assert.ok(flat(s.example.text).includes(`total ${signed(total)}, average ${signed(avg)}`));
+  assert.ok(flat(s.example.text).includes(`total ${signed(total)}, average ${signedAvg(avg)}`));
+  assert.equal(signedAvg(2), '+2.0'); // a whole average keeps its decimal
+  assert.equal(signedAvg(-0.54), '−0.5');
 });
 
 // ---- report --------------------------------------------------------------------

@@ -45,7 +45,7 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
         return (
           <div key={p.player_id} ref={(el) => { rowRefs.current[i] = el; }} style={dockScrollMargins}
             className={cn(
-              'flex h-[46px] items-center gap-1 rounded-lg border pr-0.5 transition-colors [@media(min-height:760px)]:h-14',
+              'flex h-[46px] items-center gap-1 rounded-lg border pr-1 transition-colors [@media(min-height:760px)]:h-14',
               active ? PHASE.bidding.row : 'border-border bg-card'
             )}>
             <button type="button" onClick={() => onSelect(i)} aria-pressed={active}
@@ -64,7 +64,8 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
                 ? `${p.player_name} won the trump${trump ? `: ${SUIT_LABEL[trump]}` : ' — suit not chosen yet'}`
                 : `Mark ${p.player_name} as the trump winner${tied ? ' (tied on the top bid)' : ''}`}
               className={cn(
-                'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-bold transition-colors',
+                // 56 px wide: the word "Trump" (42 px at text-xs) keeps clear of the dashed border.
+                'flex h-11 w-14 shrink-0 items-center justify-center rounded-lg border px-1.5 font-bold transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
                 // Marked: a gold outline (a selection), never a gold fill.
                 owned
