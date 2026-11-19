@@ -110,7 +110,11 @@ export default function HomeGlobal() {
     return () => { cancelled = true; };
   }, [isAuthenticated, groupKey]);
 
-  const resume = (groupId, sessionId) => { setActiveGroup(groupId); navigate(`/session/${sessionId}`); };
+  // "Resume" opens the round in play itself when there is one, else the open session.
+  const resume = (groupId, live) => {
+    setActiveGroup(groupId);
+    navigate(live.round ? `/round/${live.round.id}` : `/session/${live.session.id}`);
+  };
 
   const loadGlobalStats = async () => {
     try {
@@ -198,12 +202,22 @@ export default function HomeGlobal() {
         <div role="status" data-removed-notice className="flex items-start gap-2 rounded-lg border border-border bg-card py-1 pl-3 pr-1 text-sm text-foreground">
           <Info className="mt-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1 space-y-1 py-2.5 break-words [overflow-wrap:anywhere]">
-            {removedNotice.map((g) => (
-              <p key={g.group_id}>
-                You were removed from {g.group_name ? <span className="font-medium"><Name>{g.group_name}</Name></span> : 'a group'} by an admin.
-                Your rounds stay in its history.
-              </p>
-            ))}
+            {removedNotice.map((g) => {
+              const name = g.group_name ? <span className="font-medium"><Name>{g.group_name}</Name></span> : null;
+              // Deleted by its admin while the user was in it: gone for everyone, their rounds
+              // in it included — said once, so the drop in their totals is not a mystery.
+              return g.reason === 'deleted' ? (
+                <p key={g.group_id} data-deleted-notice>
+                  {name || 'A group you were in'} was deleted by a group admin. Nobody can open it any more,
+                  and its rounds no longer count in your totals.
+                </p>
+              ) : (
+                <p key={g.group_id}>
+                  You were removed from {name || 'a group'} by an admin.
+                  Your rounds stay in its history.
+                </p>
+              );
+            })}
           </div>
           <button type="button" onClick={() => setRemovedNotice([])} aria-label="Dismiss this message"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
@@ -287,7 +301,7 @@ export default function HomeGlobal() {
                       <Badge>{live.round ? `Round ${live.round.round_number} in play` : 'Session open'}</Badge>
                       <p className="mt-1 text-xs text-muted-foreground break-words [overflow-wrap:anywhere]"><UserText>{sessionName(live.session)}</UserText></p>
                     </div>
-                    <Button variant="outline" className="flex-shrink-0" onClick={() => resume(m.group_id, live.session.id)}>
+                    <Button variant="outline" className="flex-shrink-0" onClick={() => resume(m.group_id, live)}>
                       <Play /> Resume
                     </Button>
                   </div>
