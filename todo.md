@@ -4,13 +4,20 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026, 02:30): **Phase 13, fix round 1 (P13-4) — wave 2 was INTERRUPTED by the
-> account's usage limit (resets 03:50 Asia/Jerusalem) a few minutes after it started.** Done and on
-> `main` (pushed): the sandbox, review round 1 (138 findings → 86 verified problems, all listed below
-> with owners), the backend hardening and the role fix (live), wave 1 = stats/backend (functions
-> deployed live) + the foundation (shared components; frontend NOT yet deployed — the live site is
-> still the Phase 12 build, which is compatible with the live functions).
-> NEXT: re-run wave 2 — three implementers in separate worktrees with disjoint files: (A) structure
+> ▶ RESUME HERE (Nov 19 2026, 08:00): **Phase 13, fix round 1 (P13-4) — wave 2 is HALF DONE and was
+> interrupted by the account's usage limit for the third time (resets 08:50 Asia/Jerusalem).** The
+> three implementers' work is SAVED, mostly uncommitted, in their worktrees — do not delete them:
+> `.claude/worktrees/agent-a75d148a03a271a5a` (A, structure and navigation — ~27 files changed),
+> `.claude/worktrees/round-flow` (B, the round flow — 3 commits + work in progress),
+> `.claude/worktrees/agent-ad1b372e4c9989166` (C, onboarding and admin — ~23 files changed).
+> In the SAME session: resume the three agents with a message once the limit has reset. In a NEW
+> session: start a fresh implementer per worktree, telling it to continue the work found there.
+> Done and on `main` (pushed): the sandbox, review round 1 (138 findings → 86 verified problems, all
+> listed below with owners), the backend hardening and the role fix (live), wave 1 = stats/backend
+> (functions deployed live) + the foundation (shared components; frontend NOT yet deployed — the live
+> site is still the Phase 12 build, compatible with the live functions), and
+> `docs/web-app-best-practices.md` (first full version; final pass owed after round 2).
+> NEXT: finish wave 2 — three implementers in separate worktrees with disjoint files: (A) structure
 > and navigation, (B) the round flow, (C) onboarding and admin — and the best-practices guide writer
 > (P13-8; no file written yet). In the SAME session, resume the interrupted agents with a message;
 > in a new session, start them again from their briefs. Everything they need is in the session
@@ -654,7 +661,9 @@
   `GroupMember` row, which is re-read by id and counts only if it is the caller's, in that group; role
   and name come from the row. The access test went from 89 to 383 checks, 114 of which fail against the
   old code; it now classifies every function folder as read or write and fails on an unclassified one.
-- [ ] **P13-8:** `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
+- [ ] **P13-8** *(written Nov 19 2026 — 14 sections, 50 practices, each with a check and the WhistMate
+  lesson; ~5,000 words. Reports round 1 as "found / ruled"; needs one final pass after review round 2 to
+  state outcomes)*: `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
   kind (structure and navigation, flows, states, wording, visual design, phones, accessibility, data
   access and privacy, accountability, testing, shipping), each practice with the WhistMate lesson
   behind it.

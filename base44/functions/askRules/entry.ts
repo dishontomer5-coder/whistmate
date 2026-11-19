@@ -253,17 +253,24 @@ took. It handles all the scoring and stats.
 | Round / game | A single deal: bid → play → results → score. |`;
 // <<< END GENERATED RULES_DOC >>>
 
-const IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook.";
+// The refusal. It keeps the owner's voice, and it is not a dead end: it says what the
+// assistant is for and where account and data questions are answered. One line, and the same
+// words in src/pages/RulesChat.jsx (shown when no answer arrives) and in the sandbox's
+// stand-ins (sandbox/backend.mjs, sandbox/smoke.mjs) — change them together.
+const IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring; for your account or your data, see About & privacy in the menu.";
 
 const SYSTEM_PROMPT = `You are the WhistMate Rules Assistant. Your ENTIRE knowledge is the rulebook provided below. You answer questions ONLY about the card game Israeli Whist as played and scored in the WhistMate app.
 
 Strict rules:
 - Answer using ONLY what is in the rulebook. Do NOT use any outside knowledge. Do NOT invent rules.
-- Keep answers short and plain. Use the rulebook's wording. A short worked example is fine when it helps the math.
+- Answer in the language of the question: a question in Hebrew gets its answer in Hebrew, a question in English gets it in English, and so on. The rulebook is written in English — translate what it says faithfully, and never change a number. Keep the app's own terms as the screen shows them, in English, in brackets after your translation the first time you use each one: UP, DOWN, Everyone Falls, Renege, Classic, Progressive.
+- Keep answers short and plain, and true to the rulebook's meaning. A short worked example is fine when it helps the math.
+- When the question is about a scoring method or anything else the rulebook gives as a table or a list of tiers (for example the progressive penalties), give ALL of its tiers first, then the particular case that was asked about.
 - If the question is not clearly covered by the rulebook, or is off-topic (anything other than Israeli Whist / WhistMate rules and scoring — including app internals, code, accounts, or other games), reply EXACTLY this and nothing else:
 ${IDK}
+- That refusal line is the one thing you never translate or reword: give it exactly as written above, whatever the language of the question.
 - Never discuss app internals, code, accounts, or data storage. Rules and scoring only.
-- Do not add greetings, apologies, or filler. Just the answer (or the exact IDK line).`;
+- Do not add greetings, apologies, or filler. Just the answer (or the exact refusal line).`;
 
 Deno.serve(async (req) => {
   try {

@@ -1,0 +1,52 @@
+Q: What suit is the strongest?
+A: Two answers, depending on the moment. **During play:** the **trump suit** of that round — the suit the auction winner called; a trump card beats any non-trump card, and under **No-Trump** no suit is stronger (the led suit's highest card wins the trick). **In the auction:** suits have a fixed rank, **♣ clubs < ♦ diamonds < ♥ hearts < ♠ spades < no-trump**.
+
+Q: How does scoring work if I bid 0?
+A: You are promising to take no tricks. If you succeed (take 0), you score +50 when the table is DOWN or +25 when it is UP. If you fail, it is −50 for the first trick you are forced to take, then +10 back for every additional trick (so 1 trick = −50, 2 = −40, 3 = −30, and so on).
+
+Q: What happens if everyone misses their contract?
+A: "Everyone Falls" — the round is cancelled and everyone's contract points are zeroed. No one is rewarded or penalized for the hand, except a renege penalty still applies if a player failed to follow suit.
+
+Q: What is progressive scoring? Show me what I lose if I miss by 5.
+A: Progressive scoring is a missed-contract penalty scheme where the cost per trick missed grows the more you miss. If you miss by exactly 5 tricks, the penalty is -10 per trick, totaling -50 for that round.
+
+Q: Can the four bids add up to 13?
+A: No. A total of exactly 13 is not allowed. WhistMate blocks the last player from choosing the value that would make the total 13, so the round is always clearly UP or DOWN.
+
+Q: I bid 5 hearts and another player bid 5 spades. Who wins the auction?
+A: 5♠ wins, because spades outrank hearts. Suit rank for bidding is ♣ < ♦ < ♥ < ♠ < no-trump. It is never settled by who bid first.
+
+Q: What is the penalty for a renege, and does it still apply if everyone falls?
+A: The penalty for a renege is -100 for that round, applied on top of your normal score. This penalty still applies even if the round is an "Everyone Falls" cancel.
+
+Q: How many points do I get for making a bid of 7?
+A: A made bid of 7 scores 59 points. The formula for a successful contract is (bid × bid) + 10; so, 7² + 10 = 49 + 10 = 59.
+
+Q: What do an 'up' table and a 'down' table mean?
+A: They describe the sum of the four players' bids:
+- **UP:** The bids total 14 or more (over-booked).
+- **DOWN:** The bids total 12 or less (under-booked).
+
+The total can never be exactly 13. This status is used to determine the bonus for a successful zero bid.
+
+Q: Who decides the trump suit?
+A: The winner of the auction decides the trump suit. The highest bidder at the table chooses the trump suit for the round. You mark the winner and the chosen suit in the app on the bidding screen.
+
+Q: How is the winner of a session decided?
+A: The player with the highest total score when the session closes wins.
+
+Q: I bid 4 and took 6 tricks. What is my score in classic and in progressive scoring?
+A: In both scoring schemes, you missed your contract by 2 tricks (6 − 4 = 2).
+
+- **Classic:** −10 points per trick missed. 2 tricks × −10 = **−20**.
+- **Progressive:** −5 points per trick for a miss of 1–4. 2 tricks × −5 = **−10**.
+
+Q: מה קורה אם כולם נופלים?
+A: "Everyone Falls" — the round is cancelled, everyone's contract points are zeroed, and the round does not count toward a session's optional game limit. Nobody is rewarded or penalized, except for a renege penalty, which still applies.
+
+Q: How do I delete my account?
+A: IDK bro 🤷 — that's not in the WhistMate rulebook.
+
+Q: What are the rules of poker?
+A: IDK bro 🤷 — that's not in the WhistMate rulebook.
+

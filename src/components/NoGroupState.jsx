@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/EmptyState';
 
 export default function NoGroupState() {
@@ -7,7 +9,8 @@ export default function NoGroupState() {
       as="h1"
       icon={Users}
       title="No group selected"
-      description="Go to Groups to open one of your groups, or to create or join one."
+      description="Open one of your groups, or create or join one."
+      action={<Button asChild><Link to="/home">Go to groups</Link></Button>}
     />
   );
 }

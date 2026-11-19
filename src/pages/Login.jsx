@@ -1,20 +1,40 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import ErrorState from '@/components/ErrorState';
+import { Name } from '@/components/UserText';
 import { errorMessage } from '@/lib/format';
+import {
+  DEFAULT_AFTER_SIGN_IN, pendingReturnTo, rememberReturnTo, consumeReturnTo, withReturnTo, inviteFromPath,
+} from '@/lib/authReturnTo';
 
 export default function Login() {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Where the visitor was headed when they were asked to sign in (an invite link, a link
+  // to a session…): ?from_url= on this page, or the address remembered for this tab.
+  // Always a path on this site — see authReturnTo.js.
+  const returnTo = pendingReturnTo(location.search);
+  const invite = inviteFromPath(returnTo);
+
+  // Keep it for this tab too: "Forgot password?" leaves through an e-mail and comes back
+  // to a bare /login.
+  useEffect(() => { if (returnTo) rememberReturnTo(returnTo); }, [returnTo]);
+
+  // Already signed in (a Back press after logging in, an old bookmark): nothing to do here.
+  if (isAuthenticated) return <Navigate to={returnTo || DEFAULT_AFTER_SIGN_IN} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +42,8 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/home";
+      // A full page load, so the app starts again with the new sign-in.
+      window.location.assign(consumeReturnTo(location.search));
     } catch (err) {
       setError(errorMessage(err, "Invalid email or password"));
     } finally {
@@ -30,19 +51,22 @@ export default function Login() {
     }
   };
 
+  // Google sends the browser back to the address it is given, already signed in.
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/home");
+    base44.auth.loginWithProvider("google", consumeReturnTo(location.search));
   };
 
   return (
     <AuthLayout
-      icon={LogIn}
       title="Welcome back"
-      subtitle="Log in to your account"
+      subtitle={invite
+        ? <>Log in to join {invite.name ? <Name className="font-semibold text-foreground">{invite.name}</Name> : 'the group'}</>
+        : "Log in to your account"}
+      notice={location.state?.notice}
       footer={
         <>
           Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
+          <Link to={withReturnTo("/register", returnTo)} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
             Create one
           </Link>
         </>
@@ -66,8 +90,6 @@ export default function Login() {
         </div>
       </div>
 
-      <ErrorState inline message={error} className="mb-4" />
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -89,7 +111,7 @@ export default function Login() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+            <Link to="/forgot-password" className="-my-3 inline-flex min-h-11 items-center text-xs text-primary hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -107,6 +129,8 @@ export default function Login() {
             />
           </div>
         </div>
+        {/* Beside the button that was pressed, where the eye already is */}
+        <ErrorState inline message={error} />
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading ? (
             <>

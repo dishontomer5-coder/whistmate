@@ -25,7 +25,8 @@ const portArg = (() => {
 })();
 const APP = 'sandbox';
 const PASSWORD = 'whist123';
-const IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook.";
+// The assistant's exact refusal line — the same words as in base44/functions/askRules/entry.ts
+const IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring; for your account or your data, see About & privacy in the menu.";
 
 // ---- reach (or start) a sandbox ----
 const freePort = () => new Promise((resolve, reject) => {

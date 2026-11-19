@@ -1,34 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { Globe, ArrowLeft, LogIn } from 'lucide-react';
+import { User, Users, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import GlobalProfileIcon from '@/components/GlobalProfileIcon';
 import StatGrid from '@/components/StatGrid';
 import ScoreChart from '@/components/ScoreChart';
+import NightCards from '@/components/NightCards';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { formatScore, scoreTone, errorMessage } from '@/lib/format';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
-import { UserText } from '@/components/UserText';
+import PlayerAvatar from '@/components/PlayerAvatar';
+import { Name, UserText } from '@/components/UserText';
+import { AccountSection } from '@/pages/Account';
 
-const EMPTY_STATS = {
-  performance: { total_score: 0, avg_score: 0, rounds_played: 0, sessions_played: 0, wins: 0, podiums: 0, win_ratio: 0 },
-  strategy: { contract_accuracy: 0, zero_bids: 0, zero_bid_success: 0, zero_bid_success_rate: 0, bid_aggressiveness: 0 },
-  awards: { greedy_loss: 0, coward_loss: 0, destroyer_count: 0 },
-  timeline: [],
-};
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+// The Me tab (/profile/global): the signed-in person across all their groups — their
+// figures added up, their best and worst night anywhere, a line per group — and, at the
+// foot, the account card (name, e-mail, sign out).
 export default function GlobalProfile() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
-  const { loading: groupsLoading } = useActiveGroup();
+  const { loading: groupsLoading, setActiveGroup } = useActiveGroup();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState(EMPTY_STATS);
-  const [groupsBreakdown, setGroupsBreakdown] = useState([]);
-  const [totalGroups, setTotalGroups] = useState(0);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     if (!isLoadingAuth && !groupsLoading) {
@@ -44,84 +43,89 @@ export default function GlobalProfile() {
       setError('');
       const res = await base44.functions.invoke('computeGlobalStats', {});
       setStats(res.data);
-      setGroupsBreakdown(res.data.groups_breakdown || []);
-      setTotalGroups(res.data.total_groups || 0);
     } catch (err) {
       console.error(err);
-      setError(errorMessage(err, 'Failed to load stats.'));
+      setError(errorMessage(err, "Couldn't load your stats."));
     } finally {
       setLoading(false);
     }
   };
 
+  // /account lands here with #account: show the account card, which is at the foot.
+  const wantsAccount = location.hash === '#account';
+  useEffect(() => {
+    if (!loading && wantsAccount) document.getElementById('account')?.scrollIntoView();
+  }, [loading, wantsAccount]);
+
   if (isLoadingAuth || groupsLoading || loading) return <LoadingSpinner showLogo />;
 
   if (!isAuthenticated || !user) {
     return (
-      <EmptyState as="h1" icon={Globe} title="Global profile"
+      <EmptyState as="h1" icon={User} title="Me"
         description="Sign in to see your stats across all your whist groups."
         action={<Button asChild><Link to="/login"><LogIn />Sign in</Link></Button>} />
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <Link to="/home" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to groups</Link>
-        <ErrorState title="Couldn't load your global stats" message={error} onRetry={loadGlobalStats} />
-      </div>
-    );
-  }
-
-  if (totalGroups === 0) {
-    return (
-      <EmptyState as="h1" icon={Globe} title="No groups yet"
-        description="Join or create a group to start tracking your stats." />
-    );
-  }
-
-  const rounds = stats.performance?.rounds_played || 0;
+  const displayName = user.full_name || String(user.email || '').split('@')[0] || 'Me';
+  const totalGroups = stats?.total_groups || 0;
+  const rounds = stats?.performance?.rounds_played || 0;
+  const groupsBreakdown = stats?.groups_breakdown || [];
 
   return (
     <div className="space-y-6">
-      <Link to="/home" className="flex items-center gap-2 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Back to groups</Link>
-
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <GlobalProfileIcon className="w-7 h-7 text-primary" />
-        </div>
-        <div>
-          <h1 className="page-title">Global stats</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Across {totalGroups} group{totalGroups !== 1 ? 's' : ''} · {rounds} round{rounds !== 1 ? 's' : ''} played
-          </p>
+        <PlayerAvatar name={displayName} size="lg" />
+        <div className="min-w-0">
+          <h1 className="page-title break-words"><Name>{displayName}</Name></h1>
+          {stats && totalGroups > 0 && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              All groups: <span className={`font-heading font-bold ${scoreTone(stats.performance?.total_score)}`}>{formatScore(stats.performance?.total_score)}</span>
+              {' '}in {plural(rounds, 'round')} · {plural(totalGroups, 'group')}
+            </p>
+          )}
         </div>
       </div>
 
-      <StatGrid stats={stats} />
+      {error ? (
+        <ErrorState title="Couldn't load your stats" message={error} onRetry={loadGlobalStats} />
+      ) : totalGroups === 0 ? (
+        <EmptyState compact icon={Users} title="No groups yet"
+          description="Create or join a group, and your stats across all of them will show up here."
+          action={<Button asChild><Link to="/home">Go to groups</Link></Button>} />
+      ) : (
+        <>
+          {/* A night can be in any group: open that group before its session page. */}
+          <NightCards best={stats.best_session} worst={stats.worst_session} onOpen={(night) => night.group_id && setActiveGroup(night.group_id)} />
 
-      <ScoreChart timeline={stats.timeline} />
+          <StatGrid stats={stats} allGroups />
 
-      {groupsBreakdown.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="section-label">Groups breakdown</h2>
-          <div className="space-y-2">
-            {groupsBreakdown.map((g) => (
-              <div key={g.group_id} className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground"><UserText>{g.group_name}</UserText></p>
-                  <p className="text-xs text-muted-foreground">
-                    {g.rounds_played} round{g.rounds_played !== 1 ? 's' : ''} · {formatScore(g.avg_score)} avg
-                  </p>
-                </div>
-                <span className={`font-heading font-bold ${scoreTone(g.total_score)}`}>
-                  {formatScore(g.total_score)}
-                </span>
+          <ScoreChart timeline={stats.timeline} />
+
+          {groupsBreakdown.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="section-label">By group</h2>
+              <div className="space-y-2">
+                {groupsBreakdown.map((g) => (
+                  <div key={g.group_id} className="flex items-center justify-between gap-3 bg-card border border-border rounded-lg p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate"><UserText>{g.group_name}</UserText></p>
+                      <p className="text-xs text-muted-foreground">
+                        {plural(g.rounds_played, 'round')} · {formatScore(g.avg_score)} avg
+                      </p>
+                    </div>
+                    <span className={`flex-shrink-0 font-heading font-bold ${scoreTone(g.total_score)}`}>
+                      {formatScore(g.total_score)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
+
+      <AccountSection />
     </div>
   );
 }
