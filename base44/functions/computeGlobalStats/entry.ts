@@ -109,6 +109,21 @@ function rankSession(rows) {
 }
 
 /**
+ * Did at least one round of a session count? A round in which nobody made their contract
+ * is everyone-falls: cancelled, scored zero. A session whose every scored round fell has
+ * no result — nobody wins it, nobody gets a podium, nobody is leading it.
+ * "Made" is scoring.js's madeContract: took exactly the bid (a zero bid taking no trick
+ * included). A round counts when any of its players made it, so the session counts when
+ * any scored row did. A row that does not say its bid and tricks is taken as counted.
+ * @param {Array<{bid:number, tricks_won:number, points:number}>} rows RoundResult rows of ONE
+ *        session (unscored ones are ignored).
+ * @returns {boolean} false when there is no scored round at all, too.
+ */
+function sessionHasResult(rows) {
+  return rows.some((r) => r.points != null && (r.bid == null || r.tricks_won == null || r.tricks_won === r.bid));
+}
+
+/**
  * Who answers for an everyone-falls round (The Destroyer): the player recorded as the
  * trump winner, or — when none is recorded — every player who bid the highest number.
  * A trump winner counts as recorded only when the round has a trump suit: without one,
@@ -198,11 +213,12 @@ function sessionTime(session) {
  *        wrong (unscored rows are ignored).
  * @param {Array<{id:string, name?:string, session_date?:string, status?:string, created_date?:string}>} sessions
  * @param {string} playerId
- * @returns {Array<{session_id:string, name:string|null, session_date:string|null, status:string|null, total:number, rank:number, players:number}>}
+ * @returns {Array<{session_id:string, name:string|null, session_date:string|null, status:string|null, total:number, rank:number, players:number, no_winner:boolean}>}
  *          total = the player's points that night; rank = their place among the `players`
  *          who scored in it (ties share a rank). status is 'open' or 'closed' (null when the
  *          session record is missing). In an open session the rank is where the player
- *          stands for now — not a result.
+ *          stands for now — not a result. no_winner = no round of the session counted
+ *          (sessionHasResult): the rank is then no result either, open or closed.
  */
 function playerSessions(rows, sessions, playerId) {
   const sessionById = {};
@@ -226,6 +242,7 @@ function playerSessions(rows, sessions, playerId) {
       total: mine.total,
       rank: mine.rank,
       players: ranking.size,
+      no_winner: !sessionHasResult(bySession[sessionId]),
     });
   }
   return entries.sort((a, b) => {
@@ -240,13 +257,14 @@ function playerSessions(rows, sessions, playerId) {
  * Only CLOSED sessions count: a session is won when it is closed with the player in first
  * place. While it is open the top player is only leading, so an open session gives no
  * win, no podium and no best or worst night — and is not in the win-rate denominator.
+ * A closed session with no_winner (no round counted) gives none of these either.
  * @returns {{sessions_played:number, sessions_open:number, wins:number, podiums:number, win_ratio:number|null, best_session:object|null, worst_session:object|null}}
- *          sessions_played = closed sessions (what win_ratio divides by; null when 0).
+ *          sessions_played = closed sessions with a result (what win_ratio divides by; null when 0).
  *          best_session / worst_session = the closed entry with the highest / lowest total
  *          (the more recent one on a tie; the same entry when only one session is closed).
  */
 function sessionRecord(entries) {
-  const closed = entries.filter((e) => e.status === 'closed');
+  const closed = entries.filter((e) => e.status === 'closed' && !e.no_winner);
   const wins = closed.filter((e) => e.rank === 1).length;
   let best = null;
   let worst = null;
@@ -373,7 +391,7 @@ Deno.serve(async (req) => {
         total_score: metrics.total_score,
         avg_score: metrics.avg_score,
         rounds_played: metrics.rounds_played,   // every scored round, open sessions included
-        sessions_played: record.sessions_played, // CLOSED sessions — what win_ratio divides by
+        sessions_played: record.sessions_played, // CLOSED sessions with a counted round — what win_ratio divides by
         sessions_open: record.sessions_open,     // sessions still open that the user has scored in
         wins: record.wins,
         podiums: record.podiums,
@@ -391,7 +409,7 @@ Deno.serve(async (req) => {
       // there are no holders here — computePlayerStats says which ones a player holds.
       awards: { greedy_loss: metrics.greedy_loss, coward_loss: metrics.coward_loss, destroyer_count: destroyerCount },
       // The user's nights across groups, newest first; each entry also names its group.
-      sessions: nights,
+      sessions: nights, // each with no_winner: true when no round of that session counted
       best_session: record.best_session,
       worst_session: record.worst_session,
       timeline,

@@ -1,6 +1,6 @@
 // Standings and award holders for a list of RoundResult rows — pure, no I/O, node-testable
 // (standings.test.mjs). The import is relative so plain node can load this file too.
-import { rankSession, awardFigures, awardLeaders, rate } from './whist-stats.js';
+import { rankSession, sessionHasResult, awardFigures, awardLeaders, rate } from './whist-stats.js';
 
 // Newest session first: by session_date, then by when it was created.
 function newestFirst(a, b) {
@@ -17,7 +17,11 @@ function newestFirst(a, b) {
 //            A WIN IS A CLOSED SESSION FINISHED IN FIRST PLACE, so this is how the function
 //            knows which sessions can be won: only one listed here with status 'closed'
 //            gives a win or a podium. A session that is open — or not listed — gives none.
-// options.deltaSessionId:  optional — force which session `session_delta` refers to.
+//            Nor does a session in which no round counted (every scored round was
+//            everyone-falls — sessionHasResult in whist-stats.js): it has no winner, and
+//            while it is open nobody is leading it.
+// options.deltaSessionId:  optional — force which session `session_delta` refers to (for
+//            a "Tonight · Last night" switch, pass last_closed_session.id).
 //            Left out, it is the open session when that has scored rounds ("tonight"),
 //            otherwise the most recent closed session with scored rounds — and none at all
 //            when the rows are from a single session, where it would only repeat the total.
@@ -34,6 +38,8 @@ function newestFirst(a, b) {
 //   session_delta   the player's points in delta_session; null when they did not score in it
 //   delta_session   { id, name, status } of the session session_delta refers to — the same
 //                   on every row — or null when there is none
+//   last_closed_session  { id, name } of the most recent closed session with scored rounds
+//                   ("last night") — the same on every row — or null when none is closed
 export function buildStandings(rows, nameById = {}, { sessions = [], deltaSessionId = null } = {}) {
   const scored = rows.filter((r) => r.points != null);
   const sessionById = {};
@@ -50,6 +56,8 @@ export function buildStandings(rows, nameById = {}, { sessions = [], deltaSessio
   const deltaId = deltaSessionId
     || (severalSessions && (withScores.find((s) => s.status === 'open') || withScores.find((s) => s.status === 'closed') || {}).id)
     || null;
+  const lastClosed = withScores.find((s) => s.status === 'closed');
+  const lastClosedSession = lastClosed ? { id: lastClosed.id, name: lastClosed.name ?? null } : null;
   const deltaSession = deltaId
     ? { id: deltaId, name: sessionById[deltaId]?.name ?? null, status: sessionById[deltaId]?.status ?? null }
     : null;
@@ -77,6 +85,7 @@ export function buildStandings(rows, nameById = {}, { sessions = [], deltaSessio
   for (const [sessionId, sessionRows] of Object.entries(bySession)) {
     const status = sessionById[sessionId]?.status;
     if (status !== 'closed' && status !== 'open') continue;
+    if (!sessionHasResult(sessionRows)) continue; // no round counted: no winner, nobody leading
     rankSession(sessionRows).forEach(({ rank }, playerId) => {
       const p = byPlayer[playerId];
       if (status === 'open') {
@@ -105,6 +114,7 @@ export function buildStandings(rows, nameById = {}, { sessions = [], deltaSessio
       gap_to_leader: leaderTotal - p.total_score,
       win_ratio: rate(p.wins, p.sessions_played),
       delta_session: deltaSession,
+      last_closed_session: lastClosedSession,
     };
   });
 }

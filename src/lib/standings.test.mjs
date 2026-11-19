@@ -145,6 +145,51 @@ t('no rows -> an empty table', () => {
   assert.deepEqual(buildStandings([], {}, { sessions: sessions() }), []);
 });
 
+// --- a session with no counted round has no winner (qa-tester-1) -----------------------------
+// Bids 4,4,4,2 and tricks 3,3,3,4: nobody made their contract, so everyone fell and every
+// player scored 0 — four players level on top of a session nobody won.
+const fell = (session_id, player_id, bid, tricks_won, points = 0) => ({
+  session_id, game_id: `${session_id}-g1`, player_id, player_name: NAMES[player_id], bid, tricks_won, points,
+});
+const FELL = [fell('s4', 'a', 4, 3), fell('s4', 'b', 4, 3), fell('s4', 'c', 4, 3), fell('s4', 'd', 2, 4)];
+const s4 = (status) => ({ id: 's4', name: 'Nobody made it', session_date: '2026-05-28', status, created_date: '2026-05-28T18:00:00Z' });
+
+t('a closed session where every round fell gives no win, no podium and no session played', () => {
+  const before = buildStandings(ROWS, {}, { sessions: sessions('closed') });
+  const after = buildStandings([...ROWS, ...FELL], {}, { sessions: [...sessions('closed'), s4('closed')] });
+  for (const field of ['wins', 'podiums', 'sessions_played', 'win_ratio']) {
+    assert.deepEqual(pick(after, field), pick(before, field), field);
+  }
+  // Alone it is the same: nobody won it.
+  const alone = buildStandings(FELL, {}, { sessions: [s4('closed')] });
+  assert.deepEqual(pick(alone, 'wins'), { a: 0, b: 0, c: 0, d: 0 });
+  assert.deepEqual(pick(alone, 'podiums'), { a: 0, b: 0, c: 0, d: 0 });
+  assert.deepEqual(pick(alone, 'win_ratio'), { a: null, b: null, c: null, d: null });
+  // ...and while it is open nobody is leading it.
+  assert.deepEqual(pick(buildStandings(FELL, {}, { sessions: [s4('open')] }), 'leading'), { a: false, b: false, c: false, d: false });
+  // One counted round is enough for the night to have a winner.
+  const oneCounted = buildStandings([...FELL, fell('s4', 'a', 3, 3, 19)], {}, { sessions: [s4('closed')] });
+  assert.deepEqual(pick(oneCounted, 'wins'), { a: 1, b: 0, c: 0, d: 0 });
+});
+
+t('last_closed_session names the latest closed night, beside delta_session, on every row', () => {
+  const open = buildStandings(ROWS, {}, { sessions: sessions('open') });
+  assert.deepEqual(open[0].last_closed_session, { id: 's2', name: 'Rematch' });
+  assert.ok(open.every((p) => p.last_closed_session === open[0].last_closed_session));
+  assert.deepEqual(open[0].delta_session, { id: 's3', name: 'Tonight', status: 'open' });
+  // "Last night" while a session is open: pass its id as deltaSessionId.
+  const lastNight = buildStandings(ROWS, {}, { sessions: sessions('open'), deltaSessionId: open[0].last_closed_session.id });
+  assert.deepEqual(lastNight[0].delta_session, { id: 's2', name: 'Rematch', status: 'closed' });
+  assert.deepEqual(pick(lastNight, 'session_delta'), { a: -20, b: 40, c: 10, d: 0 });
+  // Totals do not move with the switch.
+  assert.deepEqual(pick(lastNight, 'total_score'), pick(open, 'total_score'));
+  // With nothing open it is the same session the delta refers to.
+  const closed = buildStandings(ROWS, {}, { sessions: sessions('closed') });
+  assert.deepEqual(closed[0].last_closed_session, { id: 's3', name: 'Tonight' });
+  // Nothing closed yet: null.
+  assert.equal(buildStandings(ROWS.filter((r) => r.session_id === 's3'), {}, { sessions: [sessions('open')[2]] })[0].last_closed_session, null);
+});
+
 // --- awards ---------------------------------------------------------------------------------
 const ef = (game_id, list) => list.map(([player_id, bid]) => ({
   game_id, session_id: 's1', player_id, player_name: NAMES[player_id], bid, tricks_won: bid + 1, points: 0,
