@@ -7,11 +7,12 @@
 > ▶ RESUME HERE (Nov 19 2026): **Phase 13 is CLOSED** after four review rounds (the fourth at the owner's
 > request) and four fix rounds, all deployed: live bundle `index-BjQCevZZ.js` (= local build), signed-out
 > entity reads `[]`, public pages clean at 320/390/1440 px. Review record in `docs/review/round-{1..4}/`;
-> guide in `docs/web-app-best-practices.md`. The owner chose the JESTER for the store icon and will design a
-> flat jester mark in Claude Design; when the files land in `docs/listing/`, replace the in-app spade mark
-> (Logo.jsx, header, auth/invite pages, loading screen), the favicon and the manifest icons. Next is the
-> owner's: signed-in look on a real phone, a Hebrew question to the live assistant, then submit the
-> Clonitt listing (P12-10). Open minors and ideas are in each round's RULINGS.md for a later phase.
+> guide in `docs/web-app-best-practices.md`. The JESTER is live (Nov 19 2026, bundle `index-IHTend1X.js`):
+> mark in Logo.jsx/header/404, animated loader in LoadingSpinner, favicon + apple-touch icon, store icon at
+> https://whist-mate-pro.base44.app/icon-512.png. Owner did: manifest icons, real-phone pass, Hebrew
+> question, deleted `whistmate-role-test`. ONLY LEFT: submit the Clonitt listing (P12-10) — Clonitt was
+> NOT accepting submissions on Nov 19; check `requirements` first. ⚠️ The base44 CLI must be logged in as
+> dishontomer5@gmail.com (not the work account) to deploy. Open minors/ideas: each round's RULINGS.md.
 > in_progress: none.
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
 > **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
