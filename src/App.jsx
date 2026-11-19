@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
+import { NavTrail } from './components/BackLink';
 import Logo from './components/Logo';
 // Pages
 import Home from './pages/Home';
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
       <Route path="/rules" element={<RulesChat />} />
       <Route element={<Layout />}>
         <Route path="/home" element={<HomeGlobal />} />
+        {/* The account card moved to the foot of Me; the old address still lands on it. */}
         <Route path="/account" element={<Account />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/about" element={<About />} />
@@ -85,6 +87,8 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
+          {/* Notes where each page was opened from, so a page's back link can say where it goes. */}
+          <NavTrail />
           <AuthenticatedApp />
         </Router>
         <Toaster />

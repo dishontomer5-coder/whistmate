@@ -13,9 +13,13 @@ import { formatDate, sessionName, errorMessage } from '@/lib/format';
 import ErrorState from '@/components/ErrorState';
 import { Name, UserText, dirAuto } from '@/components/UserText';
 
-export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, onSubmitted }) {
+// A note about one player.
+//   groupId   the player's group (default: the active group). The player page passes the
+//             group of the player on screen, which is where the note belongs.
+export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, groupId, onSubmitted }) {
   const { user } = useAuth();
   const { activeGroupId } = useActiveGroup();
+  const noteGroupId = groupId || activeGroupId;
   const [note, setNote] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState('none');
@@ -28,7 +32,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
     if (open && user && targetPlayerId) {
       loadSharedSessions();
     }
-  }, [open, user, targetPlayerId, activeGroupId]);
+  }, [open, user, targetPlayerId, noteGroupId]);
 
   useEffect(() => {
     if (open) {
@@ -42,7 +46,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
   // The sessions both players sat at — a note can be pinned to one (P12-4).
   // Worked out server-side: getGroupData checks group membership (P12-1).
   const loadSharedSessions = async () => {
-    if (!activeGroupId) {
+    if (!noteGroupId) {
       setSharedSessions([]);
       return;
     }
@@ -60,7 +64,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
 
   const handleSubmit = async () => {
     if (!note.trim()) {
-      setError('Please write a note before submitting.');
+      setError('Write the note first.');
       return;
     }
     try {
@@ -69,7 +73,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
       // Via createNote — author is derived server-side; anonymous notes store no
       // identity at all. Direct TableTalkNote writes are blocked by RLS (P9-7).
       await base44.functions.invoke('createNote', {
-        group_id: activeGroupId,
+        group_id: noteGroupId,
         target_player_id: targetPlayerId,
         note: note.trim(),
         is_anonymous: isAnonymous,
@@ -78,7 +82,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
       onOpenChange(false);
       if (onSubmitted) onSubmitted();
     } catch (err) {
-      setError(errorMessage(err, 'Failed to submit note.'));
+      setError(errorMessage(err, "Couldn't post the note."));
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +106,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
               {...dirAuto}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Share your thoughts on their play style..."
+              placeholder="How do they play? What happened at the table?"
               className="min-h-[100px] resize-none"
               maxLength={500}
             />
@@ -114,15 +118,15 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
             {loadingSessions ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Loading shared sessions...
+                Loading the sessions you both played…
               </div>
             ) : (
               <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a shared session" />
+                <SelectTrigger aria-label="Link to a session">
+                  <SelectValue placeholder="Choose a session" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">General note (no specific session)</SelectItem>
+                  <SelectItem value="none">General note (no session)</SelectItem>
                   {sharedSessions.map(s => (
                     <SelectItem key={s.id} value={s.id}>
                       <UserText>{sessionName(s)}</UserText> · {formatDate(s.session_date || s.created_date)}
@@ -136,7 +140,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
           <div className="flex items-center justify-between gap-3 bg-background border border-border rounded-lg p-3">
             <div>
               <p className="text-sm font-medium text-foreground">Post anonymously</p>
-              <p className="text-xs text-muted-foreground">Your name is never stored — truly anonymous.</p>
+              <p className="text-xs text-muted-foreground">Your name is not stored with the note.</p>
             </div>
             <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} aria-label="Post anonymously" />
           </div>
@@ -150,7 +154,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || !note.trim()}>
             {submitting ? <Loader2 className="animate-spin" /> : <MessageSquarePlus />}
-            {submitting ? 'Submitting...' : 'Submit note'}
+            {submitting ? 'Posting…' : 'Post note'}
           </Button>
         </DialogFooter>
       </DialogContent>
