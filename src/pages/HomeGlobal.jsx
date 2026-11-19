@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
@@ -49,6 +49,17 @@ export default function HomeGlobal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A signed-out visitor whose page load started on a page inside the app goes on to the
+  // login form, which brings them back there (see `sentToLogin` above).
+  const goToLogin = !isLoadingAuth && (!isAuthenticated || !user) && !sentToLogin
+    && !!BOOT_PATH && !inviteFromPath(BOOT_PATH) && pendingReturnTo(location.search) === BOOT_PATH;
+  useEffect(() => {
+    if (!goToLogin) return;
+    sentToLogin = true;
+    navigate(withReturnTo('/login', BOOT_PATH), { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goToLogin]);
+
   const handleJoinOpenChange = (open) => {
     setShowJoin(open);
     if (!open && invite) {
@@ -90,12 +101,10 @@ export default function HomeGlobal() {
   if (isLoadingAuth || (isAuthenticated && groupsLoading)) return <LoadingSpinner showLogo />;
 
   if (!isAuthenticated || !user) {
+    // On the way to the login form (the effect above): no flash of the landing page
+    if (goToLogin) return <LoadingSpinner showLogo />;
     // Where this visitor was headed, if anywhere (see authReturnTo.js)
     const returnTo = pendingReturnTo(location.search);
-    if (!sentToLogin && BOOT_PATH && returnTo === BOOT_PATH && !inviteFromPath(BOOT_PATH)) {
-      sentToLogin = true;
-      return <Navigate to={withReturnTo('/login', returnTo)} replace />;
-    }
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4">
         <div className="w-28 h-28 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center text-6xl font-bold mb-6 ring-1 ring-primary/30 shadow-[0_0_60px_-15px] shadow-primary/40">
@@ -111,7 +120,7 @@ export default function HomeGlobal() {
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0"><Target className="w-4 h-4 text-primary" /></div>
-            <p className="text-sm text-muted-foreground">Track contracts, 0-bids, and up/down tables</p>
+            <p className="text-sm text-muted-foreground">Track contracts, zero bids, and up/down tables</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0"><Trophy className="w-4 h-4 text-primary" /></div>
