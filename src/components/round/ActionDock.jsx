@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // The bar at the bottom of a round-entry screen: the number pad (when the step has one),
@@ -24,6 +24,11 @@ import { cn } from '@/lib/utils';
 //    view stops above the dock, not behind it).
 //  - The bottom padding grows by the device's safe area (home indicator).
 const GAP_ABOVE = 8; // air between the last line of the page and the dock
+
+// Sent on window after the dock's height has changed (the pad gives way to the trump keys,
+// a status line appears, the phone is turned) and the page has made room for it, so the
+// rows can move clear of it again.
+export const DOCK_RESIZE_EVENT = 'whistmate:dock-resize';
 
 export default function ActionDock({ label, children, className }) {
   const dockRef = useRef(null);
@@ -55,6 +60,12 @@ export default function ActionDock({ label, children, className }) {
       root.style.removeProperty('--dock-h');
     };
   }, []);
+
+  // Tell the rows once the new reserve is in the page: only then is there room to scroll
+  // them clear of a dock that has grown.
+  useEffect(() => {
+    window.dispatchEvent(new Event(DOCK_RESIZE_EVENT));
+  }, [reserve]);
 
   return (
     <>
@@ -114,4 +125,17 @@ export const dockScrollMargins = {
 export function showRows(block, activeRow) {
   block?.scrollIntoView({ block: 'nearest' });
   activeRow?.scrollIntoView({ block: 'nearest' });
+}
+
+// Keep the rows clear of the dock: when the cursor moves to another row, and again
+// whenever the dock changes height. `getTargets` returns [block, activeRow].
+export function useRowsInView(getTargets, activeIndex) {
+  const targets = useRef(getTargets);
+  targets.current = getTargets;
+  useEffect(() => {
+    const show = () => showRows(...targets.current());
+    show();
+    window.addEventListener(DOCK_RESIZE_EVENT, show);
+    return () => window.removeEventListener(DOCK_RESIZE_EVENT, show);
+  }, [activeIndex]);
 }

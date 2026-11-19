@@ -203,7 +203,7 @@ export default function SessionView() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="-mt-3 space-y-4">
       <div className="-my-2 flex items-center justify-between">
         <BackLink fallback="/history" className="-ml-1 pl-1" />
         <div className="-mr-2 flex items-center">

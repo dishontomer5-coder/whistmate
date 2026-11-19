@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Name } from '@/components/UserText';
 import { RENEGE_PENALTY } from '@/lib/scoring';
 import { signed } from '@/lib/scoring-help';
 import { scoreTone } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PHASE } from './RoundChrome';
-import { dockScrollMargins, showRows } from './ActionDock';
+import { dockScrollMargins, useRowsInView } from './ActionDock';
 import NumberPad from './NumberPad';
 
 // The label of the renege switch, with its cost read off the engine: "Renege −100".
@@ -26,9 +26,7 @@ export default function TrickRows({ players, bids, tricks, reneges, activeIndex,
   const rowRefs = useRef([]);
 
   // Keep the rows on screen: on a short phone the dock would cover the lower ones.
-  useEffect(() => {
-    showRows(blockRef.current, rowRefs.current[activeIndex]);
-  }, [activeIndex]);
+  useRowsInView(() => [blockRef.current, rowRefs.current[activeIndex]], activeIndex);
 
   return (
     <div ref={blockRef} style={dockScrollMargins} className="space-y-1.5" data-trick-rows>

@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Spade } from 'lucide-react';
 import { Suit, SUIT_LABEL } from '@/components/Suit';
 import { Name } from '@/components/UserText';
 import { cn } from '@/lib/utils';
 import { PHASE } from './RoundChrome';
-import { dockScrollMargins, showRows } from './ActionDock';
+import { dockScrollMargins, useRowsInView } from './ActionDock';
 
 // The four players of a round with their bids, in bidding order, and at the end of each
 // row the trump mark: tap it to record that this player won the trump.
@@ -28,9 +28,7 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
   const activeIndex = focus.field === 'bid' ? focus.index : -1;
 
   // Keep the rows on screen: on a short phone the dock would cover the lower ones.
-  useEffect(() => {
-    showRows(blockRef.current, rowRefs.current[activeIndex]);
-  }, [activeIndex]);
+  useRowsInView(() => [blockRef.current, rowRefs.current[activeIndex]], activeIndex);
 
   return (
     <div className="space-y-1.5">
@@ -45,7 +43,7 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
         return (
           <div key={p.player_id} ref={(el) => { rowRefs.current[i] = el; }} style={dockScrollMargins}
             className={cn(
-              'flex h-12 items-center gap-1 rounded-lg border pr-0.5 transition-colors [@media(min-height:760px)]:h-14',
+              'flex h-[46px] items-center gap-1 rounded-lg border pr-0.5 transition-colors [@media(min-height:760px)]:h-14',
               active ? PHASE.bidding.row : 'border-border bg-card'
             )}>
             <button type="button" onClick={() => onSelect(i)} aria-pressed={active}

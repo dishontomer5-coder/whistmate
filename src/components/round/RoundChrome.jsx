@@ -38,13 +38,14 @@ export function PhaseBanner({ phase, title, subtitle, roundNumber, badge }) {
   );
 }
 
-// One line after the scorer comes back to a round they had started to fill in.
+// One line after the scorer comes back to a round they had started to fill in: what was
+// kept on this device and put back ("Restored: 3 bids."). Short, so it stays one line.
 export function RestoredNote({ what }) {
   if (!what) return null;
   return (
     <p role="status" data-restored-note className="flex items-start gap-1.5 text-xs leading-snug text-emerald-400">
       <RotateCcw className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-      <span>Restored what was typed on this device: {what}.</span>
+      <span>Restored: {what}.</span>
     </p>
   );
 }

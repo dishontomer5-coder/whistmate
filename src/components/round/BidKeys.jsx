@@ -23,7 +23,7 @@ export default function BidKeys({
       <div className="space-y-2" data-trump-keys>
         <div className="flex min-h-7 items-center justify-between gap-2">
           <p className="min-w-0 truncate text-xs text-muted-foreground">
-            Trump won by <span className="font-medium text-foreground"><Name>{trumpOwnerName}</Name></span> — pick the suit
+            Trump won by <span className="font-medium text-foreground"><Name>{trumpOwnerName}</Name></span>
           </p>
           {/* Trump is optional outside advanced sessions, so the mark can be taken off again. */}
           {onRemoveTrump && (
