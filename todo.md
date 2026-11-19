@@ -4,11 +4,30 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 18 2026): **Phase 13 (substantial UX improvement by an independent team) is
-> PLANNED and not started.** Next action = **P13-1** (build the sandbox). Read plan.md Phase 13 first:
-> it holds the team, the loop, the owner's decisions (full authority to decide and change; may push and
-> deploy), what must not change, and the "Done when" list. The owner starts the run with a `/goal`
-> that points at that section.
+> ▶ RESUME HERE (Nov 19 2026, 02:30): **Phase 13, fix round 1 (P13-4) — wave 2 was INTERRUPTED by the
+> account's usage limit (resets 03:50 Asia/Jerusalem) a few minutes after it started.** Done and on
+> `main` (pushed): the sandbox, review round 1 (138 findings → 86 verified problems, all listed below
+> with owners), the backend hardening and the role fix (live), wave 1 = stats/backend (functions
+> deployed live) + the foundation (shared components; frontend NOT yet deployed — the live site is
+> still the Phase 12 build, which is compatible with the live functions).
+> NEXT: re-run wave 2 — three implementers in separate worktrees with disjoint files: (A) structure
+> and navigation, (B) the round flow, (C) onboarding and admin — and the best-practices guide writer
+> (P13-8; no file written yet). In the SAME session, resume the interrupted agents with a message;
+> in a new session, start them again from their briefs. Everything they need is in the session
+> scratchpad folder `review/r1/`: `RULINGS.md` (66 rulings, owner per ruling), `SHARED-PIECES.md`,
+> `DATA-SHAPES.md`, `triage-verified.json`, `all-findings.json`; if the scratchpad is gone, plan.md
+> "Round 1 — design decisions" and the P13-R1-Cxx list below carry the substance. Agreements between
+> the three: A owns `App.jsx`, `Layout.jsx` and the menu, hides the tab bar on `/session/new`,
+> `/session/:id/round/new`, `/round/:id`, and exposes a group-from-page helper in
+> `ActiveGroupContext`; B owns the session/round pages and builds a sticky action bar that works with
+> or without the tab bar; C owns auth, join, admin, the rules page and `askRules` outside the
+> generated block. A's interrupted worktree (`.claude/worktrees/agent-a75d148a03a271a5a`) holds two
+> uncommitted starts (`ActiveGroupContext.jsx`, a new `BackLink.jsx`); B and C had changed nothing.
+> THEN: merge the three, have the QA tester verify every changed flow (before/after screenshots),
+> deploy (functions → site → push), re-probe the live site, run review round 2 with fresh reviewers
+> (P13-6), refresh the listing (P13-10), close the phase.
+> Waiting on the owner (not blocking): choose the store icon — the jester artwork or
+> `docs/listing/whistmate-icon-1024.png`; delete the throwaway Base44 app `whistmate-role-test`.
 > Phase 12 (Clonitt listing readiness) is DEPLOYED and verified on the live site signed out; the owner
 > then opened the live app signed in and Home and History loaded with data (Nov 18 2026). The listing
 > is NOT to be submitted (P12-10) until Phase 13 closes — the owner's call.
