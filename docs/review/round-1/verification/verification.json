@@ -1,0 +1,798 @@
+[
+ {
+  "cluster": "C01",
+  "verdict": "fixed",
+  "observed": "Signed-out invite -> 'I already have an account' -> /login?from_url=/join... -> Log in as newbie lands on /home with dialog 'Joining Thursday Whist'. Sign-up path keeps from_url through /register and the code step ('Verify' -> /home with 'Joining Family Table'). Google from the invite also returns to the join dialog. Signed-out deep link /round/579ae... -> /login?from_url=...; after login 'now at /round/579ae075098281d89c967fb0'.",
+  "evidence": [
+   "shots/verify-003-C01-join-dialog-after-login.png",
+   "shots/verify-c-005-C58-login-320.png",
+   "'OK tapped [5] button \"Log in\" → now at /round/579ae075098281d89c967fb0'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C02",
+  "verdict": "fixed",
+  "observed": "Invite page shows spade mark, 'You're invited to join Thursday Whist on WhistMate', one line about WhistMate, 'Create an account' (primary) + 'I already have an account', About link. Without name param: 'You're invited to join a whist group on WhistMate'. Signed in, the join dialog opens over the groups page, not a blank screen.",
+  "evidence": [
+   "shots/verify-001-C02-join-signedout-390.png",
+   "shots/verify-002-C02-join-signedout-320.png",
+   "shots/verify-003-C01-join-dialog-after-login.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C03",
+  "verdict": "fixed",
+  "observed": "New group shows 'Three steps to your first round' (Add players 1 of 4 / Copy invite link / Start the first session). Pick-the-table with 1 player: 'This group has 1 player — a round needs 4. [Add players]'. Admin order: Members (Add player, invite code/link) -> Group settings -> Danger zone.",
+  "evidence": [
+   "shots/verify-c-003-C03-checklist-390.png",
+   "shots/verify-c-004-C03-checklist-320.png",
+   "shots/verify-030-C03-admin-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C04",
+  "verdict": "fixed",
+  "observed": "'How scoring works' sheet opens from '?' on round screens, session and standings; UP/DOWN badge, 'EVERYONE FELL' badge and Renege badges open it at the matching section (Everyone falls section highlighted). Covers making a bid, misses (both methods), zero, up/down, everyone falls, renege, trump and card order.",
+  "evidence": [
+   "shots/verify-038-C04-help-everyone-falls.png",
+   "shots/verify-044-C04-help-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C05",
+  "verdict": "fixed",
+  "observed": "New Session: 'Progressive — A missed bid: −5 each for 1–4 off, −10 each for 5, −15 each for 6, −20 each for 7 or more.' Help sheet says the same.",
+  "evidence": [
+   "shots/verify-039-C53-new-session-form.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C06",
+  "verdict": "fixed",
+  "observed": "Control reads 'Renege −100', 32 px tall with a ::after hit area to 44 px, filled red when on, aria-pressed; row preview shows 'bid 2 · made −86'; saved card shows a 'Renege −100' badge that opens the help.",
+  "evidence": [
+   "shots/verify-009-C06-renege-preview-390.png",
+   "shots/verify-010-C10-results-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C07",
+  "verdict": "fixed",
+  "observed": "Rows show 'bid 4 · made +26', 'bid 3 · 1 off −10' as tricks are typed; all missing -> '(alert) Nobody made their contract — everyone falls, all contract points are 0' and previews show 0.",
+  "evidence": [
+   "shots/verify-015-C07-everyone-falls.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C08",
+  "verdict": "fixed",
+  "observed": "Fresh seed standings: Maya 9 wins, נועה 3, Dan 2 (closed sessions only). Open session standings show 'Leading', no wins. After closing Midweek, נועה went to 4 wins.",
+  "evidence": [
+   "shots/verify-005-standings-390.png",
+   "shots/verify-043-C08-standings-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C09",
+  "verdict": "fixed",
+  "observed": "'Discard round' on bidding, results and on the in-play round card; one confirmation ('Discard round 5? ... Nobody scores anything for it.'). 'Close session' stays offered with a round in play; its dialog says 'Round 5 is still in play — it will be discarded' with 'Discard round and close'. Draft cleared afterwards.",
+  "evidence": [
+   "shots/verify-006-C09-session-390.png",
+   "shots/verify-007-C09-session-320.png",
+   "shots/verify-016-C09-discard-dialog.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C10",
+  "verdict": "fixed",
+  "observed": "Tab bar hidden on pick/bidding/results/edit; Save round/Lock bids sticky at bottom, 52 px tall (508-560 at 320x568). At 375x667 results step scrollHeight 667 = viewport (no scroll). Keys 44x44, 7 columns at 390, 5 at 320.",
+  "evidence": [
+   "shots/verify-009-C06-renege-preview-390.png",
+   "shots/verify-010-C10-results-320.png",
+   "eval at 375x667: [667,667,667]"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C11",
+  "verdict": "fixed",
+  "observed": "At 320: h1 'Results' clientWidth 118 = scrollWidth 118 (no ellipsis), pad visible with Save, no horizontal overflow; sessions cards wrap cleanly.",
+  "evidence": [
+   "shots/verify-010-C10-results-320.png",
+   "shots/verify-022-C22-sessions-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C12",
+  "verdict": "fixed",
+  "observed": "Advanced session: 'CARD ORDER' heading with 'Ace high' / 'Ace high, then 2 up to King'; Lock bids blocked with '(alert) Choose the card order'; results header shows 'Trump ♥ Hearts · Maya · Ace high, then 2 up to King'.",
+  "evidence": [
+   "shots/verify-024-C12-advanced-bidding.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C13",
+  "verdict": "fixed",
+  "observed": "Results with 2 tricks + Dan renege -> Edit bids ('Round 4 · the tricks entered are kept') -> Cancel: tricks 4 and 2 and Dan's renege still there.",
+  "evidence": [
+   "shots/verify-008-C13-editbids.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C14",
+  "verdict": "fixed",
+  "observed": "Results: reload -> '(alert) Restored: tricks for 2 players and 1 renege.'; bidding: left via 'Session' and resumed -> 'Restored: 2 bids.'; localStorage key whistmate:round-draft:* removed after save/discard/close.",
+  "evidence": [
+   "'(alert) Restored: tricks for 2 players and 1 renege.'",
+   "'(alert) Restored: 2 bids.'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C15",
+  "verdict": "fixed",
+  "observed": "Tapped row 3 (נועה) first, bid 3 -> cursor to row 4 (יוסי), then wraps to Maya, then Dan. 'Same players as last round — Maya bids first' seats the same four rotated by one (last round יוסי,Maya,Dan,נועה -> Maya,Dan,נועה,יוסי).",
+  "evidence": [
+   "shots/verify-012-C41-bidding-390.png",
+   "shots/verify-013-C41-bidding-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C16",
+  "verdict": "fixed",
+  "observed": "Session page offers one-tap 'Same table — Maya bids first' that opens bidding directly.",
+  "evidence": [
+   "shots/verify-011-C70-last-round.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C17",
+  "verdict": "fixed",
+  "observed": "With Thursday Whist active, a Family Table player link from Activity and its session open under header 'FAMILY TABLE', no Admin tab, no Edit round (Maya is a player there), no 'Player Not Found'.",
+  "evidence": [
+   "shots/verify-049-C17-cross-group-390.png",
+   "shots/verify-050-C17-cross-group-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C18",
+  "verdict": "fixed",
+  "observed": "Session -> header 'All groups' -> /home -> Back -> /session/09cb..., Back again -> /player/9aab...",
+  "evidence": [
+   "shots/verify-051-C18-groups-320.png",
+   "'OK went back → now at /session/09cb71fa831cc9ce692b9ac1'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C19",
+  "verdict": "fixed",
+  "observed": "Tabs: Standings (trophy, /), Sessions (calendar, /history), Players (/profile), Admin (admins only). Session/round pages light Sessions; player pages light Players.",
+  "evidence": [
+   "shots/verify-005-standings-390.png",
+   "shots/verify-043-C08-standings-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C20",
+  "verdict": "fixed",
+  "observed": "Header shows '‹ Groups' with label at every width; one in-page back control naming its target ('Standings', 'Sessions', 'Session', 'Activity', 'Player'); no undersized header buttons in the sweep.",
+  "evidence": [
+   "shots/verify-006-C09-session-390.png",
+   "shots/verify-007-C09-session-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C21",
+  "verdict": "fixed",
+  "observed": "Player page opened from Activity: back reads 'Activity'; session opened from a player: back reads 'Player'; About opened from a session: back reads 'Session'.",
+  "evidence": [
+   "shots/verify-029-C25-note-landing.png",
+   "'[3] button \"Activity\"' on /player/9ebb..."
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C22",
+  "verdict": "fixed",
+  "observed": "Sessions cards: date, place, rounds, method, 'Advanced'; closed ones show winner + score and 'You: 2nd · +25' / 'You won'. Players tab has Best night / Worst night with session, date, place.",
+  "evidence": [
+   "shots/verify-021-C22-sessions-390.png",
+   "shots/verify-022-C22-sessions-320.png",
+   "shots/verify-025-C22-players-390.png",
+   "shots/verify-026-C22-players-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C23",
+  "verdict": "fixed",
+  "observed": "In-app confirmation 'Close this session? ... cannot be reopened'; afterwards page leads with 'FINAL RESULT נועה won · +125' and 'Final standings'. Ties: 'אמא and סבא משה won together'.",
+  "evidence": [
+   "shots/verify-019-C23-close-dialog.png",
+   "shots/verify-020-C23-closed-session.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C24",
+  "verdict": "fixed",
+  "observed": "Round history on /profile (me) and /player/:id, grouped by session (name, date, place, total), 20 rows then '(alert) Showing the latest 20 of 80 rounds' + 'Show 20 more'.",
+  "evidence": [
+   "shots/verify-047-C24-round-history-320.png",
+   "shots/verify-048-C24-round-history-390.png"
+  ],
+  "missing": "The scored round page itself still names no session or date (see verify-2)."
+ },
+ {
+  "cluster": "C25",
+  "verdict": "fixed",
+  "observed": "Activity note -> /player/9ebb...#table-talk, scrolled to TABLE TALK with 'Leave a note' at its head, above round history.",
+  "evidence": [
+   "shots/verify-029-C25-note-landing.png",
+   "shots/verify-046-C25-note-landing-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C26",
+  "verdict": "fixed",
+  "observed": "Tapping TOTAL SCORE puts the explanation under the number inside the tile; tiles in even counts (6 results, 6 bidding).",
+  "evidence": [
+   "shots/verify-027-C26-tile-popover.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C27",
+  "verdict": "fixed",
+  "observed": "Player switcher at top: combobox 'Switch player' showing 'Player Maya (you)'.",
+  "evidence": [
+   "shots/verify-027-C26-tile-popover.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C28",
+  "verdict": "fixed",
+  "observed": "Activity line: 'Thursday Whist · Midweek special, Nov 19, 2026 · written today' (session date and written date both labelled); round rows are grouped under their session.",
+  "evidence": [
+   "shots/verify-028-C40-activity-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C29",
+  "verdict": "fixed",
+  "observed": "After opening Activity, Maya posted a note: header button stays 'All groups' (no 'new activity'), own notes show no 'New' tag.",
+  "evidence": [
+   "'[1] button \"All groups\"' after posting own note"
+  ],
+  "missing": "Activity is still only reachable outside a group (not ruled)."
+ },
+ {
+  "cluster": "C30",
+  "verdict": "fixed",
+  "observed": "New e-mail account: Me shows 'vera.new' (from the e-mail), not 'User'; account block at the foot of Me; /account redirects to /profile/global#account.",
+  "evidence": [
+   "'# vera.new' on /profile/global"
+  ],
+  "missing": "Sign-up still never asks for a name and there is no way to set one (not required by ruling 32)."
+ },
+ {
+  "cluster": "C31",
+  "verdict": "fixed",
+  "observed": "After claiming: dialog 'You're now יוסי in Thursday Whist', how to undo (ask an admin to detach) and how to leave (Players › Leave this group). New player variant also shown.",
+  "evidence": [
+   "shots/verify-004-C31-claimed.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C32",
+  "verdict": "fixed",
+  "observed": "Password rule 'At least 8 characters.' shown before submit; reset -> 'Password changed ... Log in with your new password'; reused link -> 'This link can't be used ... [Request a new link]'.",
+  "evidence": [
+   "'# Password changed'",
+   "'# This link can't be used'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C33",
+  "verdict": "fixed",
+  "observed": "No 'game', 'scouting', 'ghost', 'WHIST' stray on Standings, Sessions, Players, Me, Admin, About, Activity, session page (text + SVG search). Header 'WHISTMATE'; menu 'Rules & scoring'; dialog 'Leave a note'.",
+  "evidence": [
+   "text search output: no matches except group names"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C34",
+  "verdict": "fixed",
+  "observed": "'· 3 is blocked — the bids can't total 13'; edit bids subtitle 'the tricks entered are kept'; new session shows 'No scores yet / Standings appear when the first round is saved'.",
+  "evidence": [
+   "shots/verify-035-C41-hint-hebrew.png"
+  ],
+  "missing": "'Network Error' wording not exercised (could not cut the network)."
+ },
+ {
+  "cluster": "C35",
+  "verdict": "fixed",
+  "observed": "Member '⋯' menu: claimed with history -> 'Detach account' with explanation; unclaimed with history -> only Rename + 'can't be removed' line; no-history player -> 'Remove player' with 'nothing is lost'. No 'ghost'/'soft-delete'.",
+  "evidence": [
+   "shots/verify-032-C46-member-menu-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C36",
+  "verdict": "fixed",
+  "observed": "Optional 'Round limit' (1–99, 150 refused); header 'Round limit 3 · 0 played'; everyone-falls round not counted; at 3 -> 'Round limit reached — 3 of 3 rounds played.' with only Close session.",
+  "evidence": [
+   "'Round limit reached — 3 of 3 rounds played.'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C37",
+  "verdict": "fixed",
+  "observed": "Destroyer: 'Most \"everyone falls\" rounds as the top bidder', Maya 2 rounds; after Dan won the trump in an everyone-falls round, Maya's page reads 'shared with Dan · 2 rounds'. Profiles list only 'AWARDS HELD'; Old Crew hides the unheld award.",
+  "evidence": [
+   "shots/verify-027-C26-tile-popover.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C38",
+  "verdict": "fixed",
+  "observed": "Legend 'Total score · ↑↓ tonight' with an open session; after closing, rows read 'Thursday, 19 Nov: +26' (last closed session name). Gap to leader shown ('406 behind').",
+  "evidence": [
+   "shots/verify-005-standings-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C39",
+  "verdict": "fixed",
+  "observed": "ZERO-BID SUCCESS '—' with 'No zero bids yet'; WIN RATE '—  No closed session yet'.",
+  "evidence": [
+   "'[10] button \"ZERO-BID SUCCESS — No zero bids yet\"'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C40",
+  "verdict": "fixed",
+  "observed": "Notes, session names and places carry dir=auto (computed rtl for Hebrew); names in sentences in <bdi>; textarea dir=auto.",
+  "evidence": [
+   "shots/verify-028-C40-activity-390.png",
+   "shots/verify-045-C40-activity-320.png",
+   "eval: 'מי שמביאה עוגה... | P dirattr=P:auto comp=rtl'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C41",
+  "verdict": "fixed",
+  "observed": "Row labels: '3. ' at x=29 then <bdi>נועה</bdi> at x=46 (number first). Hint 'Bid for <bdi>נועה</bdi> · 3 is blocked — the bids can't total 13' in order.",
+  "evidence": [
+   "shots/verify-012-C41-bidding-390.png",
+   "shots/verify-013-C41-bidding-320.png",
+   "shots/verify-036-C41-hint-hebrew.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C42",
+  "verdict": "partly",
+  "observed": "Round screens: keys 44x44 (51x44 at 320), Save/Lock 52 high, Renege and UP badges extended to ≥44 by an ::after hit area, header/back controls ≥44. Sweep at 320/390/1440 found remaining under-44 targets elsewhere.",
+  "evidence": [
+   "sweep: '53x36 Dan', '53x36 Maya' (award holder links on Standings)",
+   "sweep: '72x15 ליל שישי ארוך' (inline session link in Admin danger zone)",
+   "sweep: '40x44 Log in' (/register)",
+   "app-admin: all action buttons 36 px tall ('95x36 Archive', '97x36 Make admin')"
+  ],
+  "missing": "Award holder links, the inline session link in Admin, the Log in link on /register and every /app-admin button are under 44 px (ruling 15/39)."
+ },
+ {
+  "cluster": "C43",
+  "verdict": "fixed",
+  "observed": "UP/DOWN: neutral outlined badge (text #F2F4F7, border rgb(103,121,162), ▲/▼). Scores: gains gold rgb(253,216,53), 0 muted rgb(159,169,188), losses rgb(248,113,113); award values -600/-305 now red text.",
+  "evidence": [
+   "eval output on session and standings"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C44",
+  "verdict": "fixed",
+  "observed": "Picker order ♣ ♦ ♥ ♠ NT; ♦/♥ rgb(248,113,113), ♣/♠/NT foreground; red hearts on cards and headers.",
+  "evidence": [
+   "shots/verify-014-C61-trump-picker.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C45",
+  "verdict": "fixed",
+  "observed": "Loss text uses #F87171 (rgb 248,113,113) instead of #E03E3E on every inspected screen.",
+  "evidence": [
+   "eval: '-10 rgb(248, 113, 113)'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C46",
+  "verdict": "fixed",
+  "observed": "Admin at 320: scrollWidth 320; rows 'Dan ✓Claimed' + e-mail + '⋯'; menu fits; no inline Confirm/Cancel.",
+  "evidence": [
+   "shots/verify-031-C46-admin-320.png",
+   "shots/verify-032-C46-member-menu-320.png",
+   "shots/verify-030-C03-admin-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C47",
+  "verdict": "fixed",
+  "observed": "ConfirmDialog for Regenerate ('The code NHUA1B and every invite link already sent will stop working'), Archive, Delete (type-the-name; lower-case name does not enable it), Remove/Detach, Discard/Delete round, Close session, Delete note, app-admin Make admin and Archive.",
+  "evidence": [
+   "shots/verify-034-C47-regenerate-dialog.png",
+   "shots/verify-052-C47-regenerate-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C48",
+  "verdict": "skipped",
+  "observed": "Store icon is the owner's artwork — deliberately not done (RULINGS).",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C49",
+  "verdict": "fixed",
+  "observed": "Dialogs are rounded cards with margins; buttons stacked with a gap; Close is a labelled X.",
+  "evidence": [
+   "shots/verify-c-002-C49-dialog.png",
+   "shots/verify-016-C09-discard-dialog.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C50",
+  "verdict": "fixed",
+  "observed": "/this-page-does-not-exist: app look, 'Page not found / That link doesn't lead anywhere...' + 'Back to groups'.",
+  "evidence": [
+   "shots/verify-b-002-C50-404.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C51",
+  "verdict": "fixed",
+  "observed": "Text-size sweep (every text node) on 19 screens at 320/390/1440: 0 nodes under 12 px. One page-title style seen.",
+  "evidence": [
+   "sweep: nf 0 on every page"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C52",
+  "verdict": "partly",
+  "observed": "Gold now means gained score and primary action, but is still also used for the active tab, 'You', 'Leading'/'Winner'/'IN PLAY' badges, 'Admin'/'Claimed' tags and selected options.",
+  "evidence": [
+   "shots/verify-005-standings-390.png",
+   "shots/verify-030-C03-admin-390.png"
+  ],
+  "missing": "No ruling targeted this beyond ruling 37; gold remains the colour of many non-score states."
+ },
+ {
+  "cluster": "C53",
+  "verdict": "fixed",
+  "observed": "Inputs 44 px with visible outline, focus ring gold, white date icon, visible off-switch, labelled.",
+  "evidence": [
+   "shots/verify-039-C53-new-session-form.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C54",
+  "verdict": "partly",
+  "observed": "In-app buttons 44/52; Save settings says 'Saved.'; but /app-admin still uses 36 px buttons.",
+  "evidence": [
+   "app-admin sweep: '135x36 Clean orphans', '112x36 Purge data'"
+  ],
+  "missing": "36-px buttons remain on the app-admin dashboard (ruling 39). Stuck hover colour not testable with touch input."
+ },
+ {
+  "cluster": "C55",
+  "verdict": "fixed",
+  "observed": "One avatar style (tinted circle, coloured initial) on standings, admin, pick table, notes; yod shown as 'יו' and readable.",
+  "evidence": [
+   "shots/verify-005-standings-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C56",
+  "verdict": "partly",
+  "observed": "Cards share one style; badges still come in several looks (outlined neutral UP/DOWN, gold-outlined Leading, filled IN PLAY, gold Admin pill, icon+text Claimed).",
+  "evidence": [
+   "shots/verify-006-C09-session-390.png",
+   "shots/verify-031-C46-admin-320.png"
+  ],
+  "missing": "No explicit ruling; badge styles not unified."
+ },
+ {
+  "cluster": "C57",
+  "verdict": "partly",
+  "observed": "One empty-state component everywhere (icon, title, line), missing round/page use one error look. But a brand-new session still shows two empty states at once ('No scores yet' and 'No rounds yet').",
+  "evidence": [
+   "shots/verify-023-C57-new-session.png"
+  ],
+  "missing": "The two-at-once case on a new session remains."
+ },
+ {
+  "cluster": "C58",
+  "verdict": "fixed",
+  "observed": "/login at 320x568: logo tile has top margin, form card padded; page scrolls (688 px) but nothing is cramped.",
+  "evidence": [
+   "shots/verify-c-005-C58-login-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C59",
+  "verdict": "skipped",
+  "observed": "Desktop layout beyond what breaks — deliberately not done.",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C60",
+  "verdict": "skipped",
+  "observed": "Card-table look — idea, deliberately not done.",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C61",
+  "verdict": "fixed",
+  "observed": "Trump marker is a dashed spade button labelled 'Mark X as the trump winner'; winner without suit: Lock bids blocked with 'Pick the trump suit, or remove the trump mark' and a 'Remove trump mark' link.",
+  "evidence": [
+   "shots/verify-014-C61-trump-picker.png",
+   "shots/verify-042-verify-trump-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C62",
+  "verdict": "skipped",
+  "observed": "Trump winner not restricted — by design (ruling 22).",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C63",
+  "verdict": "fixed",
+  "observed": "Session card 'Edit round' -> /round/:id?edit=1 straight into the editor with Bids/Tricks tabs and the same tap pad; 'Save changes' returns to the session with the new figures.",
+  "evidence": [
+   "'OK tapped [35] button \"Save changes\" → now at /session/001ca3e176b3422b4928e3db'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C64",
+  "verdict": "fixed",
+  "observed": "Dan (player) on a scored round: 'Only a group admin can change a scored round.'",
+  "evidence": [
+   "shots/verify-b-001-C64-scored-round-plain.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C65",
+  "verdict": "skipped",
+  "observed": "Everyone-falls rounds stay counted — by design (ruling 11).",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C66",
+  "verdict": "skipped",
+  "observed": "The sandbox assistant is a keyword lookup (simulated), so the answer language cannot be verified. UI now says 'Ask in any language'; refusal text matches ruling 43 and offers 'Open About & privacy'.",
+  "evidence": [
+   "'IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring; for your account or your data, see About & privacy in the menu.'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C67",
+  "verdict": "skipped",
+  "observed": "Assistant refusal — skip list (by design).",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C68",
+  "verdict": "fixed",
+  "observed": "Default name 'Thursday, 19 Nov' (placeholder; empty name produced session '# Thursday, 19 Nov'); cards and header show 'Classic'/'Progressive' and 'Advanced'.",
+  "evidence": [
+   "shots/verify-022-C22-sessions-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C69",
+  "verdict": "skipped",
+  "observed": "Auto-fill fourth player's tricks — deliberately not done.",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C70",
+  "verdict": "fixed",
+  "observed": "After Save the session page shows 'LAST ROUND Round 4' with every player's result directly under 'Start round 5'.",
+  "evidence": [
+   "shots/verify-011-C70-last-round.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C71",
+  "verdict": "skipped",
+  "observed": "Side-by-side comparison — deliberately not done.",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C72",
+  "verdict": "skipped",
+  "observed": "Podium idea — not ruled.",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C73",
+  "verdict": "fixed",
+  "observed": "Family Table (default Progressive): /session/new then reload -> 'Progressive · this group's usual' pressed.",
+  "evidence": [
+   "shots/verify-054-C73-family-new-session-320.png",
+   "shots/verify-055-C73-family-new-session-390.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C74",
+  "verdict": "fixed",
+  "observed": "Duplicate rename: alert 'A member named \"DAN\" already exists' at y=388 just under the input at y=336; empty group name -> 'The group needs a name.'; valid save -> 'Saved.'; add player -> 'Added. Lior is an unclaimed player...'; remove -> 'Removed Lior from the group.'",
+  "evidence": [
+   "shots/verify-033-C74-rename-dup.png",
+   "shots/verify-053-C74-rename-dup-320.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C75",
+  "verdict": "fixed",
+  "observed": "Join as ' maya ' -> 'A member named \"maya\" already exists'; Add player ' OMER' and rename to 'DAN '/'dan' refused the same way (server 409).",
+  "evidence": [
+   "shots/verify-c-001-C75-dup-name.png"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C76",
+  "verdict": "fixed",
+  "observed": "/session/new with a session open: 'A session is already open — here it is: Midweek special (Nov 19, 2026). Close it before starting a new one.' + 'Open the session'.",
+  "evidence": [
+   "'A session is already open — here it is: Midweek special'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C77",
+  "verdict": "fixed",
+  "observed": "Deleted round 3 of 4 -> button 'Start round 5' (highest + 1).",
+  "evidence": [
+   "'[8] Start round 5' after deleting round 3"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C78",
+  "verdict": "fixed",
+  "observed": "75-char name: 'at most 60 characters — 15 too many'; empty date: 'Pick the date of the session'; 1999-01-01: 'The date must be between 2000 and 2100'; Start disabled until fixed; date pre-filled with local 2026-11-19.",
+  "evidence": [
+   "'(alert) The date must be between 2000 and 2100'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C79",
+  "verdict": "fixed",
+  "observed": "Old Crew (archived): banner 'This group is archived — read-only' on standings, sessions, session, player, /session/new; no Start/Edit/Close/Leave a note; Admin read-only with disabled inputs and 'Unarchive'. Archiving with a session open -> 'Close the open session first'. Invite to archived group -> 'This group is archived — it is read-only'.",
+  "evidence": [
+   "'(alert) This group is archived — read-only'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C80",
+  "verdict": "fixed",
+  "observed": "Delete Old Crew -> /home with '\"Old Crew\" was deleted. Nobody in it can open it any more.'",
+  "evidence": [
+   "'(alert) \"Old Crew\" was deleted.'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C81",
+  "verdict": "fixed",
+  "observed": "/app-admin as Dan: 'This page isn't available / There is nothing here for your account.' — no dashboard frame, no failed requests.",
+  "evidence": [
+   "'# This page isn't available'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C82",
+  "verdict": "fixed",
+  "observed": "Detach Rachel -> row 'Rachel | Unclaimed' without e-mail; deleting a note already deleted in another browser closes quietly and shows the refreshed list ('No notes yet').",
+  "evidence": [
+   "'R | Rachel | Unclaimed | [11]'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C83",
+  "verdict": "fixed",
+  "observed": "No '(no label)' control on 11 screens; copy buttons 'Copy invite code'/'Copy link'; switches named; Renege and selected rows expose 'pressed'.",
+  "evidence": [
+   "look --all grep 'no label': no output"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C84",
+  "verdict": "fixed",
+  "observed": "Ties share rank: '#3 Omer', '#3 Rachel', '#5'; two tied leaders '#1 Leading' x2; on close 'won together' and both credited (אמא 2->3 wins, סבא משה 0->1).",
+  "evidence": [
+   "'#1 א אמא 3 wins', '#2 ס סבא משה ... 1 win'"
+  ],
+  "missing": ""
+ },
+ {
+  "cluster": "C85",
+  "verdict": "skipped",
+  "observed": "Idea, not done (by decision).",
+  "evidence": [],
+  "missing": ""
+ },
+ {
+  "cluster": "C86",
+  "verdict": "skipped",
+  "observed": "Idea, not done (by decision).",
+  "evidence": [],
+  "missing": ""
+ }
+]

@@ -1,0 +1,133 @@
+[
+ {
+  "id": "verify-1",
+  "title": "Saving a round that someone else discarded just says 'Round not found' and keeps offering Save",
+  "where": "/round/:id results step",
+  "steps": [
+   "Maya: open the in-play round, type all four trick counts",
+   "Dan (other browser): session page -> Discard round -> confirm",
+   "Maya: tap Save round"
+  ],
+  "expected": "A plain message that another player discarded this round, the typed draft dropped, and a way back to the session",
+  "actual": "'(alert) Round not found' under the pad, Save round still enabled, the page otherwise unchanged; the draft key whistmate:round-draft:<id> stays in localStorage. Only a reload shows the 'Round not found / Back to sessions' page.",
+  "severity": "minor",
+  "evidence": [
+   "shots/verify-040-verify-round-gone.png",
+   "shots/verify-041-verify-round-gone-reload.png",
+   "! http 404 POST .../saveRoundResults — {\"error\":\"Round not found\"}"
+  ],
+  "suggested_fix": "On a 404 from save/lock, replace the screen with the 'Round not found' state ('Another player discarded this round') and clear the round's draft."
+ },
+ {
+  "id": "verify-2",
+  "title": "A scored round's own page has no tab bar and does not name its session or date",
+  "where": "/round/:id for a scored round (e.g. /round/12b5ac54fe4e26df05b4e8c3)",
+  "steps": [
+   "Open a scored round from a player's round history or a session card"
+  ],
+  "expected": "Ruling 1: round pages light the Sessions tab; the page says which session (name, date) the round belongs to",
+  "actual": "Only '← Session', '# Round 5', the badge and four rows; no bottom tab bar (no nav links in the DOM) and no session name or date, so a round opened from a player's history has no context.",
+  "severity": "minor",
+  "evidence": [
+   "shots/verify-018-scored-round-390.png",
+   "shots/verify-b-001-C64-scored-round-plain.png",
+   "eval: no a[href=/history] on the page"
+  ],
+  "suggested_fix": "Keep the tab bar on the read-only round page (hide it only on entry/edit screens) and add 'Session name · date' under the title."
+ },
+ {
+  "id": "verify-3",
+  "title": "Closed session with a round limit shows '2 played' and '3 rounds played' on the same screen",
+  "where": "/session/:id (closed session with round limit and one everyone-falls round)",
+  "steps": [
+   "Start a session with Round limit 3",
+   "Play rounds incl. one where everyone falls",
+   "Close the session"
+  ],
+  "expected": "One count, or the second labelled ('3 rounds, 1 cancelled')",
+  "actual": "Header 'Round limit 3 · 2 played' and, two lines below, 'FINAL RESULT Maya won · +52 / 3 rounds played · the session is closed'.",
+  "severity": "minor",
+  "evidence": [
+   "'Round limit 3 · 2 played' / '3 rounds played · the session is closed'"
+  ],
+  "suggested_fix": "Say '3 rounds played (1 everyone-falls, not counted toward the limit)' or 'Round limit 3 · 2 counted'."
+ },
+ {
+  "id": "verify-4",
+  "title": "Note header cuts the session date at 320 px",
+  "where": "Players tab › Table talk, 320 px",
+  "steps": [
+   "At 320x568 open /profile as Maya and scroll to TABLE TALK"
+  ],
+  "expected": "Session name and date readable (wrap)",
+  "actual": "'Season opener · Jul 2, 20…' — the year is cut with an ellipsis.",
+  "severity": "minor",
+  "evidence": [
+   "shots/verify-047-C24-round-history-320.png"
+  ],
+  "suggested_fix": "Let the note's meta line wrap instead of truncating."
+ },
+ {
+  "id": "verify-5",
+  "title": "Remaining tap targets under 44 px outside the round screens",
+  "where": "Standings awards, Admin danger zone, /register, /app-admin",
+  "steps": [
+   "Measure every button/link at 320, 390 and 1440"
+  ],
+  "expected": "Ruling 15/39: every tappable thing ≥44x44; no 36-px buttons",
+  "actual": "Award holder links 53x36 ('Dan', 'Maya'); inline session link in 'A session is still open (ליל שישי ארוך)' 72x15; 'Log in' link on /register 40x44; every /app-admin action button 36 px tall ('Archive', 'Delete', 'Purge data', 'Make admin', 'Clean orphans').",
+  "severity": "minor",
+  "evidence": [
+   "sweep output: '53x36 Dan', '72x15 ליל שישי ארוך', '40x44 Log in'",
+   "app-admin: '95x36 Archive', '97x36 Make admin'"
+  ],
+  "suggested_fix": "Give these links a 44-px hit area and switch app-admin buttons to the 44-px size."
+ },
+ {
+  "id": "verify-6",
+  "title": "Opening a session link of a group you are not in silently lands on Your groups",
+  "where": "/session/:id as a non-member (e.g. right after leaving the group)",
+  "steps": [
+   "Omer leaves Thursday Whist",
+   "Open /session/52eda15df634d81766b7d776"
+  ],
+  "expected": "A short 'You're not in this group' state (or 'this group's session isn't available to you')",
+  "actual": "Redirect to /home with no message; only a 403 'You are not a member of this group' in the network log.",
+  "severity": "minor",
+  "evidence": [
+   "! http 403 POST .../getGroupData — {\"error\":\"You are not a member of this group\"}",
+   "'OK loaded .../session/52eda... → redirected to /home'"
+  ],
+  "suggested_fix": "Show the shared error state with 'This session belongs to a group you're not in' and a link to Your groups."
+ },
+ {
+  "id": "verify-7",
+  "title": "AVG / ROUND shows 0 for someone with no rounds",
+  "where": "Me (/profile/global) for a new account",
+  "steps": [
+   "Sign up, join a group, open Me"
+  ],
+  "expected": "'—' like the other rates with nothing to count (ruling 12)",
+  "actual": "'AVG / ROUND 0' and 'AVERAGE BID 0' beside 'WIN RATE —' and 'CONTRACT ACCURACY —'.",
+  "severity": "minor",
+  "evidence": [
+   "'[4] button \"AVG / ROUND 0\"', '[11] button \"AVERAGE BID 0\"' for vera.new"
+  ],
+  "suggested_fix": "Show '—' for averages over zero rounds."
+ },
+ {
+  "id": "verify-8",
+  "title": "Archive is offered and confirmed even though the page already says it cannot work",
+  "where": "Admin › Danger zone with a session open",
+  "steps": [
+   "With a session open, Admin › Archive -> confirm"
+  ],
+  "expected": "Archive disabled while 'A session is still open — close it before archiving' is shown",
+  "actual": "The confirmation 'Archive Thursday Whist?' opens and only after confirming does '(alert) Close the open session first' appear (409).",
+  "severity": "minor",
+  "evidence": [
+   "! http 409 POST .../setGroupStatus — {\"error\":\"Close the open session first\"}"
+  ],
+  "suggested_fix": "Disable Archive while a session is open (the explanatory line is already there)."
+ }
+]

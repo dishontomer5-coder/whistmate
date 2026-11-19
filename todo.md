@@ -633,8 +633,8 @@
 - [ ] **P13-R1-C85** *(idea — NOT fixing: idea — needs live updates to matter)*: Idea: Save Round does not notice that the bids were changed by someone else
 - [ ] **P13-R1-C86** *(idea — NOT fixing: idea — a real double tap is already safe)*: Idea: Create Group has no server-side guard against a duplicate request
 
-- [ ] 🔄 **P13-4:** fix every blocker and major from round 1, and the cheap minors.
-- [ ] **P13-5:** verify round 1's fixes — the QA tester re-walks each changed flow, before and after
+- [x] **P13-4** *(done Nov 19 2026 — four implementers in worktrees: foundation + stats (wave 1), structure & navigation, round flow, onboarding & admin (wave 2), all merged on main; every check green)*: fix every blocker and major from round 1, and the cheap minors.
+- [x] **P13-5** *(done Nov 19 2026 — the QA tester, as independent verifier, replayed every fixed cluster on fresh builds of main: **69 fixed, 5 partly, 0 not fixed, 0 regressed, 12 skipped as ruled**; none of the 30 major clusters fails (C42 touch targets partly — four controls under 44 px); cross-cutting checks clean on 19 screens at 320/390/1440 px; 8 new minor findings. Record: `docs/review/round-1/verification/`. A polish pass is clearing C42/C54/C57 and verify-1…8 before the deploy)*: verify round 1's fixes — the QA tester re-walks each changed flow, before and after
   screenshots; build, lint and all tests green.
 - [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
   if needed, until a round ends with 0 open blockers and 0 open majors (at most three rounds).
