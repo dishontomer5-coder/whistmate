@@ -6,6 +6,7 @@ import {
   nextEmptyIndex, rotateLeft, sameTableOrder, blockedBid, lockBlocker, saveBlocker, previewRound,
   nextRoundNumber, roundLimit, startBlocker, isRealDate, parseRoundLimit, sessionFormErrors,
   tricksAreWrong, topBidders, defaultTrumpOwnerIndex, trumpOwnerHint, TOP_BID_TIE_LINE, biddingOrder, outcomeParts,
+  nextTrickIndex,
 } from './round-logic.js';
 import { scoreRound, contractPoints } from '../../lib/scoring.js';
 
@@ -316,16 +317,37 @@ test('a result line shows the renege and the failed zero as parts (whist-player-
   const tricks = [4, 3, 1, 5];
   const reneges = [false, true, false, false];
   const p = previewRound({ bids, tricks, reneges, scoringMethod: 'classic' });
-  assert.deepEqual(outcomeParts({ bid: 3, tricks: 3, row: p.rows[1], renege: true }), { text: 'made', points: 19, renege: true, zeroFailed: false });
+  assert.deepEqual(outcomeParts({ bid: 3, tricks: 3, row: p.rows[1], renege: true }), { text: 'made', points: 19, renege: true, net: -81, zeroFailed: false });
   // Dan bid 0, took 3 (classic): −50 + 20.
   const z = previewRound({ bids: [7, 0, 6, 2], tricks: [7, 3, 2, 1], scoringMethod: 'classic' });
-  assert.deepEqual(outcomeParts({ bid: 0, tricks: 3, row: z.rows[1] }), { text: 'zero bid failed (3 tricks)', points: -30, renege: false, zeroFailed: true });
+  assert.deepEqual(outcomeParts({ bid: 0, tricks: 3, row: z.rows[1] }), { text: 'zero bid failed (3 tricks)', points: -30, renege: false, net: -30, zeroFailed: true });
   assert.equal(outcomeParts({ bid: 0, tricks: 1, row: { made: false, off: 1, points: -50 } }).text, 'zero bid failed (1 trick)');
   // Everyone fell, with a renege: the contract is 0, the renege still costs 100.
   const ef = previewRound({ bids: [5, 4, 3, 3], tricks: [4, 5, 2, 2], reneges: [false, false, true, false], scoringMethod: 'classic' });
   assert.equal(ef.everyoneFalls, true);
-  assert.deepEqual(outcomeParts({ bid: 3, tricks: 2, row: ef.rows[2], renege: true, everyoneFalls: true }), { text: 'everyone fell', points: 0, renege: true, zeroFailed: false });
+  assert.deepEqual(outcomeParts({ bid: 3, tricks: 2, row: ef.rows[2], renege: true, everyoneFalls: true }), { text: 'everyone fell', points: 0, renege: true, net: -100, zeroFailed: false });
   assert.equal(outcomeParts({ bid: 3, tricks: null, row: { points: null } }), null);
+});
+
+
+// ---- the tricks pad after a correction (whist-player-1) ------------------------------
+
+test('tricks: the pad moves to the next player with no tricks, in bidding order', () => {
+  const order = [2, 3, 0, 1];
+  assert.equal(nextTrickIndex([_, _, _, _], order, 2, 5), 3);
+  assert.equal(nextTrickIndex([_, _, 5, 4], order, 3, 4), 0);
+  assert.equal(nextTrickIndex([_, _, 5, 4], order, 0, 3), 1);
+  assert.equal(nextTrickIndex([3, _, 5, 4], order, 1, 1), 1, 'the last one in: the pad stays');
+});
+test('tricks: a correction on a full sheet moves on, unless it pushes the total over 13', () => {
+  const order = [0, 1, 2, 3];
+  // 5, 0, 1, 7 = 13. The last player is changed to 8 by mistake: 14, so the pad stays there...
+  assert.equal(nextTrickIndex([5, 0, 1, 7], order, 3, 8), 3);
+  // ...and the next tap (7) fixes that row: 13 again, so the pad moves on round the table.
+  assert.equal(nextTrickIndex([5, 0, 1, 8], order, 3, 7), 0);
+  // A correction that leaves the total at or under 13 moves on, as before.
+  assert.equal(nextTrickIndex([5, 0, 1, 7], order, 1, 0), 2);
+  assert.equal(nextTrickIndex([5, 0, 1, 7], order, 0, 4), 1);
 });
 
 if (failures.length) {

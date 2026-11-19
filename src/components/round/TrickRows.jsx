@@ -18,7 +18,7 @@ export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 // score — so the scorer can read the result out before saving, and a slip (a wrong number,
 // a stray renege) shows at once:
 //
-//   bid 3 · made +19              bid 3 · made +19 − 100 renege
+//   bid 3 · made +19              bid 3 · made +19 − 100 renege = −81
 //   bid 2 · 1 off −10             zero bid failed (3 tricks) −30
 //
 //   players   [{ player_id, player_name }] in seat order
@@ -28,8 +28,10 @@ export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 //   preview   previewRound()'s result (rows in seat order)
 //
 // A row is three buttons side by side: the player (selects the row for the pad), the
-// renege switch, and the tricks cell (also selects the row). The renege switch is quiet —
-// a neutral outline "Renege" — and turns red with "−100" only when it is on.
+// renege switch, and the tricks cell (also selects the row). The renege switch is a quiet
+// text button, lighter than the tricks number (a 44px tap area all the same); when it is on
+// it keeps its word and says the cost — "Renege · −100" in red, outlined, never a solid
+// block that could be read as the row's score (visual-designer-1).
 export default function TrickRows({ players, bids, tricks, reneges, order, activeIndex, onSelect, onToggleRenege, preview }) {
   const blockRef = useRef(null);
   const rowRefs = useRef([]);
@@ -65,6 +67,7 @@ export default function TrickRows({ players, bids, tricks, reneges, order, activ
                     {parts.renege && (
                       <>
                         {' '}<span className="whitespace-nowrap"><span className="text-sm font-bold text-negative">− {RENEGE_PENALTY}</span> renege</span>
+                        {' '}<span className="whitespace-nowrap" data-net>= <span className={cn('text-sm font-bold', scoreTone(parts.net))}>{signed(parts.net)}</span></span>
                       </>
                     )}
                   </>
@@ -75,13 +78,15 @@ export default function TrickRows({ players, bids, tricks, reneges, order, activ
               aria-label={`Renege for ${p.player_name}${reneged ? ` — on, ${signed(-RENEGE_PENALTY)}` : ''}`}
               data-renege
               className={cn(
-                'flex h-11 min-w-[4.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-2 text-xs font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
+                'relative flex h-11 shrink-0 items-center justify-center whitespace-nowrap px-1 text-xs transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground rounded-md',
+                // The drawn mark is 28px tall; the button around it takes the 44px tap.
+                "before:absolute before:inset-x-0 before:inset-y-2 before:rounded-md before:content-['']",
                 reneged
-                  ? 'bg-[hsl(0_72%_47%)] font-bold text-destructive-foreground'
-                  : 'border border-input text-muted-foreground hover:text-foreground'
+                  ? 'font-semibold text-negative before:border before:border-destructive'
+                  : 'font-normal text-muted-foreground hover:text-foreground'
               )}>
-              {reneged ? signed(-RENEGE_PENALTY) : 'Renege'}
+              <span className="relative px-1.5">{reneged ? `Renege · ${signed(-RENEGE_PENALTY)}` : 'Renege'}</span>
             </button>
             <button type="button" onClick={() => onSelect(i)} tabIndex={-1}
               aria-label={`Tricks for ${p.player_name}: ${took != null ? took : 'not entered'}`}

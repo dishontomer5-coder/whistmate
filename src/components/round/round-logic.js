@@ -35,6 +35,20 @@ export function nextEmptyIndex(values, from) {
   return -1;
 }
 
+// Where the tricks pad goes after `value` is tapped on row `index`. `order` is the seat
+// indexes in bidding order. On to the next player round the table with no tricks yet; on a
+// full sheet a correction moves on to the next player too — unless it pushes the total over
+// 13: then the pad stays on the row just edited, so the next tap fixes that row instead of
+// overwriting the next player's (whist-player-1).
+export function nextTrickIndex(tricks, order, index, value) {
+  const next = tricks.map((v, i) => (i === index ? value : v));
+  const pos = Math.max(order.indexOf(index), 0);
+  const nextPos = nextEmptyIndex(order.map((i) => next[i]), pos);
+  if (nextPos >= 0) return order[nextPos];
+  if (!isSet(tricks[index]) || sum(next) > TOTAL_TRICKS) return index;
+  return order[(pos + 1) % order.length];
+}
+
 // The list moved on by `by` places: rotateLeft([a, b, c, d]) → [b, c, d, a].
 export function rotateLeft(list, by = 1) {
   const n = list.length;
@@ -162,7 +176,8 @@ export function biddingOrder(count, start = 0) {
 //   text    "made" | "2 off" | "zero bid failed (3 tricks)" | "everyone fell"
 //   points  the contract points (before any renege), null when not known
 //   renege  true when the −100 applies to this row
-// The line reads "bid 3 · made +19 − 100 renege" or "zero bid failed (3 tricks) −30".
+//   net     what the row scores in all, renege included
+// The line reads "bid 3 · made +19 − 100 renege = −81" or "zero bid failed (3 tricks) −30".
 export function outcomeParts({ bid, tricks, row, renege = false, everyoneFalls = false }) {
   if (!row || row.points == null || !isSet(tricks)) return null;
   const b = Number(bid);
@@ -172,7 +187,7 @@ export function outcomeParts({ bid, tricks, row, renege = false, everyoneFalls =
   if (everyoneFalls) text = 'everyone fell';
   else if (b === 0 && t > 0) text = `zero bid failed (${t} trick${t === 1 ? '' : 's'})`;
   else text = row.made ? 'made' : `${row.off} off`;
-  return { text, points: contract, renege: !!renege, zeroFailed: b === 0 && t > 0 && !everyoneFalls };
+  return { text, points: contract, renege: !!renege, net: row.points, zeroFailed: b === 0 && t > 0 && !everyoneFalls };
 }
 
 // What the round will score, before it is saved.
