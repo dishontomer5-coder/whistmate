@@ -113,6 +113,14 @@
     -moz-appearance: textfield;
   }
 
+  /* Text a user typed (names of groups, sessions, players, notes) is drawn through <Name>
+     (<bdi>) or <UserText> (dir="auto"). It may be one long unbroken word, so it may break
+     anywhere rather than push the page wider than the phone (qa-tester-4). A truncated
+     line (`truncate`) still ends in "…": it does not wrap at all. */
+  bdi, [dir="auto"] {
+    overflow-wrap: anywhere;
+  }
+
   /* A field may upper-case what is typed (invite codes); its hint stays as written. */
   ::placeholder {
     text-transform: none;

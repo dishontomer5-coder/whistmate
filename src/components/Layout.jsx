@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup, isGroupPage } from '@/lib/ActiveGroupContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { UserText } from '@/components/UserText';
+import { TabBarContext } from '@/components/TabBarContext';
 
 // The app shell: a header, the page, and a tab bar. It comes in two frames.
 //
@@ -44,6 +45,8 @@ export default function Layout() {
   const { user } = useAuth();
   const { activeGroupId, activeGroup, isAdmin, loading: groupsLoading, groupPending } = useActiveGroup();
   const [unseenActivity, setUnseenActivity] = useState(0);
+  // A round page that is only read (a scored round) asks for the tab bar back — TabBarContext.
+  const [pageWantsTabs, setPageWantsTabs] = useState(false);
   const { pathname } = location;
 
   // Which frame this page is drawn in. A side page keeps the frame of the page before it.
@@ -84,7 +87,7 @@ export default function Layout() {
   const tabs = inGroup
     ? GROUP_TABS.filter((tab) => !tab.adminOnly || (isAdmin && !groupPending))
     : GLOBAL_TABS;
-  const showTabs = !!user && !isRoundEntry(pathname);
+  const showTabs = !!user && (!isRoundEntry(pathname) || pageWantsTabs);
 
   const signInLink = (
     <Link to="/login" className="flex items-center gap-1 min-h-11 text-sm font-medium text-foreground hover:underline">
@@ -143,7 +146,9 @@ export default function Layout() {
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-24">
-        <Outlet />
+        <TabBarContext.Provider value={setPageWantsTabs}>
+          <Outlet />
+        </TabBarContext.Provider>
       </main>
 
       {showTabs && (

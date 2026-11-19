@@ -137,7 +137,7 @@ export default function Home() {
           className="flex items-center gap-3 rounded-lg border border-primary/60 bg-card p-4 transition-colors hover:bg-secondary">
           <div className="min-w-0 flex-1">
             <p className="section-label">Session in progress</p>
-            <p className="mt-0.5 font-heading font-bold text-foreground break-words [overflow-wrap:anywhere]"><UserText>{sessionName(openSession)}</UserText></p>
+            <p className="mt-0.5 line-clamp-2 font-heading font-bold text-foreground break-words"><UserText>{sessionName(openSession)}</UserText></p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {current.roundInPlay
                 ? `Round ${current.roundInPlay.round_number} in play`
