@@ -313,6 +313,17 @@ test('three bids typed, the screen left and reopened: the bids are back; locking
   assert.equal(readDraft('r5', { storage, now: NOW + 120_000 }), null);
 });
 
+test('where the bidding started is kept through the playing step, on its own if need be', () => {
+  const draft = packDraft({ tricks: {}, reneges: {}, firstBidder: 'p3' }, NOW);
+  assert.deepEqual(draft, { v: 1, savedAt: NOW, firstBidder: 'p3' });
+  const state = applyDraft(draft, { status: 'playing', playerIds: PLAYERS, server: lockedServer() });
+  assert.equal(state.firstBidder, 'p3');
+  assert.equal(state.restored, null, 'nothing to announce: it is not something the scorer typed');
+  const stranger = applyDraft(packDraft({ firstBidder: 'zz' }, NOW), { status: 'playing', playerIds: PLAYERS, server: lockedServer() });
+  assert.equal(stranger.firstBidder, null, 'a player not in the round is ignored');
+  assert.equal(parseDraft(JSON.stringify(draft), NOW).firstBidder, 'p3');
+});
+
 if (failures.length) {
   for (const { name, err } of failures) console.error(`FAIL ${name}\n  ${err.message}`);
   console.error(`\n${failures.length} failed, ${passed} passed`);

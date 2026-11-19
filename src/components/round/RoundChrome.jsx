@@ -5,13 +5,14 @@ import { cn } from '@/lib/utils';
 // "restored" note. (The back link and the archived banner are the app-wide ones.)
 
 // The two steps of a round look alike (four rows and a pad), so each has its own colour
-// and icon: gold and a gavel while bidding, green and a clipboard for the results.
+// and icon: neutral with a gavel while bidding (gold is kept for the primary action; the
+// row being entered has a gold outline, as a selection), green and a clipboard for the results.
 // Defined once so a row, a key and a band cannot drift apart.
 export const PHASE = {
   bidding: {
     label: 'Bidding', step: 'step 1 of 2', Icon: Gavel,
-    band: 'border-l-primary bg-primary/10 text-primary',
-    row: 'border-primary bg-primary/5',
+    band: 'border-l-foreground/60 bg-secondary text-foreground',
+    row: 'border-primary bg-card',
   },
   results: {
     label: 'Results', step: 'step 2 of 2', Icon: ClipboardCheck,

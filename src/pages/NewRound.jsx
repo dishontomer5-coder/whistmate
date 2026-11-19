@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Check, Users, SearchX } from 'lucide-react';
+import { Loader2, Check, Users, SearchX, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
@@ -9,14 +9,15 @@ import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name } from '@/components/UserText';
 import { ScoringHelpButton } from '@/components/ScoringHelp';
+import { useConfirm } from '@/components/ConfirmDialog';
 import BackLink from '@/components/BackLink';
 import ArchivedBanner from '@/components/ArchivedBanner';
 import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { errorMessage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
-import { FROM_SESSION } from '@/components/round/session-return';
-import { sameTableOrder, startBlocker, nextRoundNumber } from '@/components/round/round-logic';
+import { FROM_SESSION, redealTable, forgetRedeal } from '@/components/round/session-return';
+import { sameTableOrder, startBlocker, nextRoundNumber, roundLimit } from '@/components/round/round-logic';
 
 // Pick the table: exactly four players, then start the round.
 //
@@ -36,8 +37,12 @@ export default function NewRound() {
   const [members, setMembers] = useState([]);
   const [roundNumber, setRoundNumber] = useState(1);
   const [selected, setSelected] = useState([]); // player ids, in the order picked
-  const [sameTable, setSameTable] = useState([]); // last round's four, moved on by one
+  const [sameTable, setSameTable] = useState([]); // last round's four, moved on by one — or a redeal's four
+  const [isRedeal, setIsRedeal] = useState(false); // the last round was discarded: same four, same order
+  const [limit, setLimit] = useState({ limit: null, played: 0, reached: false });
   const [submitting, setSubmitting] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [confirm, confirmElement] = useConfirm();
 
   // The group of the session on screen: is it archived, may the caller add players to it.
   const { isAdmin, isArchived: archived, role } = usePageGroup(session?.group_id);
@@ -62,12 +67,18 @@ export default function NewRound() {
       setSession(sess);
       setMembers(roster);
       setRoundNumber(nextRoundNumber(rounds));
+      setLimit(roundLimit(sess, rounds));
 
-      // The most recent round's table, if all four are still in the group.
+      // After a discarded round (a redeal) the same four in the same order; otherwise the
+      // most recent round's table moved on by one — if all four are still in the group.
       const previous = [...rounds].sort((a, b) => (b.round_number ?? 0) - (a.round_number ?? 0))[0];
       const rosterIds = new Set(roster.map((m) => m.id));
-      const order = previous ? sameTableOrder(results.filter((r) => r.game_id === previous.id)) : [];
-      setSameTable(order.length === 4 && order.every((pid) => rosterIds.has(pid)) ? order : []);
+      const redeal = redealTable(sessionId, rounds);
+      const order = redeal.length === 4 ? redeal
+        : previous ? sameTableOrder(results.filter((r) => r.game_id === previous.id)) : [];
+      const usable = order.length === 4 && order.every((pid) => rosterIds.has(pid));
+      setSameTable(usable ? order : []);
+      setIsRedeal(usable && redeal.length === 4);
     } catch (err) {
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load the players.'));
@@ -93,12 +104,31 @@ export default function NewRound() {
     setError('');
     try {
       const res = await base44.functions.invoke('startRound', { session_id: sessionId, player_ids: selected });
+      forgetRedeal(sessionId);
       navigate(`/round/${res.data.round.id}`, { replace: true, state: roundState });
     } catch (err) {
       const openId = err.response?.data?.open_round_id;
       if (openId) { navigate(`/round/${openId}`, { replace: true, state: roundState }); return; }
       setError(errorMessage(err, 'Failed to start round.'));
       setSubmitting(false);
+    }
+  };
+
+  // The round limit is reached: no table to pick — closing the session is what is left.
+  const closeSession = async () => {
+    const ok = await confirm({
+      title: 'Close this session?',
+      description: 'No more rounds can be added, and a closed session cannot be reopened.',
+      confirmLabel: 'Close session',
+    });
+    if (!ok) return;
+    setClosing(true); setError('');
+    try {
+      await base44.functions.invoke('closeSession', { session_id: sessionId });
+      navigate(`/session/${sessionId}`, { replace: true });
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to close session.'));
+      setClosing(false);
     }
   };
 
@@ -132,6 +162,26 @@ export default function NewRound() {
     );
   }
 
+  if (limit.reached) {
+    return (
+      <div className="space-y-4">
+        {header}
+        <h1 className="page-title">Round limit reached</h1>
+        <p className="text-sm text-muted-foreground" data-limit-reached>
+          {limit.played} of {limit.limit} rounds counted — this session has no more rounds to play.
+        </p>
+        <Button size="lg" className="w-full" onClick={closeSession} disabled={closing}>
+          {closing ? <><Loader2 className="animate-spin" /> Closing…</> : <><Lock /> Close session</>}
+        </Button>
+        <ErrorState inline message={error} />
+        <Button asChild variant="outline" className="w-full">
+          <Link to={`/session/${sessionId}`} replace>Back to session</Link>
+        </Button>
+        {confirmElement}
+      </div>
+    );
+  }
+
   const nameOf = (id) => members.find((m) => m.id === id)?.player_name || '';
   const blocker = startBlocker({ selected: selected.length, members: members.length });
   const isSameTable = sameTable.length === 4 && sameTable.every((pid, i) => selected[i] === pid);
@@ -150,11 +200,11 @@ export default function NewRound() {
         <button type="button" onClick={() => { setError(''); setSelected(sameTable); }} aria-pressed={isSameTable}
           className={cn(
             'flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-            isSameTable ? 'border-primary bg-primary/15 text-primary' : 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
+            isSameTable ? 'border-2 border-primary bg-card text-foreground' : 'border-input bg-card text-foreground hover:bg-secondary'
           )}>
           <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0">
-            Same players as last round — <Name>{nameOf(sameTable[0])}</Name> bids first
+            {isRedeal ? 'Redeal — same table, ' : 'Same players as last round — '}<Name>{nameOf(sameTable[0])}</Name> bids first
           </span>
         </button>
       )}
@@ -167,11 +217,11 @@ export default function NewRound() {
             <button key={m.id} type="button" onClick={() => toggle(m.id)} aria-pressed={picked}
               className={cn(
                 'relative flex min-h-[52px] min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
-                picked ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/40'
+                picked ? 'border-2 border-primary bg-card' : 'border-border bg-card hover:border-input'
               )}>
               {/* A picked player shows their place in the order instead of the avatar. */}
               {picked ? (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-primary text-sm font-bold text-foreground"
                   aria-label={`number ${idx + 1}`}>
                   {idx + 1}
                 </span>
@@ -179,7 +229,7 @@ export default function NewRound() {
                 <PlayerAvatar name={m.player_name} size="sm" />
               )}
               <span className="min-w-0 truncate text-sm font-medium text-foreground"><Name>{m.player_name}</Name></span>
-              {picked && <Check className="ml-auto h-4 w-4 shrink-0 text-primary" aria-hidden="true" />}
+              {picked && <Check className="ml-auto h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />}
             </button>
           );
         })}
@@ -189,7 +239,7 @@ export default function NewRound() {
         <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground" data-few-players>
           This group has {members.length === 1 ? '1 player' : `${members.length} players`} — a round needs 4.{' '}
           {isAdmin ? (
-            <Link to="/admin" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-2">Add players</Link>
+            <Link to="/admin" className="inline-flex min-h-11 items-center font-medium text-foreground underline underline-offset-2">Add players</Link>
           ) : role ? (
             <>Ask a group admin to add players or to share the invite link.</>
           ) : null}

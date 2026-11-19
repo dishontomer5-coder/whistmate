@@ -94,14 +94,16 @@ export default function ActionDock({ label, children, className }) {
 // The one line above the primary button: why it is off ("Tricks must total 13 — now 12"),
 // or what saving will do ("Nobody made their contract — everyone falls…").
 //   tone: 'muted' (something is still missing) | 'warn' (heads-up) | 'error' (cannot be saved as it is)
+//
+// The line keeps its height when it is empty, so the pad above it does not jump under the
+// thumb when the last bid or trick fills it in or clears it.
 export function DockStatus({ children, tone = 'muted', className }) {
-  if (!children) return null;
   return (
     <p
       role="status"
       data-dock-status
       className={cn(
-        'text-center text-xs leading-snug',
+        'min-h-[1.1rem] text-center text-xs leading-snug',
         tone === 'error' ? 'font-medium text-negative' : tone === 'warn' ? 'font-medium text-yellow-500' : 'text-muted-foreground',
         className
       )}
@@ -129,11 +131,22 @@ export function showRows(block, activeRow) {
 
 // Keep the rows clear of the dock: when the cursor moves to another row, and again
 // whenever the dock changes height. `getTargets` returns [block, activeRow].
+//
+// Until the scorer moves the cursor the screen stays at its top, with the step's title in
+// view: only the row the pad is on is brought clear of the dock, if it is covered at all.
+// (On a 320x568 phone, bringing all four rows into view at once pushed the title away.)
 export function useRowsInView(getTargets, activeIndex) {
   const targets = useRef(getTargets);
   targets.current = getTargets;
+  const firstIndex = useRef(activeIndex);
+  const moved = useRef(false);
+  if (activeIndex !== firstIndex.current) moved.current = true;
   useEffect(() => {
-    const show = () => showRows(...targets.current());
+    const show = () => {
+      const [block, row] = targets.current();
+      if (moved.current) showRows(block, row);
+      else showRows(null, row);
+    };
     show();
     window.addEventListener(DOCK_RESIZE_EVENT, show);
     window.addEventListener('resize', show); // the phone was turned, or the window resized
