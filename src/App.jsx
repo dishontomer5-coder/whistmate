@@ -53,7 +53,8 @@ const AuthenticatedApp = () => {
       <Route path="/join" element={<Join />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Full-screen chat: renders its own header + composer (safe-area insets), so it
+      {/* Rules & scoring — the written guide and the rules chat, as two tabs. Full screen:
+          it renders its own header (and the chat its composer, with safe-area insets), so it
           sits outside the Layout shell rather than nesting a second header inside it. */}
       <Route path="/rules" element={<RulesChat />} />
       <Route element={<Layout />}>

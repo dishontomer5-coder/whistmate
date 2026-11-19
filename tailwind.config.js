@@ -47,6 +47,9 @@ module.exports = {
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
   			negative: '#F87171',
+  			// A caution in TEXT ("3 to go", "check the total") that is not an error: orange-300,
+  			// kept apart from the gold of the primary action (gold is rationed — src/index.css).
+  			warning: '#FDBA74',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

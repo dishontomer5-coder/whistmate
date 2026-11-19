@@ -2,21 +2,25 @@ import { Link } from 'react-router-dom';
 import { HandCoins, Rabbit, Skull } from 'lucide-react';
 import { formatScore, scoreTone } from '@/lib/format';
 import { Name } from '@/components/UserText';
+import { AWARD_HELP } from '@/lib/scoring-help';
 
 // The group's three awards. Each is held by whoever is on the top figure — every player
 // level on it — and by nobody until somebody has earned it.
 // The Greedy and The Coward are points LOST, so they are shown as a lost score (red).
 // The Destroyer is a count of rounds, not a score, so it takes no score colour.
+// The titles and one-line blurbs come from scoring-help.js, which also explains each award
+// in the help sheet ("The standings"), so the card and the help say the same thing.
+const help = Object.fromEntries(AWARD_HELP.map((a) => [a.key, a]));
 export const AWARDS = [
-  { key: 'greedy', icon: HandCoins, title: 'The Greedy', blurb: 'Most points lost taking too few tricks', fmt: (v) => formatScore(-v), tone: (v) => scoreTone(-v) },
-  { key: 'coward', icon: Rabbit, title: 'The Coward', blurb: 'Most points lost taking too many tricks', fmt: (v) => formatScore(-v), tone: (v) => scoreTone(-v) },
-  { key: 'destroyer', icon: Skull, title: 'The Destroyer', blurb: 'Most "everyone falls" rounds as the top bidder', fmt: (v) => `${v} round${v !== 1 ? 's' : ''}`, tone: () => 'text-foreground' },
-];
+  { key: 'greedy', icon: HandCoins, fmt: (v) => formatScore(-v), tone: (v) => scoreTone(-v) },
+  { key: 'coward', icon: Rabbit, fmt: (v) => formatScore(-v), tone: (v) => scoreTone(-v) },
+  { key: 'destroyer', icon: Skull, fmt: (v) => `${v} round${v !== 1 ? 's' : ''}`, tone: () => 'text-foreground' },
+].map((a) => ({ ...a, title: help[a.key].title, blurb: help[a.key].blurb }));
 
 function AwardIcon({ icon: Icon }) {
   return (
     <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-      <Icon className="w-4 h-4 text-primary" aria-hidden="true" />
+      <Icon className="w-4 h-4 text-foreground" aria-hidden="true" />
     </div>
   );
 }
@@ -42,14 +46,11 @@ export default function AwardsShowcase({ awards }) {
                 <p className="text-xs text-muted-foreground">{blurb}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                {/* One holder: a 44px-tall tap area around the name, without a taller card.
-                    Several: taller rows, so a neighbouring name is not hit by mistake.
-                    (The name is cut off inside a span: the link itself must not clip its ::after.) */}
+                {/* Each holder's name is a link at least 44 px tall and wide, so a name as
+                    short as "Dan" is still an easy tap and a neighbouring name is not hit by mistake. */}
                 {holders.map((h) => (
                   <Link key={h.player_id} to={`/player/${h.player_id}`}
-                    className={`relative block text-sm font-medium text-foreground ${
-                      holders.length === 1 ? "after:absolute after:-inset-x-3 after:-inset-y-3 after:content-['']" : 'py-3'
-                    }`}>
+                    className="-mr-2 flex min-h-11 min-w-11 items-center justify-end px-2 text-sm font-medium text-foreground underline decoration-muted-foreground/50 underline-offset-4">
                     <span className="block truncate max-w-[8rem]"><Name>{h.name}</Name></span>
                   </Link>
                 ))}

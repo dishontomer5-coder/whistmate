@@ -20,8 +20,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // THE gold button: the one primary action of a screen (src/index.css). Disabled, it
+        // is a neutral grey button — faded gold over navy reads as khaki (visual-designer-19).
         default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90 active:bg-primary/80",
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90 active:bg-primary/80 disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none disabled:opacity-100 disabled:ring-1 disabled:ring-inset disabled:ring-border",
         // A slightly deeper red than the `destructive` token, so the light label on it
         // reaches 4.5:1 (on #E03E3E itself it is 3.9:1).
         destructive:
@@ -31,7 +33,7 @@ const buttonVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
         ghost: "text-foreground hover:bg-secondary active:bg-secondary",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-foreground underline underline-offset-4 decoration-muted-foreground hover:decoration-foreground",
       },
       size: {
         default: "h-11 px-4",

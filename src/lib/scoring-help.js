@@ -288,3 +288,66 @@ function buildSections() {
 }
 
 export const SCORING_HELP = buildSections();
+
+// --- the standings --------------------------------------------------------------
+//
+// What the figures on the Standings tab mean: opened from the "?" beside the standings
+// (<ScoringHelp section="standings" />) and shown after the scoring sections on /rules.
+// Same shape as a SCORING_HELP section; its example is a small worked standings row.
+
+// The group's three awards, as the help and the award cards say them (AwardsShowcase reads
+// its blurbs from here, so the two never drift). The figures come from whist-stats.js.
+export const AWARD_HELP = [
+  {
+    key: 'greedy',
+    title: 'The Greedy',
+    blurb: 'Most points lost taking too few tricks',
+    definition: 'Most points lost in rounds where the player took fewer tricks than they bid. Rounds with a renege are left out.',
+  },
+  {
+    key: 'coward',
+    title: 'The Coward',
+    blurb: 'Most points lost taking too many tricks',
+    definition: 'Most points lost in rounds where the player took more tricks than they bid. Rounds with a renege are left out.',
+  },
+  {
+    key: 'destroyer',
+    title: 'The Destroyer',
+    blurb: 'Most "everyone falls" rounds as the top bidder',
+    definition: 'Most rounds where everyone fell while the player was the top bidder: the player marked as winning the trump or, when nobody was marked, everyone level on the highest bid.',
+  },
+];
+
+function buildStandingsHelp() {
+  // A worked row: three rounds, the middle one an everyone-falls round (scored 0).
+  const roundPoints = [made(4), 0, missed(2, 'classic')];
+  const total = roundPoints.reduce((a, b) => a + b, 0);
+  const avg = Math.round((total / roundPoints.length) * 10) / 10;
+  return {
+    id: 'standings',
+    title: 'The standings',
+    lines: [
+      'Players are listed by their total score over every session of the group, the session still open included. Tied players share a place.',
+    ],
+    facts: [
+      { label: 'Total', value: 'The points of every scored round the player sat in, added up.' },
+      { label: 'Average per round', value: 'The total divided by the rounds played, to one decimal. A round where everyone fell counts as a round played: it scored 0.' },
+      { label: 'Wins', value: 'Sessions finished in first place. Only a closed session can be won; while a session is open its top player is leading. A tie for first is a shared win, and a session in which no round counted has no winner.' },
+      { label: 'Behind', value: "How many points the player needs to draw level with the leader's total." },
+      { label: 'The small figure', value: 'The arrow figure under a total is what the player scored in one session: tonight while a session is open (switch to "Last night" for the last closed one), otherwise the last closed session, named above the list.' },
+      ...AWARD_HELP.map((a) => ({ label: a.title, value: `${a.definition} A tie gives the award to everyone on the top figure.` })),
+    ],
+    example: {
+      text: `Three rounds scoring ${list(roundPoints.map(signed))} (everyone fell in the middle one): total ${signed(total)}, average ${signed(avg)} a round.`,
+      checks: [],
+      roundPoints,
+      total,
+      avg,
+    },
+  };
+}
+
+export const STANDINGS_HELP = buildStandingsHelp();
+
+// Every section of the help sheet and of the guide on /rules, in order.
+export const HELP_SECTIONS = [...SCORING_HELP, STANDINGS_HELP];

@@ -9,7 +9,7 @@ import BackLink from '@/components/BackLink';
 const DATA_POINTS = [
   {
     title: 'Your account',
-    body: 'Your email address, and your name if you sign in with Google. Sign-in is handled by Base44, the platform that hosts WhistMate.',
+    body: 'Your email address, and your name if you sign in with Google. Sign-in is handled by Base44, the platform that hosts WhistMate. The admins of a group you join can see your email address next to your player name, in the group’s member list; other players cannot.',
   },
   {
     title: 'What your group records',

@@ -11,6 +11,13 @@ import { cn } from '@/lib/utils';
 //                  directly: a shared link, a bookmark, a reload in a fresh tab).
 //   fallbackLabel  the label for that case; by default the name of the fallback page.
 //
+//   <BackLink to="/history" />
+//
+//   to             a FIXED destination instead: the link always says that page's name
+//                  ("← Sessions") however the page was reached, so its label never changes
+//                  (scorekeeper-7). When that page is the one just before in the history
+//                  it goes back (keeping its scroll); otherwise it opens it.
+//
 // It reads "← Standings", "← Sessions", "← Activity"… when the previous page is known,
 // and "← Back" when it is not. To know, <NavTrail /> (rendered once, in App.jsx) notes for
 // every history entry which page the user was on before it.
@@ -68,21 +75,27 @@ export function NavTrail() {
   return null;
 }
 
-export default function BackLink({ fallback = '/', fallbackLabel, className }) {
+export default function BackLink({ to, fallback = '/', fallbackLabel, className }) {
   const navigate = useNavigate();
   const location = useLocation();
   // Is there a page of this visit to go back to? The router numbers the entries of a visit
   // (history.state.idx, 0 for the first); the first page loaded also has the key "default".
   const position = window.history.state?.idx;
   const canGoBack = typeof position === 'number' ? position > 0 : location.key !== 'default';
-  const label = canGoBack
-    ? pageName(cameFrom.get(location.key)) || 'Back'
+  const previous = cameFrom.get(location.key);
+  let label = canGoBack
+    ? pageName(previous) || 'Back'
     : fallbackLabel || pageName(fallback) || 'Back';
+  let go = () => (canGoBack ? navigate(-1) : navigate(fallback, { replace: true }));
+  if (to) {
+    label = fallbackLabel || pageName(to) || 'Back';
+    go = () => (canGoBack && previous === to ? navigate(-1) : navigate(to));
+  }
 
   return (
     <button
       type="button"
-      onClick={() => (canGoBack ? navigate(-1) : navigate(fallback, { replace: true }))}
+      onClick={go}
       className={cn('flex min-h-11 items-center gap-1 pr-2 text-sm text-muted-foreground transition-colors hover:text-foreground', className)}
     >
       <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {label}

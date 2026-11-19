@@ -13,6 +13,7 @@ import {
 import {
   SCORING_HELP, SCORING_HELP_SECTION_IDS, SCORING_METHOD_SUMMARY, SCORING_METHOD_LABEL,
   PROGRESSIVE_TIERS, CLASSIC_RATE, MADE_BONUS, CARD_ORDER_LABEL, CARD_ORDER_DETAIL, signed, tierRange,
+  STANDINGS_HELP, HELP_SECTIONS, AWARD_HELP,
 } from './scoring-help.js';
 
 let passed = 0;
@@ -237,6 +238,27 @@ test('rulebook §4.5 and §4.6: the renege penalty and the worked round', () => 
   const scored = scoreRound({ players: bids.map((bid, i) => ({ bid, tricks_won: tricks[i] })), scoringMethod: 'classic' });
   assert.equal(stated.length, 4);
   assert.deepEqual(scored.results.map((r) => r.points), stated);
+});
+
+// ---- the standings section ---------------------------------------------------
+
+test('standings: explains total, average, wins, behind, the small figure and every award', () => {
+  const s = STANDINGS_HELP;
+  assert.equal(s.id, 'standings');
+  assert.deepEqual(HELP_SECTIONS.map((x) => x.id), [...SCORING_HELP_SECTION_IDS, 'standings']);
+  const labels = s.facts.map((f) => f.label);
+  for (const label of ['Total', 'Average per round', 'Wins', 'Behind', 'The small figure']) assert.ok(labels.includes(label), label);
+  assert.deepEqual(AWARD_HELP.map((a) => a.key), ['greedy', 'coward', 'destroyer']);
+  for (const a of AWARD_HELP) assert.ok(labels.includes(a.title), a.title);
+  const text = allText(s);
+  assert.ok(text.includes('everyone fell counts as a round played'));
+  assert.ok(text.includes('tie for first is a shared win'));
+  assert.ok(!/\bgame(s)?\b/i.test(text), 'a night is a session');
+  // The worked row: the average is the total over the rounds, the everyone-falls round included.
+  const { roundPoints, total, avg } = s.example;
+  assert.equal(roundPoints.reduce((a, b) => a + b, 0), total);
+  assert.equal(avg, Math.round((total / roundPoints.length) * 10) / 10);
+  assert.ok(flat(s.example.text).includes(`total ${signed(total)}, average ${signed(avg)}`));
 });
 
 // ---- report --------------------------------------------------------------------

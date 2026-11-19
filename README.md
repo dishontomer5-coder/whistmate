@@ -18,7 +18,7 @@ On a phone you can add WhistMate to your home screen from the browser's share me
 
 The app's own About page says the same; keep the two in step when either changes.
 
-- **Your account:** your email address, and your name if you sign in with Google. Sign-in is handled by Base44, the platform that hosts WhistMate.
+- **Your account:** your email address, and your name if you sign in with Google. Sign-in is handled by Base44, the platform that hosts WhistMate. The admins of a group you join can see your email address next to your player name, in the group's member list; other players cannot.
 - **What your group records:** group and player names (including players someone added without an account), session names, dates and locations, bids, tricks, scores and table-talk notes. They are stored on Base44's servers. Only members of that group, and the developer as app administrator, can see them.
 - **Rules assistant:** the question you ask, with the recent conversation, is sent to an AI model through Base44 to write the answer. WhistMate does not save the conversation.
 - **Hosting analytics:** Base44 logs page views and basic usage, and may set a referral cookie for 30 days if you arrive from another site. There are no ads and no third-party trackers.

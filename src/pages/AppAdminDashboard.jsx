@@ -16,7 +16,7 @@ import { adminError } from '@/components/admin/messages';
 import { forgetReturnTo } from '@/lib/authReturnTo';
 
 const STATUS_STYLES = {
-  active: 'bg-primary/20 text-primary',
+  active: 'border border-input/70 text-foreground',
   archived: 'bg-yellow-500/20 text-yellow-500',
   deleted: 'bg-destructive/15 text-negative'
 };
@@ -388,7 +388,7 @@ export default function AppAdminDashboard() {
                     )}
                   </div>
                   {u.role === 'admin' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium flex-shrink-0">
+                    <span className="text-xs px-2 py-0.5 rounded-full border border-input/70 text-foreground font-medium flex-shrink-0">
                       Admin
                     </span>
                   )}

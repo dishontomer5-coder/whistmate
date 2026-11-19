@@ -3,18 +3,25 @@ import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils"
 
+// The status chip: You, Leading, Open, Winner, Admin, Claimed, In play, Everyone fell…
+// A status is information, not an action, so it is NEVER solid gold (see the rule at the
+// top of src/index.css). Variants:
+//   default      neutral outline — every ordinary status
+//   negative     red outline + red text — a bad outcome the reader must notice
+//   selected     gold outline — "this is you / the chosen one", used sparingly
+//   secondary    a quiet filled chip (counts)
+// Sentence case ("Leading", not "LEADING"); do not add uppercase at the call site.
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium leading-tight",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground",
+        default: "border-input/70 bg-transparent text-foreground",
+        negative: "border-destructive/60 bg-transparent text-negative",
+        selected: "border-primary/70 bg-transparent text-foreground",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        // Kept for shadcn compatibility: the same neutral outline as default.
+        outline: "border-input/70 bg-transparent text-foreground",
       },
     },
     defaultVariants: {
@@ -28,7 +35,7 @@ function Badge({
   variant,
   ...props
 }) {
-  return (<div className={cn(badgeVariants({ variant }), className)} {...props} />);
+  return (<span className={cn(badgeVariants({ variant }), className)} {...props} />);
 }
 
 export { Badge, badgeVariants }

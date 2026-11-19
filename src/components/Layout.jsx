@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup, isGroupPage } from '@/lib/ActiveGroupContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { UserText } from '@/components/UserText';
+import { TabBarContext } from '@/components/TabBarContext';
 
 // The app shell: a header, the page, and a tab bar. It comes in two frames.
 //
@@ -44,6 +45,8 @@ export default function Layout() {
   const { user } = useAuth();
   const { activeGroupId, activeGroup, isAdmin, loading: groupsLoading, groupPending } = useActiveGroup();
   const [unseenActivity, setUnseenActivity] = useState(0);
+  // A round page that is only read (a scored round) asks for the tab bar back — TabBarContext.
+  const [pageWantsTabs, setPageWantsTabs] = useState(false);
   const { pathname } = location;
 
   // Which frame this page is drawn in. A side page keeps the frame of the page before it.
@@ -84,10 +87,10 @@ export default function Layout() {
   const tabs = inGroup
     ? GROUP_TABS.filter((tab) => !tab.adminOnly || (isAdmin && !groupPending))
     : GLOBAL_TABS;
-  const showTabs = !!user && !isRoundEntry(pathname);
+  const showTabs = !!user && (!isRoundEntry(pathname) || pageWantsTabs);
 
   const signInLink = (
-    <Link to="/login" className="flex items-center gap-1 min-h-11 text-sm text-primary hover:underline">
+    <Link to="/login" className="flex items-center gap-1 min-h-11 text-sm font-medium text-foreground hover:underline">
       <LogIn className="w-4 h-4" />
       Sign in
     </Link>
@@ -109,7 +112,7 @@ export default function Layout() {
                 <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                 Groups
                 {unseenActivity > 0 && (
-                  <span aria-hidden="true" className="absolute top-2 right-0 w-2 h-2 rounded-full bg-primary" />
+                  <span aria-hidden="true" className="absolute top-2 right-0 w-2 h-2 rounded-full bg-foreground" />
                 )}
               </button>
               {/* The group of the page on screen. While that is not known yet (an id page
@@ -126,7 +129,7 @@ export default function Layout() {
                   </span>
                 )}
               </div>
-              {user ? <HamburgerMenu /> : signInLink}
+              {user ? <HamburgerMenu unseenActivity={unseenActivity} /> : signInLink}
             </>
           ) : (
             <>
@@ -143,7 +146,9 @@ export default function Layout() {
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-24">
-        <Outlet />
+        <TabBarContext.Provider value={setPageWantsTabs}>
+          <Outlet />
+        </TabBarContext.Provider>
       </main>
 
       {showTabs && (
@@ -165,7 +170,7 @@ export default function Layout() {
                   <span className="relative">
                     <Icon className="w-5 h-5" aria-hidden="true" />
                     {unseen > 0 && (
-                      <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-xs leading-none font-bold flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-foreground text-background text-xs leading-none font-bold flex items-center justify-center">
                         {unseen > 9 ? '9+' : unseen}
                         <span className="sr-only"> new</span>
                       </span>

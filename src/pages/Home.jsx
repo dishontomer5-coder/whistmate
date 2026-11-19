@@ -31,6 +31,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
+  const [figure, setFigure] = useState('tonight'); // 'tonight' | 'last'
   const latestRequest = useRef(0);
 
   useEffect(() => {
@@ -60,6 +61,13 @@ export default function Home() {
 
       const openSession = sessions.find((s) => s.status === 'open') || null;
       const openRounds = openSession ? rounds.filter((r) => r.session_id === openSession.id) : [];
+      // The small figure beside a total is tonight's score while a session is open. "Last
+      // night" shows the same table with the figure taken from the last closed session
+      // (returning-player-1): every row names it (last_closed_session), and buildStandings'
+      // deltaSessionId points the figure at it.
+      const standings = buildStandings(results, {}, { sessions });
+      const lastClosed = standings[0]?.last_closed_session || null;
+      const figureIsTonight = standings[0]?.delta_session?.status === 'open';
       setData({
         groupId: activeGroupId,
         sessions,
@@ -70,7 +78,10 @@ export default function Home() {
         openOutcome: openSession ? sessionOutcomes(results)[openSession.id] || null : null,
         // Wins count closed sessions only, so the standings need the sessions; they also pick
         // the session the small figure beside a total refers to (delta_session on each row).
-        standings: buildStandings(results, {}, { sessions }),
+        standings,
+        lastNightStandings: figureIsTonight && lastClosed
+          ? buildStandings(results, {}, { sessions, deltaSessionId: lastClosed.id })
+          : null,
         awards: computeAwardLeaders(results, rounds),
       });
     } catch (err) {
@@ -91,8 +102,11 @@ export default function Home() {
   const current = data?.groupId === activeGroupId ? data : null;
   if (groupsLoading || loading || (!current && !error)) return <LoadingSpinner showLogo />;
 
-  const { sessions = [], standings = [], awards = null, openSession = null } = current || {};
+  const { sessions = [], awards = null, openSession = null, lastNightStandings = null } = current || {};
   const isNewGroup = !!current && sessions.length === 0;
+  // "Tonight · Last night": which session the small figure is from, when there are both.
+  const showLastNight = !!lastNightStandings && figure === 'last';
+  const standings = (showLastNight ? lastNightStandings : current?.standings) || [];
 
   // What the small arrow figure beside a total is: the open session ("tonight") or the
   // last closed one, by name.
@@ -105,7 +119,8 @@ export default function Home() {
       <div className="flex items-center justify-between">
         <h1 className="page-title">Standings</h1>
         <div className="flex items-center -my-1 -mr-2">
-          <ScoringHelpButton />
+          {/* Opens the help at "The standings": total, average, wins, behind, the small figure, the awards. */}
+          <ScoringHelpButton section="standings" label="What the standings show" />
           <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground"
             disabled={refreshing} onClick={() => loadData(true)} aria-label="Refresh">
             <RefreshCw className={refreshing ? 'animate-spin' : ''} />
@@ -119,10 +134,10 @@ export default function Home() {
 
       {openSession ? (
         <Link to={`/session/${openSession.id}`}
-          className="flex items-center gap-3 rounded-lg border border-primary/60 bg-primary/10 p-4 transition-colors hover:bg-primary/15">
+          className="flex items-center gap-3 rounded-lg border border-primary/60 bg-card p-4 transition-colors hover:bg-secondary">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">Session in progress</p>
-            <p className="mt-0.5 font-heading font-bold text-foreground truncate"><UserText>{sessionName(openSession)}</UserText></p>
+            <p className="section-label">Session in progress</p>
+            <p className="mt-0.5 line-clamp-2 font-heading font-bold text-foreground break-words"><UserText>{sessionName(openSession)}</UserText></p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {current.roundInPlay
                 ? `Round ${current.roundInPlay.round_number} in play`
@@ -162,17 +177,31 @@ export default function Home() {
         <div className="space-y-3">
           {/* What the two figures on each row are (the page title already says "Standings"). */}
           {standings.length > 0 && (
-            <p className="flex min-w-0 items-center justify-end gap-1 text-xs text-muted-foreground">
-              <span className="flex-shrink-0">Total score</span>
-              {deltaLabel && (
-                <>
-                  <span className="flex-shrink-0" aria-hidden="true">·</span>
-                  <ArrowUp className="h-3 w-3 flex-shrink-0 text-emerald-400" aria-hidden="true" />
-                  <ArrowDown className="-ml-1 h-3 w-3 flex-shrink-0 text-negative" aria-hidden="true" />
-                  <UserText className="truncate">{deltaLabel}</UserText>
-                </>
-              )}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              {lastNightStandings ? (
+                <div role="group" aria-label="Small figure shows" className="flex flex-shrink-0 rounded-lg bg-secondary p-0.5">
+                  {[['tonight', 'Tonight'], ['last', 'Last night']].map(([id, label]) => (
+                    <button key={id} type="button" aria-pressed={figure === id} onClick={() => setFigure(id)}
+                      className={`min-h-11 rounded-md border-2 px-3 text-xs font-semibold transition-colors ${
+                        figure === id ? 'border-primary bg-background text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : <span />}
+              <p className="ml-auto flex min-w-0 items-center justify-end gap-1 text-xs text-muted-foreground">
+                <span className="flex-shrink-0">Total score</span>
+                {deltaLabel && (
+                  <>
+                    <span className="flex-shrink-0" aria-hidden="true">·</span>
+                    <ArrowUp className="h-3 w-3 flex-shrink-0 text-emerald-400" aria-hidden="true" />
+                    <ArrowDown className="-ml-1 h-3 w-3 flex-shrink-0 text-negative" aria-hidden="true" />
+                    <UserText className="min-w-0 break-words [overflow-wrap:anywhere]">{deltaLabel}</UserText>
+                  </>
+                )}
+              </p>
+            </div>
           )}
           <Leaderboard players={standings} sortBy="total" limit={STANDINGS_SHOWN} deltaLabel={deltaLabel}
             emptyDescription="Standings appear once the first round is scored." />

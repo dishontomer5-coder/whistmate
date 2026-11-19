@@ -18,7 +18,7 @@ function Step({ number, done, title, children }) {
     <li className="flex gap-3">
       <span aria-hidden="true"
         className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-sm font-heading font-bold ${
-          done ? 'bg-primary text-primary-foreground' : 'border border-input text-muted-foreground'
+          done ? 'border border-primary text-foreground' : 'border border-input text-muted-foreground'
         }`}>
         {done ? <Check className="h-4 w-4" /> : number}
       </span>

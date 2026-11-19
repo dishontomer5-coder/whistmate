@@ -5,10 +5,12 @@ export default function SegmentedControl({ options, value, onChange }) {
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`flex-1 py-1.5 px-2 rounded-full text-center font-medium transition-colors whitespace-nowrap ${
+          aria-pressed={value === opt.value}
+          // Selected = a gold outline, never a gold fill (gold fills are for the primary action).
+          className={`flex-1 min-h-11 py-1.5 px-2 rounded-full border-2 text-center font-medium transition-colors whitespace-nowrap ${
             value === opt.value
-              ? 'bg-primary text-primary-foreground'
-              : 'text-foreground'
+              ? 'border-primary bg-background text-foreground'
+              : 'border-transparent text-muted-foreground'
           }`}
         >
           <span className="hidden sm:inline">{opt.label}</span>
