@@ -11,7 +11,7 @@ export function formatScore(points) {
 // (The three class names are written out in full so Tailwind keeps them.)
 export function scoreTone(points) {
   const v = Number(points) || 0;
-  if (v > 0) return 'text-foreground';
+  if (v > 0) return 'text-foreground font-semibold';
   if (v < 0) return 'text-negative';
   return 'text-muted-foreground';
 }

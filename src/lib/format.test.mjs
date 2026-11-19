@@ -128,8 +128,8 @@ test('formatScore and scoreTone: gained, zero, lost', () => {
   assert.equal(formatScore(-10), '-10');
   assert.equal(formatScore(0), '0');
   assert.equal(formatScore(null), '0');
-  assert.equal(scoreTone(26), 'text-foreground');
-  assert.equal(scoreTone(0.5), 'text-foreground');
+  assert.equal(scoreTone(26), 'text-foreground font-semibold');
+  assert.equal(scoreTone(0.5), 'text-foreground font-semibold');
   assert.equal(scoreTone(-10), 'text-negative');
   assert.equal(scoreTone(0), 'text-muted-foreground');
   assert.equal(scoreTone(null), 'text-muted-foreground');

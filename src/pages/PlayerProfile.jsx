@@ -229,7 +229,7 @@ export function PlayerView({ playerId }) {
         highlightNoteId={highlightNoteId}
         emptyDescription={isMe ? 'Notes other players leave about you will show up here.' : isArchived ? 'Nobody left a note about this player.' : 'Be the first to leave a note about this player.'}
         action={!isMe && !isArchived && (
-          <Button variant="outline" size="sm" onClick={() => setNoteDialogOpen(true)}>
+          <Button variant="outline" onClick={() => setNoteDialogOpen(true)}>
             <MessageSquarePlus /> Leave a note
           </Button>
         )}
