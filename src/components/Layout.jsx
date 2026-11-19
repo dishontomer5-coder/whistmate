@@ -87,7 +87,7 @@ export default function Layout() {
   const showTabs = !!user && !isRoundEntry(pathname);
 
   const signInLink = (
-    <Link to="/login" className="flex items-center gap-1 min-h-11 text-sm text-primary hover:underline">
+    <Link to="/login" className="flex items-center gap-1 min-h-11 text-sm font-medium text-foreground hover:underline">
       <LogIn className="w-4 h-4" />
       Sign in
     </Link>
@@ -109,7 +109,7 @@ export default function Layout() {
                 <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                 Groups
                 {unseenActivity > 0 && (
-                  <span aria-hidden="true" className="absolute top-2 right-0 w-2 h-2 rounded-full bg-primary" />
+                  <span aria-hidden="true" className="absolute top-2 right-0 w-2 h-2 rounded-full bg-foreground" />
                 )}
               </button>
               {/* The group of the page on screen. While that is not known yet (an id page
@@ -126,7 +126,7 @@ export default function Layout() {
                   </span>
                 )}
               </div>
-              {user ? <HamburgerMenu /> : signInLink}
+              {user ? <HamburgerMenu unseenActivity={unseenActivity} /> : signInLink}
             </>
           ) : (
             <>
@@ -165,7 +165,7 @@ export default function Layout() {
                   <span className="relative">
                     <Icon className="w-5 h-5" aria-hidden="true" />
                     {unseen > 0 && (
-                      <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-xs leading-none font-bold flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-foreground text-background text-xs leading-none font-bold flex items-center justify-center">
                         {unseen > 9 ? '9+' : unseen}
                         <span className="sr-only"> new</span>
                       </span>
