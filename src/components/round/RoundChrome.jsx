@@ -1,4 +1,4 @@
-import { Gavel, ClipboardCheck, RotateCcw } from 'lucide-react';
+import { Gavel, ClipboardCheck, RotateCcw, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // The frame the round screens share: the coloured band that names the step and the
@@ -47,6 +47,18 @@ export function RestoredNote({ what }) {
     <p role="status" data-restored-note className="flex items-start gap-1.5 text-xs leading-snug text-emerald-400">
       <RotateCcw className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
       <span>Restored: {what}.</span>
+    </p>
+  );
+}
+
+// After a lock or a save was refused because another phone changed the round since this
+// screen loaded it: the round on screen has been read again, and nothing typed here was used.
+export function ChangedNote({ show }) {
+  if (!show) return null;
+  return (
+    <p role="status" data-changed-note className="flex items-start gap-1.5 text-xs leading-snug text-warning">
+      <RefreshCw className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+      <span><span className="font-semibold">This round was changed on another phone.</span> It has been reloaded — what you typed here was not used.</span>
     </p>
   );
 }

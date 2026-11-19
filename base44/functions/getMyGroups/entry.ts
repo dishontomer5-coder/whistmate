@@ -19,9 +19,14 @@ Deno.serve(async (req) => {
     // P7-9: reads can lag for freshly-claimed rows. Reconcile against the
     // session cache via by-ID gets (reliable) so a just-joined group doesn't
     // vanish — and stale cache entries (left groups) are dropped, not revived.
+    // A cached entry whose row is gone or no longer the caller's means an admin took the
+    // caller out (detached their account, or removed them): it is reported once in
+    // removed_from — the cache is rewritten below, so the next call no longer has it.
+    // Only what the caller's own cache says is echoed back; no group is read for it.
     const queriedIds = new Set(memberships.map(m => m.id));
     const tried = new Set();
-    for (const cached of (user.groups || [])) {
+    const lost = [];
+    for (const cached of (Array.isArray(user.groups) ? user.groups : [])) {
       if (!cached || !cached.member_id || queriedIds.has(cached.member_id) || tried.has(cached.member_id)) continue;
       if (tried.size >= MAX_HINTS) break;
       tried.add(cached.member_id);
@@ -29,13 +34,20 @@ Deno.serve(async (req) => {
       if (row && row.user_id === user.id) {
         memberships.push(row);
         queriedIds.add(row.id);
+      } else if (cached.group_id) {
+        lost.push({ group_id: String(cached.group_id), group_name: typeof cached.group_name === 'string' ? cached.group_name : null });
       }
     }
+    // Still in that group through another row (claimed again, rejoined): not removed.
+    const removedFrom = (stillIn) => {
+      const seen = new Set();
+      return lost.filter((g) => !stillIn.has(g.group_id) && !seen.has(g.group_id) && seen.add(g.group_id));
+    };
 
     if (memberships.length === 0) {
       // Cache empty array on user metadata to prevent stale state
       await base44.auth.updateMe({ groups: [] });
-      return Response.json({ groups: [] });
+      return Response.json({ groups: [], removed_from: removedFrom(new Set()) });
     }
 
     // Fetch all related Groups (typically 1-5, so parallel gets are efficient)
@@ -67,7 +79,7 @@ Deno.serve(async (req) => {
     // updateMe with the refreshed array BEFORE returning success.
     await base44.auth.updateMe({ groups: result });
 
-    return Response.json({ groups: result });
+    return Response.json({ groups: result, removed_from: removedFrom(new Set(memberships.map(m => m.group_id))) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -16,7 +16,7 @@ import { sessionOutcomes } from '@/components/SessionCard';
 import { Name, UserText } from '@/components/UserText';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { buildStandings, computeAwardLeaders } from '@/lib/standings';
-import { errorMessage, formatScore, sessionName } from '@/lib/format';
+import { errorMessage, formatDayMonth, formatScore, sessionName } from '@/lib/format';
 
 // How many rows the standings show before "Show all".
 const STANDINGS_SHOWN = 10;
@@ -62,7 +62,7 @@ export default function Home() {
       const openSession = sessions.find((s) => s.status === 'open') || null;
       const openRounds = openSession ? rounds.filter((r) => r.session_id === openSession.id) : [];
       // The small figure beside a total is tonight's score while a session is open. "Last
-      // night" shows the same table with the figure taken from the last closed session
+      // session" shows the same table with the figure taken from the last closed session
       // (returning-player-1): every row names it (last_closed_session), and buildStandings'
       // deltaSessionId points the figure at it.
       const standings = buildStandings(results, {}, { sessions });
@@ -104,7 +104,7 @@ export default function Home() {
 
   const { sessions = [], awards = null, openSession = null, lastNightStandings = null } = current || {};
   const isNewGroup = !!current && sessions.length === 0;
-  // "Tonight · Last night": which session the small figure is from, when there are both.
+  // "Tonight · Last session": which session the small figure is from, when there are both.
   const showLastNight = !!lastNightStandings && figure === 'last';
   const standings = (showLastNight ? lastNightStandings : current?.standings) || [];
 
@@ -113,11 +113,13 @@ export default function Home() {
   const deltaSession = standings.find((p) => p.delta_session)?.delta_session || null;
   const deltaRecord = deltaSession ? sessions.find((s) => s.id === deltaSession.id) : null;
   const deltaName = deltaSessionLabel(deltaSession, deltaRecord ? sessionName(deltaRecord) : null);
-  // While a session is open the figure is tonight's — except before tonight's first round is
-  // scored, or under "Last night": then it is an earlier session, often of the same date as
-  // tonight's card, so the label says outright that it is the last session.
-  const deltaLabel = deltaName && openSession && deltaSession?.status !== 'open'
-    ? `Last session: ${deltaName}` : deltaName;
+  // While a session is open the figure is tonight's. Otherwise — no session open, before
+  // tonight's first round is scored, or under "Last session" — it is the last closed
+  // session, which may be a week old: the label says so and gives its date
+  // ("Last session: Last Thursday, Nov 12"), so nobody reads it as yesterday's.
+  const deltaDate = deltaRecord ? formatDayMonth(deltaRecord.session_date || deltaRecord.created_date) : '';
+  const deltaLabel = deltaName && deltaSession?.status !== 'open'
+    ? `Last session: ${deltaName}${deltaDate ? `, ${deltaDate}` : ''}` : deltaName;
 
   return (
     <div className="space-y-6">
@@ -185,7 +187,7 @@ export default function Home() {
             <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2">
               {lastNightStandings ? (
                 <div role="group" aria-label="Small figure shows" className="flex flex-shrink-0 rounded-lg bg-secondary p-0.5">
-                  {[['tonight', 'Tonight'], ['last', 'Last night']].map(([id, label]) => (
+                  {[['tonight', 'Tonight'], ['last', 'Last session']].map(([id, label]) => (
                     <button key={id} type="button" aria-pressed={figure === id} onClick={() => setFigure(id)}
                       className={`min-h-11 rounded-md border-2 px-3 text-xs font-semibold transition-colors ${
                         figure === id ? 'border-primary bg-background text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -202,7 +204,15 @@ export default function Home() {
                     <span className="flex-shrink-0" aria-hidden="true">·</span>
                     <ArrowUp className="h-3 w-3 flex-shrink-0 text-emerald-400" aria-hidden="true" />
                     <ArrowDown className="-ml-1 h-3 w-3 flex-shrink-0 text-negative" aria-hidden="true" />
-                    <UserText className="min-w-0 break-words [overflow-wrap:anywhere]">{deltaLabel}</UserText>
+                    {deltaSession?.status !== 'open' ? (
+                      // "Last session: Last Thursday, Nov 12" — the date never splits.
+                      <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                        Last session: <UserText>{deltaName}</UserText>
+                        {deltaDate ? <>, <span className="whitespace-nowrap">{deltaDate}</span></> : null}
+                      </span>
+                    ) : (
+                      <UserText className="min-w-0 break-words [overflow-wrap:anywhere]">{deltaLabel}</UserText>
+                    )}
                   </>
                 )}
               </p>

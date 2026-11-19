@@ -35,6 +35,7 @@ async function readOnlyGroup(base44, groupId) {
 // (each 0-13, sum != 13), derives table_state (up/down) + highest bidder, and —
 // under advanced rules — records the highest bidder's trump suit + hierarchy.
 // Moves the round bidding -> playing.
+const ROUND_CHANGED = 'This round was changed on another phone — reload to see it';
 const SUITS = ['spades', 'hearts', 'diamonds', 'clubs', 'notrump'];
 const HIERARCHIES = ['standard', 'down_up'];
 
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { game_id, bids, trump_suit, hierarchy, trump_owner_player_id } = await req.json();
+    const { game_id, bids, trump_suit, hierarchy, trump_owner_player_id, expected_updated_date } = await req.json();
     if (!game_id || !bids || typeof bids !== 'object') {
       return Response.json({ error: 'game_id and bids (map of player_id -> bid) are required' }, { status: 400 });
     }
@@ -76,6 +77,13 @@ Deno.serve(async (req) => {
 
     const readOnly = await readOnlyGroup(base44, round.group_id);
     if (readOnly) return readOnly;
+
+    // No silent overwrite: the screen sends the updated_date of the round it loaded. If the
+    // bids were locked or changed since (another phone), nothing is written and the screen
+    // reloads. Optional, so a client that sends nothing keeps working as before.
+    if (expected_updated_date != null && String(expected_updated_date) !== String(round.updated_date)) {
+      return Response.json({ error: ROUND_CHANGED, code: 'round_changed' }, { status: 409 });
+    }
 
     const results = (await base44.asServiceRole.entities.RoundResult.filter({ game_id }))
       .sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0));

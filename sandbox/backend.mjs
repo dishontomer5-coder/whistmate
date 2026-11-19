@@ -383,7 +383,11 @@ export async function createBackend({ seed = null, pageCap = 500, log = () => {}
       if (!row) throw Object.assign(new Error(`${name} with id ${id} not found`), { status: 404 });
       const next = { ...row, ...clone(stripBuiltIns(data)) };
       validate(name, next, { partial: true });
-      Object.assign(row, next, { updated_date: new Date(Math.max(Date.now(), Date.parse(row.created_date))).toISOString() });
+      // Like the platform: every update moves updated_date on — even two in the same
+      // millisecond — so a client holding the old one can tell the row changed since.
+      const ts = Math.max(Date.parse(stamp()), Date.parse(row.created_date), Date.parse(row.updated_date || 0) + 1);
+      state.lastTs = Math.max(state.lastTs, ts);
+      Object.assign(row, next, { updated_date: new Date(ts).toISOString() });
       return clone(row);
     },
     delete(name, id) {

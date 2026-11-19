@@ -341,7 +341,7 @@ function buildStandingsHelp() {
       { label: 'Average per round', value: 'The total divided by the rounds played, to one decimal. A round where everyone fell counts as a round played: it scored 0.' },
       { label: 'Wins', value: 'Sessions finished in first place. Only a closed session can be won; while a session is open its top player is leading. A tie for first is a shared win, and a session in which no round counted has no winner.' },
       { label: 'Behind', value: "How many points the player needs to draw level with the leader's total." },
-      { label: 'The small figure', value: 'The arrow figure under a total is what the player scored in one session: tonight while a session is open (switch to "Last night" for the last closed one), otherwise the last closed session, named above the list.' },
+      { label: 'The small figure', value: 'The arrow figure under a total is what the player scored in one session: tonight while a session is open (switch to "Last session" for the last closed one), otherwise the last closed session, named above the list.' },
       ...AWARD_HELP.map((a) => ({ label: a.title, value: `${a.definition} A tie gives the award to everyone on the top figure.` })),
     ],
     example: {

@@ -36,6 +36,7 @@ async function readOnlyGroup(base44, groupId) {
 // Requires the caller to be a group admin of the round's group (or app admin).
 //
 // === Scoring MIRRORS src/lib/scoring.js — keep in sync (Deno can't import src/). ===
+const ROUND_CHANGED = 'This round was changed on another phone — reload to see it';
 const SUITS = ['spades', 'hearts', 'diamonds', 'clubs', 'notrump'];
 const HIERARCHIES = ['standard', 'down_up'];
 function progressiveRate(m: number): number {
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { game_id, bids, tricks, reneges, trump_suit, hierarchy, trump_owner_player_id } = await req.json();
+    const { game_id, bids, tricks, reneges, trump_suit, hierarchy, trump_owner_player_id, expected_updated_date } = await req.json();
     if (!game_id || !bids || !tricks) {
       return Response.json({ error: 'game_id, bids and tricks are required' }, { status: 400 });
     }
@@ -89,6 +90,13 @@ Deno.serve(async (req) => {
 
     const readOnly = await readOnlyGroup(base44, round.group_id);
     if (readOnly) return readOnly;
+
+    // No silent overwrite: the editor sends the updated_date of the round it loaded. If the
+    // round was saved since (another admin, another phone), nothing is written and the
+    // editor reloads. Optional, so a client that sends nothing keeps working as before.
+    if (expected_updated_date != null && String(expected_updated_date) !== String(round.updated_date)) {
+      return Response.json({ error: ROUND_CHANGED, code: 'round_changed' }, { status: 409 });
+    }
 
     const results = (await base44.asServiceRole.entities.RoundResult.filter({ game_id }))
       .sort((a, b) => (a.bid_order ?? 0) - (b.bid_order ?? 0));

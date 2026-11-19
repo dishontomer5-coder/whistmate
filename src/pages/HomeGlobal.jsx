@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
-import { Plus, KeyRound, Users, Globe, LogIn, ChevronRight, Trophy, Target, Spade, CheckCircle2, X, Play } from 'lucide-react';
+import { Plus, KeyRound, Users, Globe, LogIn, ChevronRight, Trophy, Target, Spade, CheckCircle2, X, Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import CreateGroupDialog from '@/components/groups/CreateGroupDialog';
@@ -11,7 +11,7 @@ import JoinGroupDialog from '@/components/groups/JoinGroupDialog';
 import { formatScore, scoreTone, sessionName } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import EmptyState from '@/components/EmptyState';
-import { UserText } from '@/components/UserText';
+import { Name, UserText } from '@/components/UserText';
 import { BOOT_PATH, inviteFromPath, pendingReturnTo, withReturnTo } from '@/lib/authReturnTo';
 
 // A signed-out visitor who opened a link to a page inside the app (a session, a player…)
@@ -23,7 +23,7 @@ let sentToLogin = false;
 
 export default function HomeGlobal() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
-  const { myGroups, loading: groupsLoading, setActiveGroup, refreshGroups } = useActiveGroup();
+  const { myGroups, loading: groupsLoading, setActiveGroup, refreshGroups, removedFrom, clearRemovedFrom } = useActiveGroup();
   const location = useLocation();
   const navigate = useNavigate();
   // What another page handed over when it sent the visitor here:
@@ -39,6 +39,15 @@ export default function HomeGlobal() {
   // group_id -> { session, round } for each group with a session open: the card says so and
   // offers "Resume", so getting back to a game in progress is one tap (scorekeeper-5).
   const [inPlay, setInPlay] = useState({});
+  // Groups an admin took the user out of (qa-tester-2): said once. They are copied here
+  // and forgotten by the provider, so the notice stays until dismissed or the page is
+  // left, and does not come back.
+  const [removedNotice, setRemovedNotice] = useState([]);
+  useEffect(() => {
+    if (removedFrom.length === 0) return;
+    setRemovedNotice((prev) => [...prev, ...removedFrom.filter((g) => !prev.some((p) => p.group_id === g.group_id))]);
+    clearRemovedFrom();
+  }, [removedFrom, clearRemovedFrom]);
 
   // A notice is said once: drop it from the history entry so a reload or a Back press does
   // not repeat it. The invite stays there until its dialog closes, so a reload in the
@@ -179,6 +188,24 @@ export default function HomeGlobal() {
           <CheckCircle2 className="mt-3 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <UserText className="min-w-0 flex-1 break-words py-2.5">{notice}</UserText>
           <button type="button" onClick={() => setNotice('')} aria-label="Dismiss this message"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {removedNotice.length > 0 && (
+        <div role="status" data-removed-notice className="flex items-start gap-2 rounded-lg border border-border bg-card py-1 pl-3 pr-1 text-sm text-foreground">
+          <Info className="mt-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div className="min-w-0 flex-1 space-y-1 py-2.5 break-words [overflow-wrap:anywhere]">
+            {removedNotice.map((g) => (
+              <p key={g.group_id}>
+                You were removed from {g.group_name ? <span className="font-medium"><Name>{g.group_name}</Name></span> : 'a group'} by an admin.
+                Your rounds stay in its history.
+              </p>
+            ))}
+          </div>
+          <button type="button" onClick={() => setRemovedNotice([])} aria-label="Dismiss this message"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
             <X className="h-4 w-4" />
           </button>

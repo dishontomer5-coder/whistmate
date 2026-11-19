@@ -19,7 +19,11 @@ export function scoreTone(points) {
 // An average, always with one decimal and signed like a score: 11.923 -> "+11.9",
 // -0.54 -> "-0.5", 3 -> "+3.0", 0 -> "0.0". The one way an average is shown, on every screen.
 export function formatAvg(value) {
-  const v = Math.round((Number(value) || 0) * 10) / 10;
+  // Half away from zero, so a small loss is not shown as break-even: −4 over 76 rounds
+  // (−0.05 once the stats round it) is −0.1, not 0.0 (whist-player-2). The tiny nudge
+  // absorbs float noise such as 0.15 * 10 = 1.4999….
+  const x = Number(value) || 0;
+  const v = (Math.sign(x) * Math.round(Math.abs(x) * 10 + 1e-9)) / 10;
   if (v === 0) return '0.0'; // also -0, so a tiny loss never shows as "-0.0"
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}`;
 }
@@ -58,6 +62,14 @@ export function formatDate(dateString) {
   const date = parseDate(dateString);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// A short date for a caption, e.g. "Nov 12".
+export function formatDayMonth(dateString) {
+  if (!dateString) return '';
+  const date = parseDate(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // What a session is called when nobody named it: the weekday and date of the night,
