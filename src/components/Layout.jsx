@@ -7,6 +7,7 @@ import { useActiveGroup, isGroupPage } from '@/lib/ActiveGroupContext';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { UserText } from '@/components/UserText';
 import { TabBarContext } from '@/components/TabBarContext';
+import { Mark } from '@/components/Logo';
 
 // The app shell: a header, the page, and a tab bar. It comes in two frames.
 //
@@ -135,7 +136,7 @@ export default function Layout() {
           ) : (
             <>
               <Link to="/home" className="flex items-center gap-2 min-h-11 flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-                <span aria-hidden="true" className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold">♠</span>
+                <Mark />
                 <span className="font-heading text-lg font-bold tracking-wide text-primary uppercase">
                   WhistMate
                 </span>

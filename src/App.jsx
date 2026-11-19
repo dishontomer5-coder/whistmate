@@ -6,7 +6,6 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import { NavTrail } from './components/BackLink';
-import Logo from './components/Logo';
 // Pages
 import Home from './pages/Home';
 import NewSession from './pages/NewSession';
@@ -32,15 +31,15 @@ import RulesChat from './pages/RulesChat';
 import About from './pages/About';
 import Layout from './components/Layout';
 import { ActiveGroupProvider } from '@/lib/ActiveGroupContext';
+import { JesterLoader } from '@/components/LoadingSpinner';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-background">
-        <Logo size="lg" />
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background" role="status" aria-label="Loading">
+        <JesterLoader />
       </div>
     );
   }
