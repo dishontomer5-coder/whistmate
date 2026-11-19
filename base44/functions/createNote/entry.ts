@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       if (session && session.group_id === group_id) {
         gameFields = {
           game_id: session.id,
-          game_name: session.name || 'Whist Night',
+          game_name: session.name || null, // an unnamed session is shown by its date (noteSessionName)
           game_date: session.session_date || String(session.created_date || '').slice(0, 10) || null,
         };
       }
