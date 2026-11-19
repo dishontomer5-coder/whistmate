@@ -3,7 +3,7 @@ import { CircleHelp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Suit } from '@/components/Suit';
-import { SCORING_HELP } from '@/lib/scoring-help';
+import { HELP_SECTIONS } from '@/lib/scoring-help';
 import { cn } from '@/lib/utils';
 
 // "How scoring works" — the one place the app explains its numbers.
@@ -13,7 +13,9 @@ import { cn } from '@/lib/utils';
 //   <ScoringHelpButton />                                               a 44x44 "?" that opens it
 //   <ScoringHelpButton section="renege" />
 //
-// section: 'contract' | 'miss' | 'zero' | 'updown' | 'everyone-falls' | 'renege' | 'trump'
+// section: 'contract' | 'miss' | 'zero' | 'updown' | 'everyone-falls' | 'renege' | 'trump' | 'standings'
+//
+// <ScoringGuide /> is the same content as a plain block, for the guide tab of /rules.
 //
 // A bottom sheet on a phone, a dialog from 640px up. The words and every number in them
 // come from src/lib/scoring-help.js, which computes them from the scoring engine.
@@ -22,6 +24,51 @@ import { cn } from '@/lib/utils';
 function Rich({ line }) {
   if (!Array.isArray(line)) return line;
   return line.map((part, i) => (typeof part === 'string' ? part : <Suit key={i} suit={part.suit} />));
+}
+
+// Every section of the help, one card each. `highlight` outlines one section (the one the
+// sheet was opened for). `headingLevel` lets a page put the titles under its own <h1>/<h2>.
+export function ScoringGuide({ highlight, headingLevel = 3, className }) {
+  const Heading = `h${headingLevel}`;
+  return (
+    <div className={cn('space-y-3', className)}>
+      {HELP_SECTIONS.map((s) => (
+        <section
+          key={s.id}
+          id={`help-${s.id}`}
+          data-section={s.id}
+          tabIndex={-1}
+          aria-labelledby={`scoring-help-${s.id}`}
+          className={cn(
+            'scroll-mt-28 space-y-2 rounded-lg border p-3 outline-none',
+            // The section the help was opened for is outlined in gold.
+            s.id === highlight ? 'border-primary bg-secondary/60' : 'border-border bg-secondary/40'
+          )}
+        >
+          <Heading id={`scoring-help-${s.id}`} className="font-heading text-base font-bold text-foreground">{s.title}</Heading>
+          {s.lines.map((line, i) => (
+            <p key={i} className="text-sm leading-relaxed text-muted-foreground"><Rich line={line} /></p>
+          ))}
+          {s.facts && (
+            <dl className="space-y-1.5">
+              {s.facts.map((fact) => (
+                <div key={fact.label} className="text-sm leading-relaxed">
+                  <dt className="inline font-semibold text-foreground">{fact.label}: </dt>
+                  <dd className="inline text-muted-foreground"><Rich line={fact.value} /></dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {s.example && (
+            <p className="rounded-md bg-background px-3 py-2 text-sm leading-relaxed text-foreground">
+              <span className="font-semibold">Example: </span>
+              <Rich line={s.example.text} />
+            </p>
+          )}
+        </section>
+      ))}
+    </div>
+  );
 }
 
 export function ScoringHelp({ open, onOpenChange, section }) {
@@ -53,46 +100,15 @@ export function ScoringHelp({ open, onOpenChange, section }) {
       >
         <DialogHeader className="border-b border-border px-5 pb-3 pt-5 pr-12">
           <DialogTitle>How scoring works</DialogTitle>
-          <DialogDescription>What each number on the score sheet means.</DialogDescription>
+          <DialogDescription>What each number on the score sheet and the standings means.</DialogDescription>
         </DialogHeader>
 
         <div
           ref={bodyRef}
           tabIndex={-1}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 outline-none"
+          className="min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 outline-none"
         >
-          {SCORING_HELP.map((s) => (
-            <section
-              key={s.id}
-              data-section={s.id}
-              tabIndex={-1}
-              aria-labelledby={`scoring-help-${s.id}`}
-              className={cn(
-                'space-y-2 rounded-lg border p-3 outline-none',
-                // The section the help was opened for is outlined in gold.
-                s.id === section ? 'border-primary bg-primary/5' : 'border-border bg-secondary/40'
-              )}
-            >
-              <h3 id={`scoring-help-${s.id}`} className="font-heading text-base font-bold text-foreground">{s.title}</h3>
-              {s.lines.map((line, i) => (
-                <p key={i} className="text-sm leading-relaxed text-muted-foreground"><Rich line={line} /></p>
-              ))}
-              {s.facts && (
-                <dl className="space-y-1.5">
-                  {s.facts.map((fact) => (
-                    <div key={fact.label} className="text-sm leading-relaxed">
-                      <dt className="inline font-semibold text-foreground">{fact.label}: </dt>
-                      <dd className="inline text-muted-foreground"><Rich line={fact.value} /></dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              <p className="rounded-md bg-background px-3 py-2 text-sm leading-relaxed text-foreground">
-                <span className="font-semibold text-primary">Example </span>
-                <Rich line={s.example.text} />
-              </p>
-            </section>
-          ))}
+          <ScoringGuide highlight={section} />
         </div>
       </DialogContent>
     </Dialog>

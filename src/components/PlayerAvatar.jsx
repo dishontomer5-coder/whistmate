@@ -6,10 +6,11 @@ import { cn } from '@/lib/utils';
 //   <PlayerAvatar name={player.player_name} size="sm" />  32px (tight rows, the table picker)
 //   <PlayerAvatar name={player.player_name} size="lg" />  56px (the head of a profile)
 //
-// The colour comes from the name, so a player keeps the same colour wherever they appear
-// (two players can land on the same one — there are eight). The hues stay away from gold,
-// red and green, which mean gained / lost / moved up. Each letter colour is at least
-// 4.5:1 on its tint over a card. Neighbouring hues are kept apart in the list.
+// One person, one avatar: the colour comes from the INITIAL, not the whole name, so
+// "Maya" in a group and "Maya Cohen" on the Me page look the same (two people with the same
+// initial share a colour — the name beside the circle tells them apart). The hues stay away
+// from gold, red and green, which mean primary / lost / moved up. Each letter colour is at
+// least 4.5:1 on its tint over a card.
 const TONES = [
   'bg-sky-500/20 text-sky-300',
   'bg-violet-500/20 text-violet-300',
@@ -28,24 +29,18 @@ const SIZES = {
   lg: 'h-14 w-14 text-[1.75rem]',
 };
 
-// Letters that are a thin stroke on their own — a lone י looks like an empty circle.
-const THIN_INITIALS = new Set(['י', 'ו', 'ן', "'", '׳', '"', '״', '`', '.', '-']);
-
-// The letters shown in the circle: the first letter, or the first two when the first is a
-// thin stroke (יוסי → "יו"). Split by code point, so an emoji or accented letter stays whole.
+// The letter shown in the circle: always ONE character — the first letter of the name
+// (split by code point, so an emoji or accented letter stays whole), upper-cased.
 export function avatarInitials(name) {
   const letters = Array.from(String(name || '').trim()).filter((ch) => ch.trim());
-  if (letters.length === 0) return '?';
-  const first = letters[0].toUpperCase();
-  if (THIN_INITIALS.has(letters[0]) && letters.length > 1) return first + letters[1];
-  return first;
+  return letters.length ? letters[0].toUpperCase() : '?';
 }
 
-// The same name always lands on the same tone.
+// The same initial always lands on the same tone.
 export function avatarTone(name) {
-  const text = String(name || '?');
+  const initial = avatarInitials(name);
   let hash = 0;
-  for (let i = 0; i < text.length; i++) hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  for (const ch of initial) hash = ch.codePointAt(0) + ((hash << 5) - hash);
   return TONES[Math.abs(hash) % TONES.length];
 }
 
@@ -58,8 +53,6 @@ export default function PlayerAvatar({ name, size = 'md', className }) {
       className={cn(
         'inline-flex shrink-0 select-none items-center justify-center rounded-full font-heading font-bold leading-none',
         SIZES[size] || SIZES.md,
-        // Two letters need a little less size to sit inside the circle.
-        initials.length > 1 && (size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-sm' : 'text-base'),
         avatarTone(name),
         className
       )}
