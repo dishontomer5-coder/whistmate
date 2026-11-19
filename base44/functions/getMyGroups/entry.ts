@@ -23,12 +23,17 @@ Deno.serve(async (req) => {
     // caller out (detached their account, or removed them): it is reported once in
     // removed_from — the cache is rewritten below, so the next call no longer has it.
     // Only what the caller's own cache says is echoed back; no group is read for it.
+    // A group that was deleted while the caller was in it (their row is still theirs, but
+    // its group is gone or has status 'deleted') is reported the same way, once, with
+    // reason 'deleted' — below, from the groups of the caller's own rows.
     const queriedIds = new Set(memberships.map(m => m.id));
     const tried = new Set();
     const lost = [];
+    const cachedName = new Map(); // group_id -> the name the caller's cache gives it
     for (const cached of (Array.isArray(user.groups) ? user.groups : [])) {
+      if (cached?.group_id && !cachedName.has(String(cached.group_id))) cachedName.set(String(cached.group_id), typeof cached.group_name === 'string' ? cached.group_name : null);
       if (!cached || !cached.member_id || queriedIds.has(cached.member_id) || tried.has(cached.member_id)) continue;
-      if (tried.size >= MAX_HINTS) break;
+      if (tried.size >= MAX_HINTS) continue;
       tried.add(cached.member_id);
       const row = await base44.asServiceRole.entities.GroupMember.get(cached.member_id).catch(() => null);
       if (row && row.user_id === user.id) {
@@ -61,6 +66,12 @@ Deno.serve(async (req) => {
     const groupMap = {};
     groups.forEach(g => { if (g && g.status !== 'deleted') groupMap[g.id] = g; });
 
+    // Deleted under the caller: one of their own rows points at a group that is gone or
+    // deleted, and their cache still lists it (so they have not been told yet).
+    const deletedFrom = groupIds
+      .filter((gid) => !groupMap[gid] && cachedName.has(String(gid)))
+      .map((gid) => ({ group_id: String(gid), group_name: cachedName.get(String(gid)), reason: 'deleted' }));
+
     // Build the cached membership array — exclude deleted groups
     const result = memberships
       .filter(m => groupMap[m.group_id])
@@ -79,7 +90,8 @@ Deno.serve(async (req) => {
     // updateMe with the refreshed array BEFORE returning success.
     await base44.auth.updateMe({ groups: result });
 
-    return Response.json({ groups: result, removed_from: removedFrom(new Set(memberships.map(m => m.group_id))) });
+    const liveIds = new Set(result.map((r) => r.group_id));
+    return Response.json({ groups: result, removed_from: [...deletedFrom, ...removedFrom(liveIds).filter((g) => !deletedFrom.some((d) => d.group_id === g.group_id))] });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

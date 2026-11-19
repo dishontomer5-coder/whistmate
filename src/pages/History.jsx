@@ -8,6 +8,7 @@ import ArchivedBanner from '@/components/ArchivedBanner';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import NoGroupState from '@/components/NoGroupState';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { errorMessage } from '@/lib/format';
@@ -23,6 +24,8 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [data, setData] = useState(null);
   const latestRequest = useRef(0);
 
@@ -37,7 +40,7 @@ export default function History() {
     const request = ++latestRequest.current;
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
-      setError('');
+      setError(''); setGroupGone(false);
       // Membership-checked read (P12-1). The results are needed to say who won each session.
       const res = await base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId });
       if (request !== latestRequest.current) return;
@@ -61,6 +64,7 @@ export default function History() {
       });
     } catch (err) {
       if (request !== latestRequest.current) return;
+      if (isGroupDeleted(err)) { setGroupGone(true); return; }
       console.error(err);
       setError(errorMessage(err, "Couldn't load the sessions."));
     } finally {
@@ -71,6 +75,7 @@ export default function History() {
     }
   };
 
+  if (groupGone) return <GroupDeletedState />;
   if (!groupsLoading && !activeGroupId) return <NoGroupState />;
   // Sessions of the group shown before are never drawn under the new group's header.
   const current = data?.groupId === activeGroupId ? data : null;

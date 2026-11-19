@@ -8,6 +8,7 @@ import { useShowTabBar } from '@/components/TabBarContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import TableBadge from '@/components/TableBadge';
 import { Name, UserText } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -92,6 +93,8 @@ export default function RoundView() {
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [round, setRound] = useState(null);
   const [session, setSession] = useState(null);
@@ -177,6 +180,7 @@ export default function RoundView() {
       setHydratedFor(id);
       return rnd;
     } catch (err) {
+      setGroupGone(isGroupDeleted(err));
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load round.'));
       return null;
@@ -204,6 +208,7 @@ export default function RoundView() {
   }, [hydratedFor, id, status, stamp, archived, discarded, bids, trump, trumpOwner, hierarchy, tricks, reneges, editBids, firstBidder]);
 
   if (loading) return <LoadingSpinner showLogo />;
+  if (groupGone) return <GroupDeletedState />;
   if (discarded && round) {
     return (
       <EmptyState as="h1" icon={Ban} title="This round was discarded — nothing to save"

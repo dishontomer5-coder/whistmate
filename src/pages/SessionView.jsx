@@ -7,6 +7,7 @@ import Leaderboard from '@/components/Leaderboard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import { Name, UserText } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
@@ -45,6 +46,8 @@ export default function SessionView() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [session, setSession] = useState(null);
   const [rounds, setRounds] = useState([]); // newest first
@@ -82,6 +85,7 @@ export default function SessionView() {
       // page, where its result is.
       if (takeSessionTop()) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch (err) {
+      setGroupGone(isGroupDeleted(err));
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load session.'));
     } finally {
@@ -95,6 +99,7 @@ export default function SessionView() {
   const fail = (where, err, fallback) => { setErrorAt(where); setError(errorMessage(err, fallback)); };
 
   if (loading) return <LoadingSpinner showLogo />;
+  if (groupGone) return <GroupDeletedState />;
   if (!session) {
     // A missing session cannot be fixed by trying again — offer the way back instead.
     return notFound || !loadError ? (

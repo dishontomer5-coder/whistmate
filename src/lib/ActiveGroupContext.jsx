@@ -10,12 +10,15 @@
 //     isAdmin           the user is a group admin of the active group
 //     loading           true until the list of groups has arrived
 //     setActiveGroup(groupId)    open a group (the Groups list, an Activity note)
-//     refreshGroups()            re-read the list (after create / join / leave / rename)
+//     refreshGroups()            re-read the list (after create / join / leave / rename);
+//                                refreshGroups({ alreadyTold: [groupId] }) after the user
+//                                deleted a group themselves: no "was deleted" notice for it
 //     membershipIn(groupId)      the user's row in any of their groups, or null
 //     syncGroupFromPage(groupId) see below
 //     groupPending               see below
-//     removedFrom       groups an admin took the user out of since the last look:
-//                       [{ group_id, group_name }] (getMyGroups says so once; see below)
+//     removedFrom       groups an admin took the user out of, or deleted, since the last
+//                       look: [{ group_id, group_name, reason? }] — reason 'deleted' for a
+//                       deleted group (getMyGroups says so once; see below)
 //     clearRemovedFrom()         forget them — the Groups page copies them and shows
 //                                them once
 //
@@ -133,7 +136,8 @@ export const ActiveGroupProvider = ({ children }) => {
     setPendingKey(firstPage && page?.ownsItsGroup && !noted ? location.key : null);
   }
 
-  const refreshGroups = useCallback(async () => {
+  const refreshGroups = useCallback(async (options) => {
+    const alreadyTold = Array.isArray(options?.alreadyTold) ? options.alreadyTold : [];
     if (!isAuthenticated) {
       setMyGroups([]);
       setActiveGroupId(null);
@@ -144,7 +148,8 @@ export const ActiveGroupProvider = ({ children }) => {
       const res = await base44.functions.invoke('getMyGroups', {});
       const groups = res.data.groups || [];
       setMyGroups(groups);
-      const removed = Array.isArray(res.data.removed_from) ? res.data.removed_from : [];
+      const removed = (Array.isArray(res.data.removed_from) ? res.data.removed_from : [])
+        .filter((g) => !alreadyTold.includes(g?.group_id));
       if (removed.length > 0) {
         setRemovedFrom((prev) => [...prev, ...removed.filter((g) => g?.group_id && !prev.some((p) => p.group_id === g.group_id))]);
       }

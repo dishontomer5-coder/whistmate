@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name } from '@/components/UserText';
 import { ScoringHelpButton } from '@/components/ScoringHelp';
@@ -32,6 +33,8 @@ export default function NewRound() {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState('');
   const [session, setSession] = useState(null);
@@ -81,6 +84,7 @@ export default function NewRound() {
       setSameTable(usable(order) ? order : []);
       setRedeal(usable(again) && !again.every((pid, i) => order[i] === pid) ? again : []);
     } catch (err) {
+      setGroupGone(isGroupDeleted(err));
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load the players.'));
     } finally {
@@ -141,6 +145,7 @@ export default function NewRound() {
   };
 
   if (loading) return <LoadingSpinner showLogo />;
+  if (groupGone) return <GroupDeletedState />;
   if (!session) {
     return notFound ? (
       <EmptyState as="h1" icon={SearchX} title="Session not found" description="It was deleted, or the link is wrong."
