@@ -204,7 +204,7 @@ export default function NewRound() {
           )}>
           <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0">
-            {isRedeal ? 'Redeal — same table' : 'Same players as last round'} — <Name>{nameOf(sameTable[0])}</Name> bids first
+            {isRedeal ? 'Redeal — same table, ' : 'Same players as last round — '}<Name>{nameOf(sameTable[0])}</Name> bids first
           </span>
         </button>
       )}

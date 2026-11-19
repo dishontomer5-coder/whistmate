@@ -135,13 +135,14 @@ export function defaultTrumpOwnerIndex(bids, advanced) {
 }
 
 // A gentle note (never a block) when the marked trump winner bid less than the top bid:
-// the winner of the auction normally holds it. null when there is nothing to say.
-export function trumpOwnerHint(bids, ownerIndex, ownerName = '') {
+// the winner of the auction normally holds it. null when there is nothing to say. The
+// screen puts the winner's name in front ("Dan bid 0, below …"), isolated as user text.
+export function trumpOwnerHint(bids, ownerIndex) {
   if (ownerIndex < 0 || !bids.every(isSet)) return null;
   const top = Math.max(...bids.map(Number));
   const own = Number(bids[ownerIndex]);
   if (own >= top) return null;
-  return `${ownerName || 'The trump winner'} bid ${own}, below the top bid of ${top} — is that the right trump winner?`;
+  return `bid ${own}, below the top bid of ${top} — is that the right trump winner?`;
 }
 
 // --- the order of the results sheet ----------------------------------------------------

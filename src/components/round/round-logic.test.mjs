@@ -296,7 +296,7 @@ test('a tie on the top bid marks nobody and asks (whist-player-1)', () => {
 });
 
 test('a trump winner below the top bid gets a hint, never a block (whist-player-2)', () => {
-  assert.equal(trumpOwnerHint([7, 0, 6, 2], 1, 'Dan'), 'Dan bid 0, below the top bid of 7 — is that the right trump winner?');
+  assert.equal(trumpOwnerHint([7, 0, 6, 2], 1), 'bid 0, below the top bid of 7 — is that the right trump winner?');
   assert.equal(trumpOwnerHint([7, 0, 6, 2], 0, 'Maya'), null);
   assert.equal(trumpOwnerHint([5, 5, 2, 2], 1, 'Omer'), null, 'one of the tied top bidders is fine');
   assert.equal(trumpOwnerHint([7, _, 6, 2], 1, 'Dan'), null);

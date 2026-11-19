@@ -250,7 +250,8 @@ export default function RoundView() {
     : 'summary';
 
   const bidBlocker = lockBlocker({ bids: bidVals, advanced, trump, trumpOwnerId, hierarchy });
-  const bidHint = trumpOwnerHint(bidVals, ids.indexOf(trumpOwnerId), trumpOwnerName);
+  const hintTail = trumpOwnerHint(bidVals, ids.indexOf(trumpOwnerId));
+  const bidHint = hintTail ? <><Name>{trumpOwnerName}</Name> {hintTail}</> : null;
   const trickBlocker = saveBlocker({ tricks: trickVals });
   // The results sheet in the order the table bid: from the trump winner (they state their
   // contract first), else from the row where the first bid was entered, else seat 1.
@@ -578,7 +579,7 @@ export default function RoundView() {
   // Why Lock bids is off; once it can go ahead, a gentle note if the marked trump winner
   // bid less than the top bid (a hint, never a block).
   const bidsStatus = bidBlocker
-    ? <DockStatus tone={allBidsSet && (!liveTable || tiedForTop.length) ? 'error' : 'muted'}>{bidBlocker}</DockStatus>
+    ? <DockStatus tone={allBidsSet && !liveTable ? 'error' : 'muted'}>{bidBlocker}</DockStatus>
     : <DockStatus tone="warn">{bidHint}</DockStatus>;
 
   // ---- the views -----------------------------------------------------------------------
@@ -704,9 +705,9 @@ export default function RoundView() {
         {topLine(null)}
         {archived && <ArchivedBanner />}
         {savedElsewhere && (
-          <section role="status" aria-label="Already saved" data-saved-elsewhere
+          <section aria-label="Already saved" data-saved-elsewhere
             className="space-y-3 rounded-lg border border-border bg-card p-3">
-            <p className="flex items-start gap-2 text-sm text-foreground">
+            <p role="status" className="flex items-start gap-2 text-sm text-foreground">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
               <span><span className="font-medium">Already saved from another phone</span> — here is what was saved. What you typed on this phone was not used.</span>
             </p>

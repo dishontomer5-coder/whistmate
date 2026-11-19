@@ -126,7 +126,10 @@ export default function SessionView() {
   const firstBidder = sameTable.length === 4
     ? allResults.find((r) => r.player_id === sameTable[0])?.player_name || ''
     : '';
-  const winners = !isOpen ? standings.filter((p) => p.rank === 1) : [];
+  // A closed session in which no round counted (every scored round was cancelled because
+  // everyone fell) has no winner — the server says so with `no_winner`.
+  const noWinner = !isOpen && (session.no_winner === true || scoredRounds.length === 0);
+  const winners = !isOpen && !noWinner ? standings.filter((p) => p.rank === 1) : [];
 
   // ---- actions ------------------------------------------------------------------------
   // One tap for the commonest case: the same four play again.
@@ -274,7 +277,7 @@ export default function SessionView() {
               </span>
             </p>
           ) : (
-            <p className="mt-1 font-heading text-lg font-bold text-foreground">Closed with no scored rounds</p>
+            <p className="mt-1 font-heading text-lg font-bold text-foreground" data-no-winner>No winner — no round counted</p>
           )}
           {scoredRounds.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
