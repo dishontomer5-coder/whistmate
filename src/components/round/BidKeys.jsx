@@ -39,7 +39,7 @@ export default function BidKeys({
             <button key={s} type="button" aria-pressed={trump === s} onClick={() => onPickTrump(s)}
               className={cn(
                 'h-11 rounded-lg text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
-                trump === s ? 'bg-primary/15 ring-2 ring-primary' : 'bg-secondary ring-1 ring-inset ring-white/10'
+                trump === s ? 'bg-secondary ring-2 ring-inset ring-primary' : 'bg-secondary ring-1 ring-inset ring-white/10'
               )}>
               <Suit suit={s} className={s === 'notrump' ? 'text-sm' : undefined} />
             </button>
@@ -53,7 +53,7 @@ export default function BidKeys({
                 <button key={h} type="button" aria-pressed={hierarchy === h} onClick={() => onPickHierarchy(h)}
                   className={cn(
                     'min-h-11 rounded-lg px-2 py-1 text-xs font-medium leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
-                    hierarchy === h ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground ring-1 ring-inset ring-white/10'
+                    hierarchy === h ? 'bg-secondary text-foreground ring-2 ring-inset ring-primary' : 'bg-secondary text-foreground ring-1 ring-inset ring-white/10'
                   )}>
                   {CARD_ORDER_LABEL[h]}
                 </button>

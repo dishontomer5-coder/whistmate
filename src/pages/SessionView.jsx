@@ -18,7 +18,7 @@ import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { formatScore, formatDate, scoreTone, sessionName, errorMessage } from '@/lib/format';
 import { clearDraft } from '@/lib/round-drafts';
 import RoundCard from '@/components/round/RoundCard';
-import { FROM_SESSION, takeSessionTop } from '@/components/round/session-return';
+import { FROM_SESSION, takeSessionTop, rememberRedeal, redealTable, forgetRedeal } from '@/components/round/session-return';
 import { nextRoundNumber, roundLimit, sameTableOrder } from '@/components/round/round-logic';
 
 // One session (a night of whist): its standings and its rounds.
@@ -117,12 +117,19 @@ export default function SessionView() {
   const canEditScored = isAdmin && !archived;
   // A plain player is told once who can change a scored round.
   const tellAdminOnly = role === 'player' && !archived;
-  // "Same table": last round's four with the bidding moved on by one.
-  const sameTable = !openRound && rounds[0] ? sameTableOrder(resultsByRound[rounds[0].id] || []) : [];
+  // "Same table": after a discarded round (a redeal) the very same four in the same order;
+  // otherwise last round's four with the bidding moved on by one.
+  const redeal = !openRound ? redealTable(id, rounds) : [];
+  const sameTable = redeal.length === 4 ? redeal
+    : !openRound && rounds[0] ? sameTableOrder(resultsByRound[rounds[0].id] || []) : [];
+  const allResults = Object.values(resultsByRound).flat();
   const firstBidder = sameTable.length === 4
-    ? (resultsByRound[rounds[0].id] || []).find((r) => r.player_id === sameTable[0])?.player_name
+    ? allResults.find((r) => r.player_id === sameTable[0])?.player_name || ''
     : '';
-  const winners = !isOpen ? standings.filter((p) => p.rank === 1) : [];
+  // A closed session in which no round counted (every scored round was cancelled because
+  // everyone fell) has no winner — the server says so with `no_winner`.
+  const noWinner = !isOpen && (session.no_winner === true || scoredRounds.length === 0);
+  const winners = !isOpen && !noWinner ? standings.filter((p) => p.rank === 1) : [];
 
   // ---- actions ------------------------------------------------------------------------
   // One tap for the commonest case: the same four play again.
@@ -130,6 +137,7 @@ export default function SessionView() {
     setBusy('start'); setError('');
     try {
       const res = await base44.functions.invoke('startRound', { session_id: id, player_ids: sameTable });
+      forgetRedeal(id);
       navigate(`/round/${res.data.round.id}`, { state: FROM_SESSION });
     } catch (err) {
       const openId = err.response?.data?.open_round_id;
@@ -161,6 +169,8 @@ export default function SessionView() {
     setBusy('discard'); setError('');
     try {
       await removeUnscoredRound(round);
+      // Usually a redeal: offer the same table, same order, for the next round.
+      rememberRedeal(id, (resultsByRound[round.id] || []).map((r) => r.player_id), round.round_number);
       await load(true);
     } catch (err) {
       fail('discard', err, 'Failed to discard the round.');
@@ -219,7 +229,7 @@ export default function SessionView() {
       {/* Said by the page that sent the scorer here (starting a session while one is open). */}
       {location.state?.notice && (
         <p role="status" data-session-notice
-          className="flex items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/10 py-1 pl-3 pr-1 text-sm text-foreground">
+          className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card py-1 pl-3 pr-1 text-sm text-foreground">
           <span>{location.state.notice}</span>
           <Button size="icon" variant="ghost" className="shrink-0" aria-label="Dismiss" onClick={dismissNotice}><X /></Button>
         </p>
@@ -253,11 +263,11 @@ export default function SessionView() {
 
       {/* ---- a closed session leads with its result ---- */}
       {!isOpen && (
-        <section aria-label="Final result" data-final-result className="rounded-lg border border-primary/40 bg-primary/10 p-4">
+        <section aria-label="Final result" data-final-result className="rounded-lg border border-border bg-card p-4">
           <p className="section-label">Final result</p>
           {winners.length > 0 ? (
             <p className="mt-1 flex items-start gap-2 font-heading text-xl font-bold leading-snug text-foreground">
-              <Trophy className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <Trophy className="mt-1 h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
               <span>
                 {winners.map((w, i) => (
                   <span key={w.player_id}>{i > 0 ? (i === winners.length - 1 ? ' and ' : ', ') : ''}<Name>{w.player_name}</Name></span>
@@ -267,7 +277,7 @@ export default function SessionView() {
               </span>
             </p>
           ) : (
-            <p className="mt-1 font-heading text-lg font-bold text-foreground">Closed with no scored rounds</p>
+            <p className="mt-1 font-heading text-lg font-bold text-foreground" data-no-winner>No winner — no round counted</p>
           )}
           {scoredRounds.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -302,7 +312,7 @@ export default function SessionView() {
               {sameTable.length === 4 && (
                 <Button variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2" onClick={startSameTable} disabled={!!busy}>
                   {busy === 'start' ? <Loader2 className="animate-spin" /> : <Users />}
-                  <span>Same table — <Name>{firstBidder}</Name> bids first</span>
+                  <span>{redeal.length === 4 ? 'Redeal — same table, ' : 'Same table — '}<Name>{firstBidder}</Name> bids first</span>
                 </Button>
               )}
               {errorAt === 'start' && <ErrorState inline message={error} />}
@@ -319,6 +329,8 @@ export default function SessionView() {
             canEdit={!inPlay(featured) && canEditScored}
             onDiscard={inPlay(featured) && canWrite ? discardRound : undefined}
             discarding={busy === 'discard'}
+            // The big "Resume round" button above is the one way in.
+            showEntryLink={!(inPlay(featured) && canWrite)}
             onHelp={setHelp} />
           {errorAt === 'discard' && <ErrorState inline message={error} />}
         </div>

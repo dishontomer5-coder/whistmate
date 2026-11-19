@@ -7,70 +7,85 @@ import { cn } from '@/lib/utils';
 import { PHASE } from './RoundChrome';
 import { dockScrollMargins, useRowsInView } from './ActionDock';
 import NumberPad from './NumberPad';
+import { outcomeParts } from './round-logic';
 
-// The label of the renege switch, with its cost read off the engine: "Renege −100".
+// The label of a renege as the scored round shows it: "Renege −100".
 export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 
-// The four players with the tricks they took. As soon as a row has its tricks it says
-// whether the bid was made and what the row will score — so the scorer can read the
-// result out before saving, and a slip (a wrong number, a stray renege) shows at once.
+// The four players with the tricks they took, in the order the table bid (`order`: the
+// rows' indexes, starting with the first bidder), so tricks are read out in the same order.
+// As soon as a row has its tricks it says whether the bid was made and what the row will
+// score — so the scorer can read the result out before saving, and a slip (a wrong number,
+// a stray renege) shows at once:
 //
-//   players   [{ player_id, player_name }] in bidding order
+//   bid 3 · made +19              bid 3 · made +19 − 100 renege
+//   bid 2 · 1 off −10             zero bid failed (3 tricks) −30
+//
+//   players   [{ player_id, player_name }] in seat order
 //   bids / tricks / reneges   values in the same order
-//   preview   previewRound()'s rows: [{ made, off, points, final }]
+//   order     the seat indexes in bidding order (default: seat order)
+//   activeIndex  the seat index the pad is on
+//   preview   previewRound()'s result (rows in seat order)
 //
 // A row is three buttons side by side: the player (selects the row for the pad), the
-// renege switch, and the tricks cell (also selects the row).
-export default function TrickRows({ players, bids, tricks, reneges, activeIndex, onSelect, onToggleRenege, preview }) {
+// renege switch, and the tricks cell (also selects the row). The renege switch is quiet —
+// a neutral outline "Renege" — and turns red with "−100" only when it is on.
+export default function TrickRows({ players, bids, tricks, reneges, order, activeIndex, onSelect, onToggleRenege, preview }) {
   const blockRef = useRef(null);
   const rowRefs = useRef([]);
+  const seats = order || players.map((_, i) => i);
 
   // Keep the rows on screen: on a short phone the dock would cover the lower ones.
   useRowsInView(() => [blockRef.current, rowRefs.current[activeIndex]], activeIndex);
 
   return (
     <div ref={blockRef} style={dockScrollMargins} className="space-y-1.5" data-trick-rows>
-      {players.map((p, i) => {
+      {seats.map((i) => {
+        const p = players[i];
         const active = activeIndex === i;
         const took = tricks[i];
         const reneged = !!reneges[i];
-        const row = preview?.rows?.[i];
-        const hasOutcome = row && row.points != null;
+        const parts = outcomeParts({ bid: bids[i], tricks: took, row: preview?.rows?.[i], renege: reneged, everyoneFalls: !!preview?.everyoneFalls });
         return (
           <div key={p.player_id} ref={(el) => { rowRefs.current[i] = el; }} style={dockScrollMargins}
             data-trick-row
             className={cn(
-              'flex h-[46px] items-center gap-1.5 rounded-lg border transition-colors [@media(min-height:760px)]:h-[58px]',
+              'flex min-h-[46px] items-center gap-1.5 rounded-lg border transition-colors [@media(min-height:760px)]:min-h-[58px]',
               active ? PHASE.results.row : 'border-border bg-card'
             )}>
             <button type="button" onClick={() => onSelect(i)} aria-pressed={active}
-              className="flex h-full min-w-0 flex-1 flex-col justify-center rounded-l-lg pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
+              className="flex min-h-[44px] min-w-0 flex-1 flex-col justify-center self-stretch rounded-l-lg py-0.5 pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
               <span className="block max-w-full truncate text-sm font-medium leading-tight text-foreground"><Name>{p.player_name}</Name></span>
-              <span className="block whitespace-nowrap text-xs leading-tight text-muted-foreground" data-outcome>
-                bid {bids[i]}
-                {hasOutcome && (
+              <span className="block text-xs leading-tight text-muted-foreground" data-outcome>
+                {parts?.zeroFailed ? null : <span className="whitespace-nowrap">bid {bids[i]}</span>}
+                {parts && (
                   <>
-                    {' · '}{row.made ? 'made' : `${row.off} off`}{' '}
-                    <span className={cn('text-sm font-bold', scoreTone(row.points))}>{signed(row.points)}</span>
+                    {parts.zeroFailed ? '' : ' · '}{parts.text}{' '}
+                    <span className={cn('whitespace-nowrap text-sm font-bold', scoreTone(parts.points))}>{signed(parts.points)}</span>
+                    {parts.renege && (
+                      <>
+                        {' '}<span className="whitespace-nowrap"><span className="text-sm font-bold text-negative">− {RENEGE_PENALTY}</span> renege</span>
+                      </>
+                    )}
                   </>
                 )}
               </span>
             </button>
-            {/* 32px tall to the eye, 44px to the thumb (the ::after reaches 6px above and below). */}
             <button type="button" aria-pressed={reneged} onClick={() => onToggleRenege(p.player_id)}
-              aria-label={`${RENEGE_LABEL} for ${p.player_name}`}
+              aria-label={`Renege for ${p.player_name}${reneged ? ` — on, ${signed(-RENEGE_PENALTY)}` : ''}`}
+              data-renege
               className={cn(
-                "relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-full px-2 text-xs font-semibold transition-colors after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-['']",
+                'flex h-11 min-w-[4.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-2 text-xs font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
                 reneged
-                  ? 'bg-[hsl(0_72%_47%)] text-destructive-foreground'
-                  : 'border border-input/70 text-muted-foreground'
+                  ? 'bg-[hsl(0_72%_47%)] font-bold text-destructive-foreground'
+                  : 'border border-input text-muted-foreground hover:text-foreground'
               )}>
-              {RENEGE_LABEL}
+              {reneged ? signed(-RENEGE_PENALTY) : 'Renege'}
             </button>
             <button type="button" onClick={() => onSelect(i)} tabIndex={-1}
               aria-label={`Tricks for ${p.player_name}: ${took != null ? took : 'not entered'}`}
-              className="flex h-full w-11 shrink-0 items-center justify-center rounded-r-lg font-heading text-lg font-bold text-foreground">
+              className="flex w-11 shrink-0 items-center justify-center self-stretch rounded-r-lg font-heading text-lg font-bold text-foreground">
               {took != null ? took : <span className="text-muted-foreground" aria-hidden="true">—</span>}
             </button>
           </div>
