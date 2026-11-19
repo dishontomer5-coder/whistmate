@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { Spade } from 'lucide-react';
 import { Suit, SUIT_LABEL } from '@/components/Suit';
 import { Name } from '@/components/UserText';
 import { cn } from '@/lib/utils';
@@ -75,8 +74,9 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
                 owned && trump === 'notrump' ? 'text-xs' : 'text-lg'
               )}>
               {owned
-                ? (trump ? <Suit suit={trump} /> : <span aria-hidden="true">?</span>)
-                : <Spade className="h-4 w-4" aria-hidden="true" />}
+                // The chosen suit (♥ ♦ in red), or a neutral "Trump" before a suit is chosen.
+                ? (trump ? <Suit suit={trump} /> : <span aria-hidden="true" className="text-xs font-medium">Trump</span>)
+                : <span aria-hidden="true" className="text-xs font-medium">Trump</span>}
             </button>
           </div>
         );

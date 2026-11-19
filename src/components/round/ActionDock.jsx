@@ -104,7 +104,7 @@ export function DockStatus({ children, tone = 'muted', className }) {
       data-dock-status
       className={cn(
         'min-h-[1.1rem] text-center text-xs leading-snug',
-        tone === 'error' ? 'font-medium text-negative' : tone === 'warn' ? 'font-medium text-yellow-500' : 'text-muted-foreground',
+        tone === 'error' ? 'font-medium text-negative' : tone === 'warn' ? 'font-medium text-warning' : 'text-muted-foreground',
         className
       )}
     >

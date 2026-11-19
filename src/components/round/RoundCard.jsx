@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import TableBadge from '@/components/TableBadge';
 import { Suit } from '@/components/Suit';
 import { Name } from '@/components/UserText';
@@ -20,8 +21,8 @@ import { FROM_SESSION } from './session-return';
 // "Everyone fell" — the round was cancelled because nobody made their bid. A neutral
 // outline: it is not good news, and gold is kept for the one primary action.
 export function EveryoneFellBadge({ onClick }) {
-  const classes = 'relative inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full border border-input px-2 text-xs font-medium text-muted-foreground';
-  if (!onClick) return <span className={classes}>Everyone fell</span>;
+  const classes = cn(badgeVariants(), 'relative h-6 shrink-0');
+  if (!onClick) return <Badge className="h-6 shrink-0">Everyone fell</Badge>;
   return (
     <button type="button" onClick={onClick} aria-label="Everyone fell: nobody made their bid, so the round scores 0. How scoring works"
       className={cn(classes, "after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground")}>
@@ -45,8 +46,9 @@ export function TrumpLine({ round, players = [], className }) {
   );
 }
 
-// The per-player lines of a scored round.
-export function ResultLines({ results, onHelp, size = 'sm' }) {
+// The per-player lines of a scored round. With `linkPlayers` each name opens that
+// player's page.
+export function ResultLines({ results, onHelp, size = 'sm', linkPlayers = false }) {
   return (
     <ul className={size === 'lg' ? 'space-y-1.5' : 'space-y-1'}>
       {results.map((r) => (
@@ -55,7 +57,11 @@ export function ResultLines({ results, onHelp, size = 'sm' }) {
           size === 'lg' && 'min-h-11 rounded-lg border border-border bg-card px-3 py-2'
         )}>
           <span className="flex min-w-0 items-center gap-1.5 text-foreground">
-            <span className="truncate"><Name>{r.player_name}</Name></span>
+            {linkPlayers ? (
+              <Link to={`/player/${r.player_id}`} className="-my-2 flex min-h-11 min-w-0 items-center underline decoration-muted-foreground/50 underline-offset-4 hover:decoration-foreground">
+                <span className="truncate"><Name>{r.player_name}</Name></span>
+              </Link>
+            ) : <span className="truncate"><Name>{r.player_name}</Name></span>}
             {r.reneged ? (
               onHelp ? (
                 <button type="button" onClick={() => onHelp('renege')}
@@ -101,9 +107,7 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
             onClick={onHelp ? () => onHelp('updown') : undefined} />
           {cancelled && <EveryoneFellBadge onClick={onHelp ? () => onHelp('everyone-falls') : undefined} />}
           {inPlay && (
-            <span className="inline-flex h-6 items-center whitespace-nowrap rounded-full border border-input px-2 text-xs font-medium text-foreground">
-              {round.status === 'bidding' ? 'Bidding' : 'In play'}
-            </span>
+            <Badge className="h-6">{round.status === 'bidding' ? 'Bidding' : 'In play'}</Badge>
           )}
         </div>
       </div>
