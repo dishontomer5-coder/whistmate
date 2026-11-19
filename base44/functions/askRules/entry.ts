@@ -7,7 +7,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.38";
 // Source: docs/whist-rules.md (§0 stripped — it documents the pipeline, not the game).
 const RULES_DOC = `# WhistMate — Israeli Whist Rules & Scoring (AI reference)
 
-> **Purpose.** This document is the **sole knowledge source** for the in-app "Ask about the game"
+> **Purpose.** This document is the **sole knowledge source** for the in-app "Rules & scoring"
 > assistant. The assistant answers questions about **Israeli Whist as played and scored in WhistMate**
 > — nothing else. Everything the assistant is allowed to state about rules and scoring is in this file.
 > If a question isn't covered here, the assistant should say it doesn't know rather than invent a rule.

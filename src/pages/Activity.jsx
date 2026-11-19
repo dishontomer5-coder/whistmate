@@ -30,7 +30,7 @@ function writtenWhen(timestamp) {
 // every device), which clears the badge on the tab.
 export default function Activity() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
-  const { setActiveGroup, membershipIn } = useActiveGroup();
+  const { setActiveGroup } = useActiveGroup();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState([]);
@@ -94,7 +94,9 @@ export default function Activity() {
           {notes.map(n => {
             // A signed note carries its author's player name, and names are unique within a
             // group — so a note under the viewer's own name in that group is the viewer's.
-            const isMine = !n.is_anonymous && !!n.author_name && membershipIn(n.group_id)?.player_name === n.author_name;
+            // The server says which notes the caller wrote; matching by display name would also
+            // claim a note by another player with the same name in a different group.
+            const isMine = !!n.is_mine;
             const displayAuthor = n.is_anonymous ? 'Anonymous' : n.author_name;
             return (
               <button

@@ -112,6 +112,9 @@ Deno.serve(async (req) => {
       target_player_id: n.target_player_id,
       target_player_name: memberNameMap[n.target_player_id] || 'a former player',
       is_about_me: memberIds.has(n.target_player_id),
+      // The caller wrote it (signed notes only: an anonymous note stores no author). The
+      // author's user id itself never leaves the server.
+      is_mine: !n.is_anonymous && !!n.author_user_id && n.author_user_id === user.id,
       note: n.note,
       game_name: n.game_name || null,
       game_date: n.game_date || null,

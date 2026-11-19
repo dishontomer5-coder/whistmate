@@ -469,6 +469,15 @@ await t('getActivityFeed: a member sees their own groups only', async () => {
   const asCarol = await call('getActivityFeed', carol, {});
   assert.deepEqual(asCarol.data.notes.map((n) => n.id), ['n3']);
 });
+await t('getActivityFeed: is_mine marks the caller\'s own signed notes, never an anonymous one, and no author id leaves the server', async () => {
+  const mine = (data) => Object.fromEntries(data.notes.map((n) => [n.id, n.is_mine]));
+  const asAlice = await call('getActivityFeed', alice, {});
+  assert.deepEqual(mine(asAlice.data), { n1: true, n2: false });
+  // n2 is anonymous; the fixture stores Frank as its author on purpose — he still must not be told it is his
+  const asFrank = await call('getActivityFeed', frank, {});
+  assert.deepEqual(mine(asFrank.data), { n1: false, n2: false });
+  assert.ok(asAlice.data.notes.every((n) => !('author_user_id' in n)));
+});
 
 // --- computePlayerStats -----------------------------------------------------------------
 await t('computePlayerStats: naming your own group does not unlock another group’s player', async () => {
