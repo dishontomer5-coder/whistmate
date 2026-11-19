@@ -1,0 +1,34 @@
+# Review round 2 — rulings (19 November 2026)
+
+Six fresh reviewers, same briefs as round 1 (`../round-1/briefs/`), on the build that is live since the
+round-1 fixes. 80 findings: 0 blockers, 13 majors, 59 minors, 8 ideas (`all-findings.json`; each
+reviewer's report is `report-<persona>.md`). The round-1 ground rules, words and "must not change"
+list still apply (`../round-1/RULINGS.md`); shared components are in `../round-1/SHARED-PIECES.md`.
+
+## Majors
+
+| Finding | Ruling | Owner |
+|---|---|---|
+| newcomer-1, returning-player-14 | **Explain the standings.** A "?" on the Standings section opens a new "Standings" section of the help sheet: total, average per round (everyone-falls rounds count as rounds played), wins (closed sessions won; a tie for first is a shared win), "N behind", the small figure (tonight / last night), and every award with its definition. | A |
+| returning-player-1 | **Last night as well as tonight.** When a session is open the small figure has a two-way switch "Tonight · Last night"; without an open session it is the last closed session, labelled by its name. Labels always read "tonight" or the session's name — never both styles at once. | A + C (data) |
+| returning-player-2 | **Activity reachable inside a group**: the menu gets "Activity" (with the unread count), from any page. A feed of results and award changes is NOT built (idea, logged). | A |
+| returning-player-3, newcomer-2 | **Players is a list**: the tab opens the group's players — me pinned first ("You"), then everyone by total — each row with total, rounds and average; a row opens that player's page. Your own page is reached from your row. "Leave this group" moves from the hero to the bottom of your own page (returning-player-10, visual-designer-13). | A |
+| returning-player-4 | **Compare without a new screen**: on another player's page each headline figure and stat tile shows your own value beneath it ("You: 62%"). A side-by-side screen stays an idea. | A |
+| returning-player-5 | **Rules & scoring is a page**: the menu item opens `/rules` with two tabs — "How scoring works" (the written guide, the same content as the help sheet) first, "Ask a question" (the chat) second. | A |
+| visual-designer-1 | **Gold is rationed**: solid gold only for the one primary action of a screen, the brand mark and the active tab. Gained scores: foreground colour, bold, with the "+". Status badges (You, Leading, Open, Winner, Admin, Claimed, In play): outline, neutral. "Everyone fell": neutral outline. Selected segments: gold outline, not fill. The disabled primary button is neutral grey, not khaki (visual-designer-19). | A sets the tokens and shared badge; each owner applies in their files |
+| visual-designer-2 | **Store icon — owner's decision.** Not changed in the app. | owner |
+| visual-designer-3, newcomer-6 | **Renege is quiet**: a neutral outline "Renege" text button, 44 px tall, turning destructive-filled with "−100" only when on; the row's preview carries the −100. | B |
+| whist-player-1 | **No guessed trump winner on a tie**: when two or more players share the top bid, nothing is pre-marked; the trump panel says "Tie on the top bid — tap who won the auction". A single top bidder may still be pre-marked in advanced sessions. | B |
+| qa-tester-1 | **A session with no counted round has no winner**: if every scored round was cancelled (everyone falls), nobody wins, nobody gets a podium; the closed page says "No winner — no round counted". Front-end stats and the mirrored functions alike, with tests. | C |
+| qa-tester-2 | **A note is posted once**: the dialog disables while sending; the server refuses an identical note (same author, target, text) sent within 10 seconds, returning the first one. | C |
+| scorekeeper-1 | **Second device saved first**: on "already scored", the screen reloads the round, clears the draft, shows "Already saved from another phone — here is what was saved" and offers "Back to session" (an admin also "Edit round"). Unsaved tricks staying on the device that typed them is by design. | B |
+
+## Minors fixed in this round (cheap and real)
+
+- **B (round flow)**: results sheet follows the bidding order (scorekeeper-2); a correction moves on to the next player (scorekeeper-3); "Edit round" a real button (scorekeeper-4); the bid keypad does not jump (visual-designer-4); a wrong trick total shown as an error (visual-designer-5); result lines read "+19 − 100 renege" and "zero bid failed (3 tricks) −30" (whist-player-3, -4); editing a round of a closed session warns that the result may change (whist-player-5); "3 to go" never beside a complete total (whist-player-6); a round in bidding is not counted as a round played (whist-player-9, returning-player-13); "No trump" wording (whist-player-10); discarding keeps the table for the next round (whist-player-11); at the round limit the picker does not open (qa-tester-7); Hebrew names keep their seat number on the left (qa-tester-8); a trump winner below the top bid gets a hint, not a block (whist-player-2, newcomer-7); the in-play round has one call to action (scorekeeper-6, visual-designer-16); Edit/Delete not twin buttons (visual-designer-14); the 320 px round screen opens at the top (newcomer-10).
+- **A (structure)**: long unbroken names wrap (qa-tester-4); after leaving a group, Back redirects cleanly (qa-tester-6); the About page says group admins see members' e-mail addresses (newcomer-5 — the data statement must stay true; also README); one name per session everywhere (returning-player-6); a scored round page links back and onward (returning-player-7); averages one decimal everywhere (returning-player-11, newcomer-8); session / tonight wording (returning-player-12); the Groups list shows a session in play (scorekeeper-5); touch targets still under 44 px (visual-designer-9); one avatar colour and initial per person (visual-designer-10); the session back link keeps one name (scorekeeper-7); trump marker uses the suit glyph (visual-designer-20); password placeholder (visual-designer-15).
+- **C (stats/backend/notes)**: a plain player is warned before posting anonymously that only an admin can delete an anonymous note (qa-tester-3).
+
+## Left as ideas or by design
+
+newcomer-3 (invite link without `&name`: no public lookup by code — security, round-1 decision), newcomer-4 (name at sign-up: the platform's sign-up has no name field), qa-tester-5 (far dates: bounded to 2000–2100 already), visual-designer-7 (desktop), visual-designer-21, whist-player-13, scorekeeper-8/9, qa-tester-10, newcomer-11/12, returning-player-2's results feed, returning-player-4's side-by-side screen, returning-player-15, whist-player-7/12 (assistant: prompt already changed; needs the real model to judge), the remaining minors of visual polish (uppercase use, admin list spacing, landing tagline, history cards, error/empty-state variants) — logged for a later phase.
