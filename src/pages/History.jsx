@@ -42,14 +42,21 @@ export default function History() {
       const res = await base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId });
       if (request !== latestRequest.current) return;
       const { sessions = [], rounds = [], results = [] } = res.data;
+      // Rounds PLAYED are the scored ones (complete, or cancelled because everyone fell). A
+      // round still in bidding or play is not counted; it is named as "in play" instead.
       const roundCounts = {};
-      rounds.forEach((r) => { roundCounts[r.session_id] = (roundCounts[r.session_id] || 0) + 1; });
+      const inPlay = {};
+      rounds.forEach((r) => {
+        if (r.status === 'complete' || r.status === 'cancelled') roundCounts[r.session_id] = (roundCounts[r.session_id] || 0) + 1;
+        else if (r.status === 'bidding' || r.status === 'playing') inPlay[r.session_id] = r.round_number;
+      });
       setData({
         groupId: activeGroupId,
         sessions: [...sessions].sort((a, b) => (
           (b.status === 'open') - (a.status === 'open') || heldAt(b) - heldAt(a) || createdAt(b) - createdAt(a)
         )),
         roundCounts,
+        inPlay,
         outcomes: sessionOutcomes(results),
       });
     } catch (err) {
@@ -101,7 +108,7 @@ export default function History() {
           {!hasOpenSession && !isArchived && startButton}
           <div className="space-y-3">
             {sessions.map((s) => (
-              <SessionCard key={s.id} session={s} roundCount={current.roundCounts[s.id] || 0}
+              <SessionCard key={s.id} session={s} roundCount={current.roundCounts[s.id] || 0} roundInPlay={current.inPlay[s.id] ?? null}
                 outcome={current.outcomes[s.id]} myPlayerId={activeMembership?.member_id} />
             ))}
           </div>

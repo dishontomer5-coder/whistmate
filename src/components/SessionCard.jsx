@@ -46,14 +46,15 @@ export function sessionOutcomes(results = []) {
 // One session in a list: when and where it was, how it was scored, and how it ended.
 //
 //   session      the Session record.
-//   roundCount   optional number of rounds.
+//   roundCount   optional number of rounds played (scored: complete or cancelled).
+//   roundInPlay  optional round_number of a round still in bidding or play ("· round 5 in play").
 //   outcome      optional — sessionOutcomes(results)[session.id]. A closed session then names
 //                its winner; an open one, who is leading. A session is won only once it is closed.
 //   myPlayerId   optional — the viewer's own member id, to add their place and score.
 //
 // Only the OPEN session carries a status badge: every other one is closed, and saying so
 // on each card says nothing.
-export default function SessionCard({ session, roundCount, outcome, myPlayerId }) {
+export default function SessionCard({ session, roundCount, roundInPlay = null, outcome, myPlayerId }) {
   const isOpen = session.status === 'open';
   const mine = myPlayerId && outcome ? outcome.ranking.get(myPlayerId) : null;
   // A session in which no round counted (every scored round was everyone-falls) has no
@@ -82,7 +83,7 @@ export default function SessionCard({ session, roundCount, outcome, myPlayerId }
           </span>
         ) : null}
         {roundCount != null ? (
-          <span className="whitespace-nowrap">{plural(roundCount, 'round')}</span>
+          <span className="whitespace-nowrap">{plural(roundCount, 'round')}{roundInPlay != null ? ` · round ${roundInPlay} in play` : ''}</span>
         ) : null}
         <span className="whitespace-nowrap">{SCORING_METHOD_LABEL[session.scoring_method] || SCORING_METHOD_LABEL.classic}</span>
         {session.advanced_rules_enabled ? <span className="whitespace-nowrap">Advanced</span> : null}
