@@ -654,7 +654,9 @@
   `GroupMember` row, which is re-read by id and counts only if it is the caller's, in that group; role
   and name come from the row. The access test went from 89 to 383 checks, 114 of which fail against the
   old code; it now classifies every function folder as read or write and fails on an unclassified one.
-- [ ] **P13-8:** `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
+- [ ] **P13-8** *(written Nov 19 2026 — 14 sections, 50 practices, each with a check and the WhistMate
+  lesson; ~5,000 words. Reports round 1 as "found / ruled"; needs one final pass after review round 2 to
+  state outcomes)*: `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
   kind (structure and navigation, flows, states, wording, visual design, phones, accessibility, data
   access and privacy, accountability, testing, shipping), each practice with the WhistMate lesson
   behind it.
