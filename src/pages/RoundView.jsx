@@ -18,18 +18,19 @@ import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { tableState } from '@/lib/scoring';
 import { buildStandings } from '@/lib/standings';
 import { errorMessage, formatDate, sessionName } from '@/lib/format';
+import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { readDraft, writeDraft, clearDraft, pruneDrafts, applyDraft, describeRestored } from '@/lib/round-drafts';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
 import BidRows from '@/components/round/BidRows';
 import BidKeys from '@/components/round/BidKeys';
 import TrickRows, { TrickKeys } from '@/components/round/TrickRows';
-import { PhaseBanner, RestoredNote } from '@/components/round/RoundChrome';
+import { PhaseBanner, RestoredNote, ChangedNote } from '@/components/round/RoundChrome';
 import { EveryoneFellBadge, ResultLines, TrumpLine } from '@/components/round/RoundCard';
 import { returnToSession, rememberRedeal } from '@/components/round/session-return';
 import {
   nextEmptyIndex, blockedBid, lockBlocker, saveBlocker, tricksAreWrong, previewRound,
-  defaultTrumpOwnerIndex, topBidders, trumpOwnerHint, biddingOrder,
+  defaultTrumpOwnerIndex, topBidders, trumpOwnerHint, biddingOrder, nextTrickIndex,
 } from '@/components/round/round-logic';
 
 // One round, from its first bid to its saved result. What is on screen follows the
@@ -45,6 +46,11 @@ import {
 // (ActionDock), with the number pad right above it. Nothing typed is lost: bids, the
 // trump mark, tricks and reneges are written to the browser as they change
 // (lib/round-drafts.js) and put back when the scorer returns.
+//
+// No silent overwrite: locking or re-locking the bids and saving an edit of a scored round
+// send the updated_date of the round as this screen loaded it. If another phone changed
+// the round since, the server refuses (409, code round_changed); the screen then reads the
+// round again, keeps nothing of what was typed here, and says so (ChangedNote).
 
 const EVERYONE_FALLS_LINE = 'Nobody made their contract — everyone falls, all contract points are 0';
 
@@ -128,6 +134,9 @@ export default function RoundView() {
   // Set when saving finds the round already scored: another phone saved it first. The
   // screen then shows what was saved.
   const [savedElsewhere, setSavedElsewhere] = useState(false);
+  // Set when locking or saving finds the round changed since it was loaded: another phone
+  // locked or re-locked the bids, or another admin saved an edit. The round was read again.
+  const [changedElsewhere, setChangedElsewhere] = useState(false);
   const [help, setHelp] = useState(null); // the section of "How scoring works" that is open
   const [confirm, confirmElement] = useConfirm();
 
@@ -310,7 +319,7 @@ export default function RoundView() {
   };
 
   const submitBids = async () => {
-    setSaving(true); setError('');
+    setSaving(true); setError(''); setChangedElsewhere(false);
     try {
       const bidMap = {};
       ids.forEach((pid) => { bidMap[pid] = Number(bids[pid]); });
@@ -319,6 +328,7 @@ export default function RoundView() {
         trump_suit: trump || undefined,
         hierarchy: advanced ? hierarchy : undefined,
         trump_owner_player_id: trump ? trumpOwnerId : undefined,
+        expected_updated_date: round.updated_date,
       });
       // Take the server's answer and leave the tricks and reneges on screen alone: the
       // scorer may have typed some before reopening the bids, and they are kept.
@@ -328,11 +338,13 @@ export default function RoundView() {
       setTrumpOwner(trump ? trumpOwnerId : null);
       if (!advanced) setHierarchy(null);
       setEditBids(false);
+      setRestoredNote(''); // the restored bids are locked now; the note was about them
       const lockedOwner = trump ? trumpOwnerId : null;
       setTrickIndex(firstEmptyInOrder(trickVals, biddingOrder(ids.length, startSeat(ids, lockedOwner, firstBidder))));
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch (err) {
       if (err.response?.status === 404) { roundGone(); return; }
+      if (roundChanged(err)) { await changedMeanwhile(err); return; }
       if (err.response?.status === 409 && await scoredMeanwhile()) return;
       setError(errorMessage(err, 'Failed to lock bids.'));
     } finally {
@@ -350,15 +362,11 @@ export default function RoundView() {
   // ---- entering tricks ----------------------------------------------------------------
   // The cursor goes round the sheet in the order the table bid (`order`), to the next
   // player with no tricks yet; a correction on a full sheet moves on to the next player too.
+  // A correction that pushes the total over 13 keeps the pad on that row (nextTrickIndex).
   const pickTrick = (n) => {
-    const nextVals = trickVals.map((v, i) => (i === trickIndex ? n : v));
-    const correcting = trickVals[trickIndex] != null;
     setTricks((prev) => ({ ...prev, [ids[trickIndex]]: n }));
     setRestoredNote('');
-    const pos = Math.max(order.indexOf(trickIndex), 0);
-    const nextPos = nextEmptyIndex(order.map((i) => nextVals[i]), pos);
-    if (nextPos >= 0) setTrickIndex(order[nextPos]);
-    else if (correcting) setTrickIndex(order[(pos + 1) % order.length]);
+    setTrickIndex(nextTrickIndex(trickVals, order, trickIndex, n));
   };
   const toggleRenege = (playerId) => {
     setReneges((prev) => ({ ...prev, [playerId]: !prev[playerId] }));
@@ -374,7 +382,7 @@ export default function RoundView() {
   };
 
   const saveResults = async () => {
-    setSaving(true); setError('');
+    setSaving(true); setError(''); setChangedElsewhere(false);
     try {
       const tMap = {};
       const gMap = {};
@@ -405,6 +413,22 @@ export default function RoundView() {
       return true;
     }
     return false;
+  };
+
+  // Locking or saving was refused because the round changed since this screen loaded it
+  // (another phone locked or re-locked the bids, another admin saved an edit). Nothing
+  // stale is kept: the draft is dropped, the round is read again, and the screen says so.
+  // If it was scored meanwhile, the screen shows what was saved — unless this is the editor
+  // of a scored round, which stays open on the fresh values.
+  const roundChanged = (err) => err.response?.status === 409 && err.response?.data?.code === 'round_changed';
+  const changedMeanwhile = async (err, { editing = false } = {}) => {
+    clearDraft(id);
+    const fresh = await load({ quiet: true });
+    setSaving(false);
+    if (!fresh) { setError(errorMessage(err)); return; } // could not read it again: say "reload"
+    if (!editing && (fresh.status === 'complete' || fresh.status === 'cancelled')) setSavedElsewhere(true);
+    else setChangedElsewhere(true);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   // ---- discarding a round that is not scored yet (any member may) -------------------
@@ -457,11 +481,11 @@ export default function RoundView() {
   };
 
   const openEditor = () => {
-    setError(''); setSavedElsewhere(false);
+    setError(''); setSavedElsewhere(false); setChangedElsewhere(false);
     navigate({ pathname: location.pathname, search: '?edit=1' }, { replace: true, state: { ...(location.state || {}), editFromSession: false } });
   };
   const cancelEditor = () => {
-    applyEntry(serverEntry(round, results)); setError('');
+    applyEntry(serverEntry(round, results)); setError(''); setChangedElsewhere(false);
     // Opened straight from the session's round card: go back there. Opened from this
     // round's own page: back to that page.
     if (location.state?.editFromSession) goToSession();
@@ -503,7 +527,7 @@ export default function RoundView() {
 
   const saveEditor = async () => {
     if (session?.status === 'closed' && !(await confirmClosedEdit())) return;
-    setSaving(true); setError('');
+    setSaving(true); setError(''); setChangedElsewhere(false);
     try {
       const bidMap = {};
       const tMap = {};
@@ -514,9 +538,11 @@ export default function RoundView() {
         trump_suit: trump || undefined,
         hierarchy: advanced ? hierarchy : undefined,
         trump_owner_player_id: trump ? trumpOwnerId : undefined,
+        expected_updated_date: round.updated_date,
       });
       goToSession();
     } catch (err) {
+      if (roundChanged(err)) { await changedMeanwhile(err, { editing: true }); return; }
       setError(errorMessage(err, 'Failed to update round.'));
       setSaving(false);
     }
@@ -592,6 +618,7 @@ export default function RoundView() {
         <PhaseBanner phase="bidding" roundNumber={round.round_number} badge={tableBadge}
           title={view === 'editBids' ? 'Edit bids' : undefined}
           subtitle={view === 'editBids' ? `Round ${round.round_number} · the tricks entered are kept` : undefined} />
+        <ChangedNote show={changedElsewhere} />
         <RestoredNote what={restoredNote} />
         {bidRows}
         <ActionDock label={view === 'editBids' ? 'Edit bids' : 'Bidding'}>
@@ -632,6 +659,7 @@ export default function RoundView() {
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Edit bids
           </button>
         </div>
+        <ChangedNote show={changedElsewhere} />
         <RestoredNote what={restoredNote} />
         {trickRows}
         <ActionDock label="Results">
@@ -664,6 +692,7 @@ export default function RoundView() {
             </button>
           ))}
         </div>
+        <ChangedNote show={changedElsewhere} />
         {editTab === 'bids' ? bidRows : trickRows}
         <ActionDock label="Edit round">
           {editTab === 'bids' ? bidKeys : trickKeys}
@@ -705,6 +734,7 @@ export default function RoundView() {
       <div className="space-y-4">
         {topLine(null)}
         {archived && <ArchivedBanner />}
+        {!savedElsewhere && <ChangedNote show={changedElsewhere} />}
         {savedElsewhere && (
           <section aria-label="Already saved" data-saved-elsewhere
             className="space-y-3 rounded-lg border border-border bg-card p-3">
@@ -730,9 +760,16 @@ export default function RoundView() {
                 <UserText>{sessionName(session)}</UserText>
               </Link>
               {' · '}{formatDate(session.session_date || session.created_date)}
+              {' · '}
+              {/* How this round was scored: a progressive miss looks wrong to someone who
+                  expects classic (qa-tester-3). Opens the help at the misses. */}
+              <button type="button" onClick={() => setHelp('miss')} data-round-method
+                className="-my-3 inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4 hover:text-foreground">
+                {SCORING_METHOD_LABEL[session.scoring_method === 'progressive' ? 'progressive' : 'classic']} scoring
+              </button>
             </p>
           )}
-          <TrumpLine round={round} players={players} className="block" />
+          <TrumpLine round={round} players={players} className="block" showMissing />
         </div>
         <ResultLines results={players} onHelp={setHelp} size="lg" linkPlayers />
         <ErrorState inline message={error} />
