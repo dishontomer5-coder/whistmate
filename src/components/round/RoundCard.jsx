@@ -52,9 +52,10 @@ export function TrumpLine({ round, players = [], className, showMissing = false 
   );
 }
 
-// The per-player lines of a scored round. With `linkPlayers` each name opens that
-// player's page.
-export function ResultLines({ results, onHelp, size = 'sm', linkPlayers = false }) {
+// The per-player lines of a scored round, in seat order. With `linkPlayers` each name
+// opens that player's page. The trump winner's line carries the suit (`trumpOwnerId`,
+// `trump`); the line is not moved for it.
+export function ResultLines({ results, onHelp, size = 'sm', linkPlayers = false, trumpOwnerId = null, trump = null }) {
   return (
     <ul className={size === 'lg' ? 'space-y-1.5' : 'space-y-1'}>
       {results.map((r) => (
@@ -68,6 +69,9 @@ export function ResultLines({ results, onHelp, size = 'sm', linkPlayers = false 
                 <span className="truncate"><Name>{r.player_name}</Name></span>
               </Link>
             ) : <span className="truncate"><Name>{r.player_name}</Name></span>}
+            {trump && trumpOwnerId === r.player_id && (
+              <span className="shrink-0 text-xs" data-trump-mark title="Won the trump"><span className="sr-only">won the trump: </span><Suit suit={trump} /></span>
+            )}
             {r.reneged ? (
               onHelp ? (
                 <button type="button" onClick={() => onHelp('renege')}
@@ -148,7 +152,10 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
         </>
       ) : (
         <>
-          <div className="mt-2"><ResultLines results={results} onHelp={onHelp} /></div>
+          <div className="mt-2">
+            <ResultLines results={results} onHelp={onHelp}
+              trumpOwnerId={round.trump_suit ? round.highest_bidder_player_id : null} trump={round.trump_suit} />
+          </div>
           {canEdit && (
             <div className="mt-3 flex justify-end">
               <Button asChild variant="outline" size="sm">

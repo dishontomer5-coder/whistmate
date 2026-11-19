@@ -5,7 +5,7 @@ import process from 'node:process';
 import {
   nextEmptyIndex, rotateLeft, sameTableOrder, blockedBid, lockBlocker, saveBlocker, previewRound,
   nextRoundNumber, roundLimit, startBlocker, isRealDate, parseRoundLimit, sessionFormErrors,
-  tricksAreWrong, topBidders, defaultTrumpOwnerIndex, trumpOwnerHint, TOP_BID_TIE_LINE, biddingOrder, outcomeParts,
+  tricksAreWrong, topBidders, defaultTrumpOwnerIndex, trumpOwnerWarning, TOP_BID_TIE_LINE, seatOrder, outcomeParts,
   nextTrickIndex,
 } from './round-logic.js';
 import { scoreRound, contractPoints } from '../../lib/scoring.js';
@@ -296,19 +296,30 @@ test('a tie on the top bid marks nobody and asks (whist-player-1)', () => {
   assert.equal(lockBlocker({ bids: [2, 6, 5, 2], advanced: true }), 'Mark who won the trump');
 });
 
-test('a trump winner below the top bid gets a hint, never a block (whist-player-2)', () => {
-  assert.equal(trumpOwnerHint([7, 0, 6, 2], 1), 'bid 0, below the top bid of 7 — is that the right trump winner?');
-  assert.equal(trumpOwnerHint([7, 0, 6, 2], 0, 'Maya'), null);
-  assert.equal(trumpOwnerHint([5, 5, 2, 2], 1, 'Omer'), null, 'one of the tied top bidders is fine');
-  assert.equal(trumpOwnerHint([7, _, 6, 2], 1, 'Dan'), null);
+test('a trump winner below the top bid gets a warning, never a block (whist-player-2, round 4)', () => {
+  // Maya 6, אבי 1, Rachel 3, Omer 0 — Rachel marked: "Rachel bid 3 — the top bid was 6 (Maya)."
+  assert.deepEqual(trumpOwnerWarning([6, 1, 3, 0], 2), { own: 3, top: 6, topIndexes: [0] });
+  assert.deepEqual(trumpOwnerWarning([7, 0, 7, 2], 1), { own: 0, top: 7, topIndexes: [0, 2] }, 'a tie names both');
+  assert.equal(trumpOwnerWarning([7, 0, 6, 2], 0), null, 'the top bidder: nothing to say');
+  assert.equal(trumpOwnerWarning([5, 5, 2, 2], 1), null, 'one of the tied top bidders is fine');
+  assert.equal(trumpOwnerWarning([7, _, 6, 2], 1), null, 'not before all four bids are in');
+  assert.equal(trumpOwnerWarning([7, 0, 6, 2], -1), null, 'nobody marked');
   assert.equal(lockBlocker({ bids: [7, 0, 6, 2], trump: 'clubs', trumpOwnerId: 'dan' }), null, 'not a blocker');
 });
 
-test('the results sheet follows the bidding order (scorekeeper-2)', () => {
-  assert.deepEqual(biddingOrder(4, 0), [0, 1, 2, 3]);
-  assert.deepEqual(biddingOrder(4, 1), [1, 2, 3, 0]);
-  assert.deepEqual(biddingOrder(4, 3), [3, 0, 1, 2]);
-  assert.deepEqual(biddingOrder(4, -1), [0, 1, 2, 3], 'no known first bidder: seat order');
+test('one player order everywhere: rows stay in seat order (whist-player-1, scorekeeper-2, round 4)', () => {
+  assert.deepEqual(seatOrder(4), [0, 1, 2, 3]);
+  // Bids 6, 1, 3, 0 with seat 3 (Rachel) as trump winner: the results rows do not move.
+  // Tricks tapped top to bottom land on seats 1, 2, 3, 4 in that order.
+  const order = seatOrder(4);
+  let tricks = [_, _, _, _];
+  let at = 0;
+  for (const n of [5, 6, 2, 0]) {
+    const next = nextTrickIndex(tricks, order, at, n);
+    tricks = tricks.map((v, i) => (i === at ? n : v));
+    at = next;
+  }
+  assert.deepEqual(tricks, [5, 6, 2, 0]);
 });
 
 test('a result line shows the renege and the failed zero as parts (whist-player-3, -4)', () => {
@@ -332,10 +343,11 @@ test('a result line shows the renege and the failed zero as parts (whist-player-
 
 // ---- the tricks pad after a correction (whist-player-1) ------------------------------
 
-test('tricks: the pad moves to the next player with no tricks, in bidding order', () => {
-  const order = [2, 3, 0, 1];
+test('tricks: the pad goes round the table from whichever row was tapped first', () => {
+  const order = seatOrder(4);
+  // Started on row 3 (the scorer tapped it): 3 → 4 → 1 → 2, the rows themselves unmoved.
   assert.equal(nextTrickIndex([_, _, _, _], order, 2, 5), 3);
-  assert.equal(nextTrickIndex([_, _, 5, 4], order, 3, 4), 0);
+  assert.equal(nextTrickIndex([_, _, 5, _], order, 3, 4), 0);
   assert.equal(nextTrickIndex([_, _, 5, 4], order, 0, 3), 1);
   assert.equal(nextTrickIndex([3, _, 5, 4], order, 1, 1), 1, 'the last one in: the pad stays');
 });

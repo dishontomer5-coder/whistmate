@@ -19,6 +19,7 @@ import { formatScore, formatDate, scoreTone, sessionName, errorMessage } from '@
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name, UserText } from '@/components/UserText';
 
@@ -52,6 +53,8 @@ export function PlayerView({ playerId }) {
   const [view, setView] = useState(null); // { playerId, player, stats, history }
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [roster, setRoster] = useState(null); // { groupId, members }
   const [mine, setMine] = useState(null); // { memberId, stats } — the viewer's own figures, to compare
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -78,6 +81,7 @@ export function PlayerView({ playerId }) {
       setLoading(true);
       setLoadError('');
       setNotFound(false);
+      setGroupGone(false);
       // Both reads find the player's group themselves and check that the caller belongs to
       // it (P12-1): the figures, and the latest scored rounds with their rounds and sessions.
       const [statsRes, historyRes] = await Promise.all([
@@ -89,7 +93,8 @@ export function PlayerView({ playerId }) {
     } catch (err) {
       if (request !== latestRequest.current) return;
       const status = err.response?.status;
-      if (status === 404) setNotFound(true);
+      if (isGroupDeleted(err)) setGroupGone(true);
+      else if (status === 404) setNotFound(true);
       // Not (or no longer) in the player's group — e.g. Back after leaving it: the same clean
       // way out a non-member gets from the app shell, not an error screen (qa-tester-6).
       else if (status === 403) {
@@ -138,6 +143,7 @@ export function PlayerView({ playerId }) {
 
   const backLink = <BackLink fallback="/profile" className="-my-2" />;
 
+  if (groupGone) return <GroupDeletedState />;
   if (loading || (!current && !notFound && !loadError)) return <LoadingSpinner showLogo />;
 
   if (notFound) {

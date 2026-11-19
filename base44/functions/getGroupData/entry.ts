@@ -68,10 +68,12 @@ function withResult(session, rounds) {
   return { ...session, counted_rounds: counted, no_winner: counted === 0 };
 }
 
-const deny = (status, error) => Response.json({ error }, { status });
+const deny = (status, error, code) => Response.json(code ? { error, code } : { error }, { status });
 
 // Gate for every scope. Returns { membership } (null for an app admin who isn't a member)
-// or { response } to send back. A soft-deleted group is gone for everyone but app admins.
+// or { response } to send back. A soft-deleted group is gone for everyone but app admins;
+// its members are told so by `code: 'group_deleted'` (they were in it, so this tells them
+// nothing new), and their pages say "This group was deleted" instead of offering a retry.
 async function authorize(base44, user, groupId) {
   if (!groupId) return { response: deny(404, 'Not found') };
   const isAppAdmin = user.role === 'admin';
@@ -81,7 +83,7 @@ async function authorize(base44, user, groupId) {
   }
   const group = await base44.asServiceRole.entities.Group.get(groupId).catch(() => null);
   if (!group || (group.status === 'deleted' && !isAppAdmin)) {
-    return { response: deny(404, 'Group not found') };
+    return { response: deny(404, 'Group not found', 'group_deleted') };
   }
   return { membership };
 }

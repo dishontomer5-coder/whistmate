@@ -10,6 +10,7 @@ import ArchivedBanner from '@/components/ArchivedBanner';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import NoGroupState from '@/components/NoGroupState';
 import { ScoringHelpButton } from '@/components/ScoringHelp';
 import { sessionOutcomes } from '@/components/SessionCard';
@@ -30,6 +31,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [data, setData] = useState(null);
   const [figure, setFigure] = useState('tonight'); // 'tonight' | 'last'
   const latestRequest = useRef(0);
@@ -46,7 +49,7 @@ export default function Home() {
     const request = ++latestRequest.current;
     try {
       if (isRefresh) setRefreshing(true); else setLoading(true);
-      setError('');
+      setError(''); setGroupGone(false);
       // Game data is read through getGroupData, which checks group membership server-side
       // (P12-1) — the entities themselves are not readable from the browser.
       const res = await base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId });
@@ -86,6 +89,7 @@ export default function Home() {
       });
     } catch (err) {
       if (request !== latestRequest.current) return;
+      if (isGroupDeleted(err)) { setGroupGone(true); return; }
       console.error(err);
       setError(errorMessage(err, "Couldn't load the standings."));
     } finally {
@@ -96,6 +100,7 @@ export default function Home() {
     }
   };
 
+  if (groupGone) return <GroupDeletedState />;
   if (!groupsLoading && !activeGroupId) return <NoGroupState />;
   // Data of the group shown before (the group can change under this page) is never drawn
   // under the new group's header.

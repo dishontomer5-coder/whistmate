@@ -18,11 +18,8 @@ import { Name, UserText, dirAuto } from '@/components/UserText';
 //             group of the player on screen, which is where the note belongs.
 export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, groupId, onSubmitted }) {
   const { user } = useAuth();
-  const { activeGroupId, membershipIn } = useActiveGroup();
+  const { activeGroupId } = useActiveGroup();
   const noteGroupId = groupId || activeGroupId;
-  // A group admin can delete any note; anyone else cannot delete an anonymous one — not
-  // even their own, since it is stored without an author (qa-tester-3).
-  const isGroupAdmin = noteGroupId ? membershipIn(noteGroupId)?.role === 'admin' : false;
   const [note, setNote] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState('none');
@@ -153,9 +150,11 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
             </div>
             <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} aria-label="Post anonymously" />
           </div>
-          {isAnonymous && !isGroupAdmin && (
-            <p role="note" className="text-xs text-muted-foreground -mt-2">
-              Only a group admin can delete an anonymous note — not even you.
+          {/* Said before posting, to everyone — admins too: the note is stored without an
+              author, so nobody can prove it is theirs later (qa-tester-2, round 4). */}
+          {isAnonymous && (
+            <p role="note" className="text-xs text-muted-foreground -mt-2" data-anonymous-warning>
+              Anonymous notes can&apos;t be deleted later — not even by you. A group admin can remove one.
             </p>
           )}
 

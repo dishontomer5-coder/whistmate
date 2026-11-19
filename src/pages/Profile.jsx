@@ -9,6 +9,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import NoGroupState from '@/components/NoGroupState';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import ArchivedBanner from '@/components/ArchivedBanner';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,8 @@ export default function Profile() {
   const { activeGroupId, activeGroup, activeMembership, loading: groupsLoading } = useActiveGroup();
   const [data, setData] = useState(null); // { groupId, rows }
   const [error, setError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const latestRequest = useRef(0);
 
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function Profile() {
   const load = async () => {
     const request = ++latestRequest.current;
     try {
-      setError('');
+      setError(''); setGroupGone(false);
       // Both reads check group membership server-side (P12-1).
       const [groupRes, membersRes] = await Promise.all([
         base44.functions.invoke('getGroupData', { scope: 'group', group_id: activeGroupId }),
@@ -57,10 +60,12 @@ export default function Profile() {
       setData({ groupId: activeGroupId, rows });
     } catch (err) {
       if (request !== latestRequest.current) return;
+      if (isGroupDeleted(err)) { setGroupGone(true); return; }
       setError(errorMessage(err, "Couldn't load the players."));
     }
   };
 
+  if (groupGone) return <GroupDeletedState />;
   if (!groupsLoading && !activeGroupId) return <NoGroupState />;
   const current = data?.groupId === activeGroupId ? data : null;
   if (groupsLoading || (!current && !error)) return <LoadingSpinner showLogo />;

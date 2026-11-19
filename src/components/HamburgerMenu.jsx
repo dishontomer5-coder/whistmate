@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, LayoutDashboard, BookOpen, Info, Bell } from 'lucide-react';
+import { Menu, LogOut, LayoutDashboard, BookOpen, Info, Bell, User } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import {
   DropdownMenu,
@@ -16,6 +16,11 @@ import {
 //   unseenActivity  how many notes are new since Activity was last opened. Activity is a tab
 //                   of the all-groups frame only, so inside a group the menu is the way to it
 //                   (returning-player-2), with the count beside it.
+//
+// "My stats & account" (the all-groups Me page) and Activity are opened with
+// `fromMenu`, so those pages show a back link to wherever the menu was opened; Activity
+// opened inside a group also keeps the group's frame (Layout: SIDE_PAGES).
+const FROM_MENU = { state: { fromMenu: true } };
 export default function HamburgerMenu({ unseenActivity = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -40,7 +45,11 @@ export default function HamburgerMenu({ unseenActivity = 0 }) {
           {user?.email || 'Signed in'}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/activity')} className="min-h-11">
+        <DropdownMenuItem onClick={() => navigate('/profile/global', FROM_MENU)} className="min-h-11">
+          <User className="w-4 h-4 mr-2" />
+          My stats & account
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/activity', FROM_MENU)} className="min-h-11">
           <Bell className="w-4 h-4 mr-2" />
           Activity
           {unseenActivity > 0 && (

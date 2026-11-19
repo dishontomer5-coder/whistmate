@@ -4,7 +4,9 @@ import { RENEGE_PENALTY } from '@/lib/scoring';
 import { signed } from '@/lib/scoring-help';
 import { scoreTone } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { Suit } from '@/components/Suit';
 import { PHASE } from './RoundChrome';
+import { FirstBidMark } from './BidRows';
 import { dockScrollMargins, useRowsInView } from './ActionDock';
 import NumberPad from './NumberPad';
 import { outcomeParts } from './round-logic';
@@ -12,8 +14,9 @@ import { outcomeParts } from './round-logic';
 // The label of a renege as the scored round shows it: "Renege −100".
 export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 
-// The four players with the tricks they took, in the order the table bid (`order`: the
-// rows' indexes, starting with the first bidder), so tricks are read out in the same order.
+// The four players with the tricks they took, in seat order — the order of the bidding
+// rows — so tricks read round the table land on the rows they were bid on. The trump
+// winner (their suit) and the first bidder are marked on their rows, never moved.
 // As soon as a row has its tricks it says whether the bid was made and what the row will
 // score — so the scorer can read the result out before saving, and a slip (a wrong number,
 // a stray renege) shows at once:
@@ -23,7 +26,9 @@ export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 //
 //   players   [{ player_id, player_name }] in seat order
 //   bids / tricks / reneges   values in the same order
-//   order     the seat indexes in bidding order (default: seat order)
+//   order     the rows' indexes in the order they are drawn (seat order)
+//   trumpOwnerId / trump   the trump winner as locked, and the suit (marked), or null
+//   firstBidderId          the player whose bid was entered first (marked), or null
 //   activeIndex  the seat index the pad is on
 //   preview   previewRound()'s result (rows in seat order)
 //
@@ -32,7 +37,7 @@ export const RENEGE_LABEL = `Renege ${signed(-RENEGE_PENALTY)}`;
 // text button, lighter than the tricks number (a 44px tap area all the same); when it is on
 // it keeps its word and says the cost — "Renege · −100" in red, outlined, never a solid
 // block that could be read as the row's score (visual-designer-1).
-export default function TrickRows({ players, bids, tricks, reneges, order, activeIndex, onSelect, onToggleRenege, preview }) {
+export default function TrickRows({ players, bids, tricks, reneges, order, activeIndex, onSelect, onToggleRenege, preview, trumpOwnerId = null, trump = null, firstBidderId = null }) {
   const blockRef = useRef(null);
   const rowRefs = useRef([]);
   const seats = order || players.map((_, i) => i);
@@ -57,7 +62,13 @@ export default function TrickRows({ players, bids, tricks, reneges, order, activ
             )}>
             <button type="button" onClick={() => onSelect(i)} aria-pressed={active}
               className="flex min-h-[44px] min-w-0 flex-1 flex-col justify-center self-stretch rounded-l-lg py-0.5 pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-              <span className="block max-w-full truncate text-sm font-medium leading-tight text-foreground"><Name>{p.player_name}</Name></span>
+              <span className="flex max-w-full items-center gap-1.5 text-sm font-medium leading-tight text-foreground">
+                <span className="min-w-0 truncate"><Name>{p.player_name}</Name></span>
+                {trump && trumpOwnerId === p.player_id && (
+                  <span className="shrink-0 text-xs" data-trump-mark title="Won the trump"><span className="sr-only">won the trump: </span><Suit suit={trump} /></span>
+                )}
+                {firstBidderId === p.player_id && <FirstBidMark />}
+              </span>
               <span className="block text-xs leading-tight text-muted-foreground" data-outcome>
                 {parts?.zeroFailed ? null : <span className="whitespace-nowrap">bid {bids[i]}</span>}
                 {parts && (

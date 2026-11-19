@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Play, RefreshCw, Lock, Loader2, SearchX, Trophy, Users, X } from 'lucide-react';
+import { Plus, Play, RefreshCw, Lock, Loader2, SearchX, Trophy, Users, X, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Leaderboard from '@/components/Leaderboard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import GroupDeletedState, { isGroupDeleted } from '@/components/GroupDeletedState';
 import { Name, UserText } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
@@ -18,7 +19,8 @@ import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { formatScore, formatDate, scoreTone, sessionName, errorMessage } from '@/lib/format';
 import { clearDraft } from '@/lib/round-drafts';
 import RoundCard from '@/components/round/RoundCard';
-import { FROM_SESSION, takeSessionTop, rememberRedeal, redealTable, forgetRedeal } from '@/components/round/session-return';
+import { FROM_SESSION, takeSessionTop, takeSavedNote, rememberRedeal, redealTable, forgetRedeal } from '@/components/round/session-return';
+import { confirmStartedElsewhere } from '@/components/round/started-elsewhere';
 import { nextRoundNumber, roundLimit, sameTableOrder } from '@/components/round/round-logic';
 
 // One session (a night of whist): its standings and its rounds.
@@ -44,6 +46,8 @@ export default function SessionView() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
+  // The page's group was deleted by its admin: say so, with the way to the list of groups.
+  const [groupGone, setGroupGone] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [session, setSession] = useState(null);
   const [rounds, setRounds] = useState([]); // newest first
@@ -55,6 +59,8 @@ export default function SessionView() {
   // Which section of "How scoring works" is open (null = closed).
   const [help, setHelp] = useState(null);
   const [confirm, confirmElement] = useConfirm();
+  // "Round 5 saved": the round screen that sent the scorer back here says what it saved.
+  const [savedNote, setSavedNote] = useState(() => takeSavedNote());
 
   // The caller's standing in the group this session belongs to — not in whichever group
   // was open before. An archived group is read-only.
@@ -79,6 +85,7 @@ export default function SessionView() {
       // page, where its result is.
       if (takeSessionTop()) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch (err) {
+      setGroupGone(isGroupDeleted(err));
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load session.'));
     } finally {
@@ -92,6 +99,7 @@ export default function SessionView() {
   const fail = (where, err, fallback) => { setErrorAt(where); setError(errorMessage(err, fallback)); };
 
   if (loading) return <LoadingSpinner showLogo />;
+  if (groupGone) return <GroupDeletedState />;
   if (!session) {
     // A missing session cannot be fixed by trying again — offer the way back instead.
     return notFound || !loadError ? (
@@ -117,11 +125,13 @@ export default function SessionView() {
   const canEditScored = isAdmin && !archived;
   // A plain player is told once who can change a scored round.
   const tellAdminOnly = role === 'player' && !archived;
-  // "Same table": after a discarded round (a redeal) the very same four in the same order;
-  // otherwise last round's four with the bidding moved on by one.
-  const redeal = !openRound ? redealTable(id, rounds) : [];
-  const sameTable = redeal.length === 4 ? redeal
-    : !openRound && rounds[0] ? sameTableOrder(resultsByRound[rounds[0].id] || []) : [];
+  // "Same players as last round": the last round actually played (a discarded round is
+  // gone from the list), with the bidding moved on by one. After a discard the discarded
+  // table is offered too, as a second, smaller choice named by its four players — unless
+  // it is the very same table.
+  const sameTable = !openRound && rounds[0] ? sameTableOrder(resultsByRound[rounds[0].id] || []) : [];
+  const savedRedeal = !openRound ? redealTable(id, rounds) : null;
+  const redeal = savedRedeal && !savedRedeal.ids.every((pid, i) => sameTable[i] === pid) ? savedRedeal : null;
   const allResults = Object.values(resultsByRound).flat();
   const firstBidder = sameTable.length === 4
     ? allResults.find((r) => r.player_id === sameTable[0])?.player_name || ''
@@ -132,16 +142,22 @@ export default function SessionView() {
   const winners = !isOpen && !noWinner ? standings.filter((p) => p.rank === 1) : [];
 
   // ---- actions ------------------------------------------------------------------------
-  // One tap for the commonest case: the same four play again.
-  const startSameTable = async () => {
-    setBusy('start'); setError('');
+  // One tap for the commonest case: the same four play again (or the discarded table, dealt again).
+  const startTable = async (playerIds, which) => {
+    setBusy(which); setError('');
     try {
-      const res = await base44.functions.invoke('startRound', { session_id: id, player_ids: sameTable });
+      const res = await base44.functions.invoke('startRound', { session_id: id, player_ids: playerIds });
       forgetRedeal(id);
       navigate(`/round/${res.data.round.id}`, { state: FROM_SESSION });
     } catch (err) {
       const openId = err.response?.data?.open_round_id;
-      if (openId) { navigate(`/round/${openId}`, { state: FROM_SESSION }); return; }
+      if (openId) {
+        // Another phone started a round first: say so, with its four, and let the scorer choose.
+        setBusy('');
+        if (await confirmStartedElsewhere({ confirm, openRoundId: openId })) navigate(`/round/${openId}`, { state: FROM_SESSION });
+        else await load(true);
+        return;
+      }
       fail('start', err, 'Failed to start round.');
       setBusy('');
     }
@@ -170,7 +186,7 @@ export default function SessionView() {
     try {
       await removeUnscoredRound(round);
       // Usually a redeal: offer the same table, same order, for the next round.
-      rememberRedeal(id, (resultsByRound[round.id] || []).map((r) => r.player_id), round.round_number);
+      rememberRedeal(id, resultsByRound[round.id] || [], round.round_number);
       await load(true);
     } catch (err) {
       fail('discard', err, 'Failed to discard the round.');
@@ -233,6 +249,17 @@ export default function SessionView() {
           className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card py-1 pl-3 pr-1 text-sm text-foreground">
           <span>{location.state.notice}</span>
           <Button size="icon" variant="ghost" className="shrink-0" aria-label="Dismiss" onClick={dismissNotice}><X /></Button>
+        </p>
+      )}
+
+      {savedNote && (
+        <p role="status" data-saved-note
+          className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card py-1 pl-3 pr-1 text-sm text-foreground">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
+            {savedNote}
+          </span>
+          <Button size="icon" variant="ghost" className="shrink-0" aria-label="Dismiss" onClick={() => setSavedNote('')}><X /></Button>
         </p>
       )}
 
@@ -311,9 +338,18 @@ export default function SessionView() {
               </Button>
               {/* One tap when the table has not changed: the same four, the bidding moved on by one. */}
               {sameTable.length === 4 && (
-                <Button variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2" onClick={startSameTable} disabled={!!busy}>
+                <Button variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2" onClick={() => startTable(sameTable, 'start')} disabled={!!busy}>
                   {busy === 'start' ? <Loader2 className="animate-spin" /> : <Users />}
-                  <span>{redeal.length === 4 ? 'Redeal — same table, ' : 'Same table — '}<Name>{firstBidder}</Name> bids first</span>
+                  <span>Same players as last round — <Name>{firstBidder}</Name> bids first</span>
+                </Button>
+              )}
+              {/* Right after a discard: that table again, same order — named, so it is never
+                  mistaken for the table of the last round played. */}
+              {redeal && (
+                <Button variant="ghost" className="h-auto min-h-11 w-full whitespace-normal py-2 text-muted-foreground" data-redeal
+                  onClick={() => startTable(redeal.ids, 'redeal')} disabled={!!busy}>
+                  {busy === 'redeal' ? <Loader2 className="animate-spin" /> : <RotateCcw />}
+                  <span>Redeal — {redeal.names.map((name, i) => <span key={i}>{i > 0 ? ', ' : ''}<Name>{name}</Name></span>)}</span>
                 </Button>
               )}
               {errorAt === 'start' && <ErrorState inline message={error} />}

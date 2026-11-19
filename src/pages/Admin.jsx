@@ -63,7 +63,7 @@ export default function Admin() {
         replace: true,
         state: { notice: `"${activeGroup?.name || 'The group'}" was deleted. Nobody in it can open it any more.` },
       });
-      refreshGroups();
+      refreshGroups({ alreadyTold: [activeGroupId] }); // the notice above says it; once is enough
       return;
     }
     setStatusNote(null); // archived: the banner that now appears is the confirmation

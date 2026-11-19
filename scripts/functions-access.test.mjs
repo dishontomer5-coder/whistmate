@@ -2308,6 +2308,33 @@ await check('getMyGroups', 'allowed', 'nothing is reported for a member still in
   assert.deepEqual((await call('getMyGroups', bobLeaves.me, {})).data.removed_from, []);
 });
 
+// Round 4 (qa-tester-3): a group deleted by its admin while a member is in it.
+await check('getMyGroups', 'allowed', 'a member whose group an admin deleted is told once, with reason deleted', async () => {
+  fresh();
+  const del = await call('setGroupStatus', alice, { group_id: 'gA', status: 'deleted' });
+  assert.equal(del.status, 200, del.data.error);
+  const first = await call('getMyGroups', yaelCached, {});
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.data.removed_from, [{ group_id: 'gA', group_name: 'Group A', reason: 'deleted' }]);
+  assert.deepEqual(first.data.groups, []);
+  const second = await call('getMyGroups', first.me, {});
+  assert.deepEqual(second.data.removed_from, [], 'said once');
+  // Still in the group (another member, not yet told): told too; a member of another group: nothing.
+  const bobFirst = await call('getMyGroups', cachedAs(bob, ['gA', 'mBob', 'Group A']), {});
+  assert.deepEqual(bobFirst.data.removed_from, [{ group_id: 'gA', group_name: 'Group A', reason: 'deleted' }]);
+  assert.deepEqual((await call('getMyGroups', gina, {})).data.removed_from, [], 'no cache entry: nothing to tell');
+});
+await check('getGroupData', 'allowed', 'a page of a deleted group says so (code group_deleted), not a bare 404', async () => {
+  fresh();
+  await call('setGroupStatus', alice, { group_id: 'gA', status: 'deleted' });
+  const res = await call('getGroupData', yael, { scope: 'group', group_id: 'gA' });
+  assert.deepEqual([res.status, res.data.code], [404, 'group_deleted']);
+  // A non-member still learns nothing beyond "not a member".
+  const stranger = await call('getGroupData', dave, { scope: 'group', group_id: 'gA' });
+  assert.equal(stranger.status, 403);
+  assert.equal(stranger.data.code, undefined);
+});
+
 // A write function counts as covered when a check ran for every kind of caller it lists.
 // Anything not on the read list counts as a write function, so an unclassified folder
 // shows up here as uncovered.

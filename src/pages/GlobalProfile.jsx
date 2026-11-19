@@ -15,6 +15,7 @@ import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name, UserText } from '@/components/UserText';
 import { AccountSection } from '@/pages/Account';
+import BackLink from '@/components/BackLink';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -74,6 +75,8 @@ export default function GlobalProfile() {
 
   return (
     <div className="space-y-6">
+      {/* Opened from the menu ("My stats & account"), often from inside a group: back there. */}
+      {location.state?.fromMenu && <BackLink fallback="/home" className="-my-2" />}
       <div className="flex items-center gap-4">
         <PlayerAvatar name={displayName} size="lg" />
         <div className="min-w-0">
