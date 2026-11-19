@@ -124,6 +124,12 @@ test('formatAvg: one decimal, signed, everywhere', () => {
   assert.equal(formatAvg(-10), '-10.0');
   assert.equal(formatAvg(10.96), '+11.0');
   assert.equal(formatAvg(-0.04), '0.0');
+  // Half away from zero: −4 over 76 rounds is −0.0526, stored as −0.05 — that is −0.1, not 0.0.
+  assert.equal(formatAvg(-0.05), '-0.1');
+  assert.equal(formatAvg(-4 / 76), '-0.1');
+  assert.equal(formatAvg(0.05), '+0.1');
+  assert.equal(formatAvg(-0.15), '-0.2');
+  assert.equal(formatAvg(-2.25), '-2.3');
   assert.equal(formatAvg(0), '0.0');
   assert.equal(formatAvg(null), '0.0');
 });

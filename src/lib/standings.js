@@ -21,7 +21,7 @@ function newestFirst(a, b) {
 //            everyone-falls — sessionHasResult in whist-stats.js): it has no winner, and
 //            while it is open nobody is leading it.
 // options.deltaSessionId:  optional — force which session `session_delta` refers to (for
-//            a "Tonight · Last night" switch, pass last_closed_session.id).
+//            a "Tonight · Last session" switch, pass last_closed_session.id).
 //            Left out, it is the open session when that has scored rounds ("tonight"),
 //            otherwise the most recent closed session with scored rounds — and none at all
 //            when the rows are from a single session, where it would only repeat the total.
@@ -39,7 +39,7 @@ function newestFirst(a, b) {
 //   delta_session   { id, name, status } of the session session_delta refers to — the same
 //                   on every row — or null when there is none
 //   last_closed_session  { id, name } of the most recent closed session with scored rounds
-//                   ("last night") — the same on every row — or null when none is closed
+//                   ("last session") — the same on every row — or null when none is closed
 export function buildStandings(rows, nameById = {}, { sessions = [], deltaSessionId = null } = {}) {
   const scored = rows.filter((r) => r.points != null);
   const sessionById = {};
