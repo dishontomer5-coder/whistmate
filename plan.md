@@ -467,6 +467,59 @@ this trail.
   they are compatible with the frontend that is live. Note for the deploy order: this time the git
   sync did NOT apply the entity rules by itself; `entities push` did.
 
+#### Round 1 — design decisions (Nov 19 2026)
+
+Six reviewers reported 138 findings; an independent verifier reduced them to 86 real problems (0
+false, 0 sandbox artifacts, 3 by design). The lead ruled on each (66 rulings; the working copy was in
+the session scratchpad). The decisions that shape the product from here on:
+
+- **Group tabs are Standings / Sessions / Players / Admin** (was Sessions / History / Profile /
+  Admin, with a trophy on History). — Each label and icon now says what is inside; it was the owner's
+  own complaint and four reviewers' top structural finding. Routes are unchanged (`/`, `/history`,
+  `/profile`, `/admin`). Outer tabs: Groups / Activity / Me. Options considered: rename only /
+  restructure the pages too (chosen: both, per the returning player's proposal).
+- **The group comes from the page, not from memory.** A session, round or player page sets the
+  active group from the data it loaded; leaving to the groups list no longer clears it. — Fixes one
+  group's page under another group's header and the stuck Back button without putting the group id in
+  the address, which would have broken existing links. Options considered: `/g/:groupId/...` URLs /
+  page-derived group.
+- **A win is a CLOSED session finished in first place.** Open sessions show who is leading. Tied
+  players share a rank, and a tie for first is a shared win.
+- **The Destroyer is "most everyone-falls rounds as the top bidder"**, naming every tied holder. — As
+  "rounds a player sat in" it was always a four-way tie decided by row order. The trump winner counts
+  as recorded only when the round has a trump suit (the stored `highest_bidder_player_id` alone is
+  just the first of the highest bids); otherwise everyone level on the highest bid counts.
+- **An everyone-falls round stays a round played** (average and accuracy include it). — The hand was
+  played and scored zero; excluding it would make "rounds" disagree with the rounds a player sat in.
+  Reported by the whist player; kept by design.
+- **Round entry is a focused screen**: no tab bar, a sticky primary action, keys of at least 44 px,
+  a reason shown whenever the action is disabled, the outcome (made / missed / points, everyone
+  falls) shown BEFORE saving, and a help sheet whose numbers are computed from `scoring.js`.
+- **Nothing typed is lost**: unlocked bids and unsaved tricks are kept per round in the browser and
+  restored. — Options considered: warn on leaving / save drafts (chosen: drafts; a warning still
+  loses work on a reload).
+- **A started round can be discarded by any member; a scored round only by a group admin.** Closing
+  a session with a round in play discards it, after saying so.
+- **Bidding order**: the cursor moves to the next row after the one entered; "Same players" rotates
+  the first bidder. — The app does not track the dealer or the auction (it records the outcome of a
+  hand), but it must not fight the table's order.
+- **Whoever the table marks as trump winner is accepted**, highest bid or not. — By design since
+  Phase 10: the app cannot see the auction.
+- **An invitation survives sign-in**, and the invite page names the group from a display-only `name`
+  parameter in the link. — No new unauthenticated endpoint: a public "name for this code" lookup would
+  have been a faster way to probe invite codes than the rate-limited join.
+- **One confirmation dialog** for every destructive or hard-to-undo action; no browser confirm boxes.
+- **Colour means one thing**: gained gold, zero muted, lost red; UP/DOWN neutral. Red TEXT uses a
+  lighter red (#F87171, 5.3:1 on a card); the old red (3.5:1) stays for fills and borders.
+- **User-written text keeps its direction** (`<bdi>` for names in sentences, `dir="auto"` for free
+  text): four of the seven demo players have Hebrew names, as the real groups do.
+- **The assistant keeps the owner's voice** ("IDK bro 🤷") but points somewhere useful, and answers in
+  the language of the question.
+- **Not done, on purpose:** group id in the address; a dealer marker or auction tracking; a desktop
+  layout; side-by-side comparison; auto-filling the fourth player's tricks. **The store icon** (a
+  painted jester, unlike the spade inside the app — reported as major) is the owner's artwork and the
+  owner's decision.
+
 ### Must not change
 
 - **Scoring results.** `src/lib/scoring.test.mjs` stays green with its assertions untouched.
