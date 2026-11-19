@@ -2,6 +2,15 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { BOOT_PATH, rememberReturnTo, forgetReturnTo } from '@/lib/authReturnTo';
+
+// Nobody is signed in: keep the address this page load started on (an invite link, a link
+// to a session…) so the sign-in pages can go back to it. The app shell moves a signed-out
+// visitor off a group page straight away, which is why it is noted here, before any page
+// is drawn. BOOT_PATH is null for the landing and sign-in pages themselves.
+const rememberWhereTheVisitorWasHeaded = () => {
+  if (BOOT_PATH) rememberReturnTo(BOOT_PATH);
+};
 
 const AuthContext = createContext();
 
@@ -42,6 +51,7 @@ export const AuthProvider = ({ children }) => {
         if (appParams.token) {
           await checkUserAuth();
         } else {
+          rememberWhereTheVisitorWasHeaded();
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
           setAuthChecked(true);
@@ -94,12 +104,16 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+      // Signed in: whatever address was waiting for a sign-in has been reached or is moot.
+      forgetReturnTo();
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
       console.error('User auth check failed:', error);
+      // An expired sign-in is a signed-out visitor too.
+      rememberWhereTheVisitorWasHeaded();
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
@@ -114,13 +128,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  // logout('/home') signs out and lands on that page; logout(true) comes back to the page
+  // on screen; logout(false) only drops the token. Landing on /home matters: signing out
+  // from inside a group used to reload that group page, which then looked like a link the
+  // next person to sign in on this device had asked for.
+  const logout = (redirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+    forgetReturnTo();
+
+    if (redirect) {
+      const target = typeof redirect === 'string'
+        ? new URL(redirect, window.location.origin).href
+        : window.location.href;
+      // The SDK's logout clears the token and goes through the server to clear its cookie
+      base44.auth.logout(target);
     } else {
       // Just remove the token without redirect
       base44.auth.logout();

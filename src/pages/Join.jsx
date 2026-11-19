@@ -1,55 +1,78 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Logo from '@/components/Logo';
-import JoinGroupDialog from '@/components/groups/JoinGroupDialog';
+import { Name } from '@/components/UserText';
+import { inviteFromPath, safeReturnPath, withReturnTo } from '@/lib/authReturnTo';
 
-// Landing for a shared invite link /join?code=XXXXXX (P9-19). Signed-out
-// visitors are sent to login (returning here after), signed-in visitors get the
-// claim-by-code dialog prefilled with the code.
+// The page behind a shared invite link: /join?code=XXXXXX&name=<group name>.
+//
+// Signed out, it is the first thing a stranger sees of WhistMate: which group they are
+// invited to, what the app is, and the two ways in. Both carry this address along
+// (?from_url=), so after signing up — the e-mail code step included — logging in or coming
+// back from Google the visitor is here again, signed in.
+//
+// Signed in, there is nothing to show here: the groups list opens with the join dialog over
+// it, which asks the server about the code and shows the group's real name.
+//
+// `name` in the link is only what the link says. It is display text, shown before sign-in
+// because looking a code up needs an account; nothing is decided from it.
 export default function Join() {
-  const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isLoadingAuth } = useAuth();
-  const { refreshGroups, setActiveGroup } = useActiveGroup();
-  const code = (new URLSearchParams(window.location.search).get('code') || '').toUpperCase();
-  const [open, setOpen] = useState(true);
+  const here = location.pathname + location.search;
+  const invite = inviteFromPath(here) || { code: '', name: '' };
 
   if (isLoadingAuth) return <LoadingSpinner showLogo />;
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 text-center bg-background">
-        <Logo size="xl" showText />
-        <div>
-          <h1 className="page-title">You're invited</h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-            Sign in to join{code ? <> the group with code <span className="font-mono font-semibold text-foreground">{code}</span></> : ' the group'} and track your whist nights.
-          </p>
-        </div>
-        <Button size="lg" onClick={() => base44.auth.redirectToLogin(window.location.href)}>
-          <LogIn /> Sign in to join
-        </Button>
-      </div>
-    );
-  }
+  if (isAuthenticated) return <Navigate to="/home" replace state={{ invite }} />;
+
+  // This address without sign-in leftovers; null only if the link is not ours at all.
+  const returnTo = safeReturnPath(here);
 
   return (
-    <div className="min-h-screen bg-background">
-      <JoinGroupDialog
-        open={open}
-        onOpenChange={(o) => { setOpen(o); if (!o) navigate('/home', { replace: true }); }}
-        initialCode={code}
-        onJoined={async (group) => {
-          await refreshGroups();
-          if (group?.id) setActiveGroup(group.id);
-          navigate('/', { replace: true });
-        }}
-      />
+    <div className="flex min-h-[100dvh] flex-col bg-background px-4 py-6 [@media(min-height:700px)]:py-8">
+      <main className="m-auto flex w-full max-w-sm flex-col items-center text-center">
+        <Logo size="lg" showText />
+
+        <h1 className="page-title mt-6">
+          You're invited to join{' '}
+          {invite.name ? <Name className="text-primary">{invite.name}</Name> : 'a whist group'}{' '}
+          on WhistMate
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          WhistMate keeps score for Israeli Whist nights: it does the bidding and scoring maths, and tracks
+          your group's standings and stats.
+        </p>
+
+        {invite.code ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Invite code <span className="font-mono font-semibold tracking-widest text-foreground">{invite.code}</span>
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            This link has no invite code in it. Ask for the link again, or sign in and type the 6-character code.
+          </p>
+        )}
+
+        <div className="mt-8 flex w-full flex-col gap-3">
+          <Button asChild size="lg" className="w-full">
+            <Link to={withReturnTo('/register', returnTo)}><UserPlus /> Create an account</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link to={withReturnTo('/login', returnTo)}>I already have an account</Link>
+          </Button>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Either way, the next step is choosing who you are in the group.
+        </p>
+
+        <Link to="/about" className="mt-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground hover:underline">
+          About WhistMate &amp; privacy
+        </Link>
+      </main>
     </div>
   );
 }

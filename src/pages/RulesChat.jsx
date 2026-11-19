@@ -1,15 +1,24 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
-import { Send, Sparkles, ArrowLeft } from "lucide-react";
+import { Send, BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SuitText } from "@/components/Suit";
+import { errorMessage } from "@/lib/format";
+import { withReturnTo } from "@/lib/authReturnTo";
 
-// The game rules + LLM behavior live in the backend function `askRules`, which
-// inlines docs/whist-rules.md as the assistant's sole knowledge. This UI only
-// sends the question + recent history; the function enforces the "IDK bro" rule.
+// "Rules & scoring": a chat with the rules assistant.
+//
+// The rulebook and the assistant's behaviour live in the backend function `askRules`, which
+// inlines docs/whist-rules.md as its only knowledge and answers in the language of the
+// question. This page only sends the question and the recent history.
+
+// What the assistant says to anything that is not about the rules. The function sends it
+// itself; this copy — the same words as IDK in base44/functions/askRules/entry.ts — is
+// shown if an answer ever arrives empty. Change them together.
+const REFUSAL = "IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring; for your account or your data, see About & privacy in the menu.";
 
 const SUGGESTIONS = [
   "What suit is the strongest?",
@@ -22,7 +31,7 @@ export default function RulesChat() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([
-    { role: "assistant", text: "Ask me anything about Israeli Whist rules — bidding, scoring, trump, the works." },
+    { role: "assistant", text: "Ask me about the rules of Israeli Whist and how WhistMate scores a round — bidding, trump, zero bids, penalties. Ask in any language." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,25 +45,28 @@ export default function RulesChat() {
   const send = async (text) => {
     const question = (text ?? input).trim();
     if (!question || loading) return;
-    const history = messages.slice(1).map((m) => ({ role: m.role, text: m.text }));
+    // The history the assistant sees: real questions and answers only
+    const history = messages.slice(1).filter((m) => !m.failed).map((m) => ({ role: m.role, text: m.text }));
     const next = [...messages, { role: "user", text: question }];
     setMessages(next);
     setInput("");
     setLoading(true);
     try {
       const res = await base44.functions.invoke("askRules", { question, history });
-      const answer = res?.data?.answer || "IDK bro 🤷 — that's not in the WhistMate rulebook.";
+      const answer = res?.data?.answer || REFUSAL;
       setMessages([...next, { role: "assistant", text: answer }]);
     } catch (e) {
-      setMessages([...next, { role: "assistant", text: "Sorry, I couldn't get an answer right now. Try again." }]);
+      // Say what went wrong and put the question back in the field, so it is not retyped
+      setMessages([...next, { role: "assistant", failed: true, text: errorMessage(e, "Couldn't get an answer just now. Try again.") }]);
+      setInput(question);
     } finally {
       setLoading(false);
     }
   };
 
   // `askRules` requires an authenticated caller (401 otherwise), and this route sits
-  // outside the Layout shell, so it guards itself.
-  if (!user) return <Navigate to="/login" replace />;
+  // outside the Layout shell, so it guards itself — and comes back here after sign-in.
+  if (!user) return <Navigate to={withReturnTo("/login", "/rules")} replace />;
 
   // No bottom nav on this full-screen route — the header's back arrow is the way out.
   const goBack = () => {
@@ -74,31 +86,40 @@ export default function RulesChat() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0" aria-hidden="true">
+            <BookOpen className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-heading text-lg font-bold leading-tight truncate">WhistMate rules</h1>
-            <p className="text-xs text-muted-foreground">Game rules assistant</p>
+            <h1 className="font-heading text-lg font-bold leading-tight truncate">Rules &amp; scoring</h1>
+            <p className="text-xs text-muted-foreground truncate">Ask the WhistMate rules assistant</p>
           </div>
         </div>
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3" role="log" aria-live="polite" aria-label="Conversation">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+          <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}>
             <div
               dir="auto"
-              className={`max-w-[80%] px-4 py-2.5 text-base leading-relaxed rounded-[1.25rem] whitespace-pre-wrap break-words ${
+              className={`max-w-[85%] px-4 py-2.5 text-base leading-relaxed rounded-[1.25rem] whitespace-pre-wrap break-words ${
                 m.role === "user"
                   ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-card text-card-foreground rounded-bl-md"
+                  : m.failed
+                    ? "border border-destructive/30 bg-destructive/10 text-negative rounded-bl-md"
+                    : "bg-card text-card-foreground rounded-bl-md"
               }`}
             >
               {/* Hearts and diamonds in an answer are red, as on every other screen. */}
               {m.role === "user" ? m.text : <SuitText>{m.text}</SuitText>}
             </div>
+            {/* The refusal points at "About & privacy in the menu" — this screen has no menu,
+                so the way there is offered right under it. */}
+            {m.role === "assistant" && m.text.includes("About & privacy") && (
+              <Link to="/about" className="mt-1 inline-flex min-h-11 items-center px-2 text-sm font-medium text-primary hover:underline">
+                Open About &amp; privacy
+              </Link>
+            )}
           </div>
         ))}
 
@@ -117,7 +138,7 @@ export default function RulesChat() {
         )}
 
         {loading && (
-          <div className="flex justify-start">
+          <div className="flex justify-start" role="status" aria-label="The assistant is answering">
             <div className="bg-card text-card-foreground rounded-[1.25rem] rounded-bl-md px-4 py-3 flex gap-1">
               <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -139,7 +160,7 @@ export default function RulesChat() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about a rule…"
             aria-label="Your question"
-            className="flex-1 rounded-full bg-card px-4"
+            className="flex-1 min-w-0 rounded-full bg-card px-4"
           />
           <Button
             type="submit"

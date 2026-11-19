@@ -18,7 +18,8 @@ export default function ForgotPassword() {
     try {
       await base44.auth.resetPasswordRequest(email);
     } catch {
-      // Always show success regardless
+      // The answer is the same whether or not the address has an account, so the form
+      // cannot be used to find out who is registered.
     } finally {
       setLoading(false);
       setSent(true);
@@ -27,19 +28,24 @@ export default function ForgotPassword() {
 
   return (
     <AuthLayout
-      icon={Mail}
       title="Reset password"
-      subtitle="We'll send you a link to reset it"
+      subtitle={sent ? "Check your email" : "We'll send you a link to reset it"}
       footer={
-        <Link to="/login" className="text-primary font-medium hover:underline">
+        <Link to="/login" className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
           <ArrowLeft className="w-3 h-3 inline mr-1" />Back to log in
         </Link>
       }
     >
       {sent ? (
-        <p className="text-sm text-foreground text-center">
-          If an account exists with that email, you'll receive a password reset link shortly.
-        </p>
+        <div role="status" className="space-y-4 text-center">
+          <p className="text-sm text-foreground">
+            If <span className="break-all font-medium">{email}</span> has an account, a link to choose a new password is on its way.
+            It can be used once.
+          </p>
+          <Button variant="outline" className="w-full" onClick={() => setSent(false)}>
+            Use a different email
+          </Button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
