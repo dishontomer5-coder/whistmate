@@ -14,6 +14,17 @@
 //     membershipIn(groupId)      the user's row in any of their groups, or null
 //     syncGroupFromPage(groupId) see below
 //     groupPending               see below
+//     removedFrom       groups an admin took the user out of since the last look:
+//                       [{ group_id, group_name }] (getMyGroups says so once; see below)
+//     clearRemovedFrom()         forget them — the Groups page copies them and shows
+//                                them once
+//
+// ── Taken out of a group ────────────────────────────────────────────────────────────
+//   When an admin detaches the user's account from their player, or removes them, the
+//   group simply drops out of the list. getMyGroups notices (the user's cached membership
+//   points at a row that is no longer theirs) and reports it once in removed_from; they are
+//   kept here until the Groups page takes them, so the notice is not lost when the list is
+//   read from another page.
 //
 // ── The group comes from the page, not from memory ──────────────────────────────────
 //   A session, round or player page is opened by its id alone, so it can belong to a group
@@ -99,6 +110,7 @@ export const ActiveGroupProvider = ({ children }) => {
   const page = groupPageFor(location.pathname);
 
   const [myGroups, setMyGroups] = useState([]);
+  const [removedFrom, setRemovedFrom] = useState([]);
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [loading, setLoading] = useState(true);
   // The history entry whose group is not known yet (see groupPending above).
@@ -132,6 +144,10 @@ export const ActiveGroupProvider = ({ children }) => {
       const res = await base44.functions.invoke('getMyGroups', {});
       const groups = res.data.groups || [];
       setMyGroups(groups);
+      const removed = Array.isArray(res.data.removed_from) ? res.data.removed_from : [];
+      if (removed.length > 0) {
+        setRemovedFrom((prev) => [...prev, ...removed.filter((g) => g?.group_id && !prev.some((p) => p.group_id === g.group_id))]);
+      }
 
       // Keep the group on screen if it is still one of the user's; otherwise the one
       // remembered from the last visit; otherwise the first.
@@ -168,6 +184,7 @@ export const ActiveGroupProvider = ({ children }) => {
       try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable */ }
       entryGroups.clear();
       setMyGroups([]);
+      setRemovedFrom([]);
       setActiveGroupId(null);
       setLoading(false);
     }
@@ -214,6 +231,8 @@ export const ActiveGroupProvider = ({ children }) => {
     setPendingKey(null);
   }, []);
 
+  const clearRemovedFrom = useCallback(() => setRemovedFrom((prev) => (prev.length ? [] : prev)), []);
+
   const membershipIn = useCallback(
     (groupId) => myGroups.find((g) => g.group_id === groupId) || null,
     [myGroups],
@@ -245,8 +264,10 @@ export const ActiveGroupProvider = ({ children }) => {
     refreshGroups,
     membershipIn,
     syncGroupFromPage,
+    removedFrom,
+    clearRemovedFrom,
   }), [myGroups, activeGroupId, activeGroup, activeMembership, isAdmin, loading, pendingKey, location.key,
-    setActiveGroup, refreshGroups, membershipIn, syncGroupFromPage]);
+    setActiveGroup, refreshGroups, membershipIn, syncGroupFromPage, removedFrom, clearRemovedFrom]);
 
   return (
     <ActiveGroupContext.Provider value={value}>
