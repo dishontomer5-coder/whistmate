@@ -32,10 +32,16 @@ export function EveryoneFellBadge({ onClick }) {
 }
 
 // "Trump ♥ Hearts · Maya · Ace high" — who won the trump, the suit, and the card order of
-// an advanced session; "No trump · Dan" when the call was no trump. Nothing when no trump
-// was recorded for the round.
-export function TrumpLine({ round, players = [], className }) {
-  if (!round?.trump_suit) return null;
+// an advanced session; "No trump · Dan" when the call was no trump. When no trump was
+// recorded (the table marks it only when it wants to), a scored round says so —
+// `showMissing` — so the gap does not read as lost data (returning-player-1); a round
+// still in play shows nothing.
+export function TrumpLine({ round, players = [], className, showMissing = false }) {
+  if (!round?.trump_suit) {
+    return showMissing ? (
+      <span className={cn('text-xs text-muted-foreground', className)} data-trump-line="none">Trump not recorded</span>
+    ) : null;
+  }
   const winner = players.find((p) => p.player_id === round.highest_bidder_player_id)?.player_name;
   return (
     <span className={cn('text-xs text-muted-foreground', className)} data-trump-line>
@@ -111,7 +117,7 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
           )}
         </div>
       </div>
-      <TrumpLine round={round} players={results} className="mt-0.5 block" />
+      <TrumpLine round={round} players={results} className="mt-0.5 block" showMissing={!inPlay} />
 
       {inPlay ? (
         <>
