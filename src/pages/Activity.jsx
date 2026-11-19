@@ -10,7 +10,7 @@ import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name, UserText } from '@/components/UserText';
-import { formatDate, errorMessage, noteSessionName } from '@/lib/format';
+import { formatDate, errorMessage, noteSessionName, UNNAMED_NOTE_SESSION } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import BackLink from '@/components/BackLink';
 
@@ -26,6 +26,10 @@ function writtenWhen(timestamp) {
   if (days < 7) return `${days} days ago`;
   return formatDate(timestamp);
 }
+
+// A session without a name of its own is already called by its date ("Monday, 3 Aug"),
+// so the date is added only after a given name — never "Monday, 3 Aug, Aug 3, 2026".
+const sessionHasOwnName = (n) => !!(n.game_name || '').trim() && n.game_name !== UNNAMED_NOTE_SESSION;
 
 // The Activity tab: the notes left in every group the user belongs to, newest first.
 // Opening this page marks everything as seen (a timestamp on the server, so it holds on
@@ -126,7 +130,7 @@ export default function Activity() {
                         the note was written is said as such. */}
                     <p className="text-xs text-muted-foreground">
                       <UserText>{n.group_name}</UserText>
-                      {noteSessionName(n) ? <> · <UserText>{noteSessionName(n)}</UserText>{n.game_date ? `, ${formatDate(n.game_date)}` : ''}</> : ''}
+                      {noteSessionName(n) ? <> · <UserText>{noteSessionName(n)}</UserText>{n.game_date && sessionHasOwnName(n) ? `, ${formatDate(n.game_date)}` : ''}</> : ''}
                       {' · '}written {writtenWhen(n.created_date)}
                     </p>
                   </div>
