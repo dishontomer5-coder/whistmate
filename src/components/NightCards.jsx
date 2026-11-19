@@ -42,8 +42,8 @@ export default function NightCards({ best, worst, onOpen }) {
   const sameNight = best && worst && best.session_id === worst.session_id;
   return (
     <div className={`grid gap-3 ${sameNight ? 'grid-cols-1' : 'grid-cols-2'}`}>
-      {best && <NightCard icon={Sunrise} label={sameNight ? 'Only night so far' : 'Best night'} night={best} onOpen={onOpen} />}
-      {worst && !sameNight && <NightCard icon={CloudRain} label="Worst night" night={worst} onOpen={onOpen} />}
+      {best && <NightCard icon={Sunrise} label={sameNight ? 'Only session so far' : 'Best session'} night={best} onOpen={onOpen} />}
+      {worst && !sameNight && <NightCard icon={CloudRain} label="Worst session" night={worst} onOpen={onOpen} />}
     </div>
   );
 }

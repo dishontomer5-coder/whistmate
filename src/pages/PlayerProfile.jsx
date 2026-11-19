@@ -7,7 +7,6 @@ import StatGrid from '@/components/StatGrid';
 import ScoreChart from '@/components/ScoreChart';
 import NightCards from '@/components/NightCards';
 import { HeldAwards } from '@/components/AwardsShowcase';
-import PlayerSwitcher from '@/components/PlayerSwitcher';
 import TableTalkFeed from '@/components/TableTalkFeed';
 import WriteNoteDialog from '@/components/WriteNoteDialog';
 import BackLink from '@/components/BackLink';
@@ -34,17 +33,17 @@ export default function PlayerProfile() {
   return <PlayerView playerId={id} />;
 }
 
-// One player's page. The Players tab (/profile) draws it for the viewer, /player/:id for
-// anybody — it is the same page either way, top to bottom:
-//   player switcher · name and headline figures (and, under the viewer's own name, "Leave
-//   this group") · awards held · best and worst night · the figures · the chart ·
-//   Table talk with "Leave a note" at its head · round history, grouped by session.
+// One player's page (/player/:id), reached from the Players list (/profile) or any name.
+// Top to bottom:
+//   back link · name and headline figures · awards held · best and worst session · the
+//   figures · the chart · Table talk with "Leave a note" at its head · round history,
+//   grouped by session · on the viewer's own page, "Leave this group" at the very bottom.
+// On ANOTHER player's page the headline and every tile also show the viewer's own value
+// ("You: 62%"), so two players compare without a second screen (returning-player-4).
 //
 //   playerId   the GroupMember id. The player's group comes from the loaded record, not
 //              from the group last opened (a link can lead into any of the user's groups).
-//   isTabRoot  true on /profile: the page is the root of the Players tab, so it has no
-//              back link.
-export function PlayerView({ playerId, isTabRoot = false }) {
+export function PlayerView({ playerId }) {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
@@ -54,6 +53,7 @@ export function PlayerView({ playerId, isTabRoot = false }) {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [roster, setRoster] = useState(null); // { groupId, members }
+  const [mine, setMine] = useState(null); // { memberId, stats } — the viewer's own figures, to compare
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -88,22 +88,40 @@ export function PlayerView({ playerId, isTabRoot = false }) {
       setView({ playerId, player: statsRes.data.player, stats: statsRes.data, history: historyRes.data });
     } catch (err) {
       if (request !== latestRequest.current) return;
-      console.error(err);
-      if (err.response?.status === 404) setNotFound(true);
-      else setLoadError(errorMessage(err, "Couldn't load this player."));
+      const status = err.response?.status;
+      if (status === 404) setNotFound(true);
+      // Not (or no longer) in the player's group — e.g. Back after leaving it: the same clean
+      // way out a non-member gets from the app shell, not an error screen (qa-tester-6).
+      else if (status === 403) {
+        refreshGroups();
+        navigate('/home', { replace: true, state: { notice: "That page isn't available — you're not in its group." } });
+      } else {
+        console.error(err);
+        setLoadError(errorMessage(err, "Couldn't load this player."));
+      }
     } finally {
       if (request === latestRequest.current) setLoading(false);
     }
   };
 
-  // The group's players, for the switcher (and to know whether the viewer is its only admin).
+  // The viewer's own figures in this group, to show beside another player's.
+  const myMemberId = membership?.member_id || null;
+  useEffect(() => {
+    if (!myMemberId || myMemberId === player?.id || mine?.memberId === myMemberId) return;
+    let cancelled = false;
+    base44.functions.invoke('computePlayerStats', { player_id: myMemberId })
+      .then((res) => { if (!cancelled) setMine({ memberId: myMemberId, stats: res.data }); })
+      .catch(() => {}); // without it the page simply shows no comparison
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myMemberId, player?.id]);
+
+  // The group's players (to know whether the viewer is its only admin).
   useEffect(() => {
     if (!groupId || roster?.groupId === groupId) return;
     let cancelled = false;
     base44.functions.invoke('getGroupMembers', { group_id: groupId })
       .then((res) => { if (!cancelled) setRoster({ groupId, members: res.data.members || [] }); })
-      // Without the list (an app admin who is not in the group is refused it) the switcher
-      // simply shows the player on screen.
       .catch(() => {});
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,7 +136,7 @@ export function PlayerView({ playerId, isTabRoot = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!current, cameForNotes]);
 
-  const backLink = isTabRoot ? null : <BackLink fallback="/profile" className="-my-2" />;
+  const backLink = <BackLink fallback="/profile" className="-my-2" />;
 
   if (loading || (!current && !notFound && !loadError)) return <LoadingSpinner showLogo />;
 
@@ -144,6 +162,8 @@ export function PlayerView({ playerId, isTabRoot = false }) {
   const myPlayerId = membership?.member_id || null;
   const isMe = !!myPlayerId && myPlayerId === player.id;
   const members = roster?.groupId === groupId ? roster.members : [];
+  const myStats = !isMe && mine?.memberId === myPlayerId ? mine.stats : null;
+  const myPerf = myStats?.performance || null;
 
   // The last admin with an account cannot leave: the group would have nobody to run it.
   const onlyAdmin = isMe && isAdmin && roster?.groupId === groupId
@@ -169,12 +189,10 @@ export function PlayerView({ playerId, isTabRoot = false }) {
 
       {isArchived && <ArchivedBanner />}
 
-      <PlayerSwitcher players={members} current={{ id: player.id, name: player.name }} myPlayerId={myPlayerId} />
-
       <div className="flex items-start gap-4">
         <PlayerAvatar name={player.name} size="lg" />
         <div className="min-w-0 flex-1">
-          <h1 className="page-title break-words"><Name>{player.name}</Name></h1>
+          <h1 className="page-title break-words [overflow-wrap:anywhere]"><Name>{player.name}</Name>{isMe && <span className="font-normal text-muted-foreground"> (you)</span>}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {rounds === 0 ? 'No rounds yet' : (
               <>
@@ -184,13 +202,14 @@ export function PlayerView({ playerId, isTabRoot = false }) {
               </>
             )}
           </p>
-          {!player.user_id && <p className="text-xs text-muted-foreground mt-0.5">Unclaimed player — no account yet</p>}
-          {isMe && (
-            <Button variant="ghost" size="sm" className="-ml-3 mt-1 text-muted-foreground"
-              onClick={() => { setLeaveError(''); setLeaveOpen(true); }}>
-              <LogOut /> Leave this group
-            </Button>
+          {myPerf && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              You: <span className={`font-heading font-bold ${scoreTone(myPerf.total_score)}`}>{formatScore(myPerf.total_score)}</span>
+              {' '}in {plural(myPerf.rounds_played || 0, 'round')}
+              {myPerf.sessions_played > 0 ? ` · ${plural(myPerf.wins || 0, 'win')} in ${plural(myPerf.sessions_played, 'session')}` : ''}
+            </p>
           )}
+          {!player.user_id && <p className="text-xs text-muted-foreground mt-0.5">Unclaimed player — no account yet</p>}
         </div>
       </div>
 
@@ -198,7 +217,7 @@ export function PlayerView({ playerId, isTabRoot = false }) {
 
       <NightCards best={stats.best_session} worst={stats.worst_session} />
 
-      <StatGrid stats={stats} />
+      <StatGrid stats={stats} compare={myStats} />
 
       <ScoreChart timeline={stats.timeline} />
 
@@ -217,6 +236,21 @@ export function PlayerView({ playerId, isTabRoot = false }) {
       />
 
       <RoundHistory key={player.id} history={history} nights={stats.sessions} />
+
+      {/* Leaving is rare and final, so it sits at the foot of the viewer's own page, away
+          from the figures (returning-player-10, visual-designer-13). */}
+      {isMe && (
+        <section aria-labelledby="membership-heading" className="space-y-2 rounded-lg border border-border p-4">
+          <h2 id="membership-heading" className="section-label">Membership</h2>
+          <p className="text-sm text-muted-foreground">
+            Your rounds stay in the group's standings under your player name if you leave.
+          </p>
+          <Button variant="outline" className="w-full text-negative hover:text-negative"
+            onClick={() => { setLeaveError(''); setLeaveOpen(true); }}>
+            <LogOut /> Leave this group
+          </Button>
+        </section>
+      )}
 
       <WriteNoteDialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen} groupId={groupId}
         targetPlayerId={player.id} targetPlayerName={player.name} onSubmitted={() => setFeedRefreshKey((k) => k + 1)} />
@@ -306,7 +340,8 @@ function RoundHistory({ history, nights = [] }) {
                 <span className="block text-xs text-muted-foreground">
                   {formatDate(session?.session_date)}
                   {session?.status === 'open' ? ' · open' : ''}
-                  {night && session?.status === 'closed' ? ` · ${ordinal(night.rank)} of ${night.players}` : ''}
+                  {night && session?.status === 'closed' && !night.no_winner ? ` · ${ordinal(night.rank)} of ${night.players}` : ''}
+                  {night?.no_winner && session?.status === 'closed' ? ' · no round counted' : ''}
                 </span>
               </span>
               <span className="flex flex-shrink-0 items-center gap-1">

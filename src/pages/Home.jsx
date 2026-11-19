@@ -21,17 +21,6 @@ import { errorMessage, formatScore, sessionName } from '@/lib/format';
 // How many rows the standings show before "Show all".
 const STANDINGS_SHOWN = 10;
 
-// The newest closed session with a scored round ("last night"), or null. Newest by the
-// session's date, then by when it was created — the order buildStandings uses.
-function lastClosedSession(sessions, results) {
-  const scored = new Set(results.filter((r) => r.points != null).map((r) => r.session_id));
-  const held = (s) => new Date(s.session_date || s.created_date || 0).getTime() || 0;
-  const created = (s) => new Date(s.created_date || 0).getTime() || 0;
-  return sessions
-    .filter((s) => s.status === 'closed' && scored.has(s.id))
-    .sort((a, b) => held(b) - held(a) || created(b) - created(a))[0] || null;
-}
-
 // The Standings tab — the group's home: the session in progress (or the button that
 // starts one), the standings over every session, and the awards. The list of sessions
 // has its own tab.
@@ -74,9 +63,10 @@ export default function Home() {
       const openRounds = openSession ? rounds.filter((r) => r.session_id === openSession.id) : [];
       // The small figure beside a total is tonight's score while a session is open. "Last
       // night" shows the same table with the figure taken from the last closed session
-      // (returning-player-1) — buildStandings' deltaSessionId picks that session.
+      // (returning-player-1): every row names it (last_closed_session), and buildStandings'
+      // deltaSessionId points the figure at it.
       const standings = buildStandings(results, {}, { sessions });
-      const lastClosed = lastClosedSession(sessions, results);
+      const lastClosed = standings[0]?.last_closed_session || null;
       const figureIsTonight = standings[0]?.delta_session?.status === 'open';
       setData({
         groupId: activeGroupId,

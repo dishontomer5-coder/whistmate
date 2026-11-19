@@ -4,6 +4,7 @@ import { formatDate, formatScore, scoreTone, sessionName } from '@/lib/format';
 import { rankSession } from '@/lib/whist-stats';
 import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { Name, UserText } from '@/components/UserText';
+import { Badge } from '@/components/ui/badge';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -55,7 +56,10 @@ export function sessionOutcomes(results = []) {
 export default function SessionCard({ session, roundCount, outcome, myPlayerId }) {
   const isOpen = session.status === 'open';
   const mine = myPlayerId && outcome ? outcome.ranking.get(myPlayerId) : null;
-  const hasResult = !!outcome && outcome.leaders.length > 0;
+  // A session in which no round counted (every scored round was everyone-falls) has no
+  // winner and nobody leading it: getGroupData marks it no_winner.
+  const noWinner = !!session.no_winner && !!outcome;
+  const hasResult = !noWinner && !!outcome && outcome.leaders.length > 0;
 
   return (
     <Link
@@ -63,12 +67,8 @@ export default function SessionCard({ session, roundCount, outcome, myPlayerId }
       className="block bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-heading font-bold text-foreground truncate"><UserText>{sessionName(session)}</UserText></span>
-        {isOpen && (
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium uppercase flex-shrink-0 bg-primary/20 text-primary">
-            Open
-          </span>
-        )}
+        <span className="min-w-0 font-heading font-bold text-foreground break-words [overflow-wrap:anywhere]"><UserText>{sessionName(session)}</UserText></span>
+        {isOpen && <Badge className="flex-shrink-0">Open</Badge>}
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1 whitespace-nowrap">
@@ -87,12 +87,17 @@ export default function SessionCard({ session, roundCount, outcome, myPlayerId }
         <span className="whitespace-nowrap">{SCORING_METHOD_LABEL[session.scoring_method] || SCORING_METHOD_LABEL.classic}</span>
         {session.advanced_rules_enabled ? <span className="whitespace-nowrap">Advanced</span> : null}
       </div>
+      {noWinner && (
+        <p className="mt-3 pt-3 border-t border-border text-sm text-muted-foreground">
+          {isOpen ? 'Nobody leading — no round counted yet' : 'No winner — no round counted'}
+        </p>
+      )}
       {hasResult && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-3 pt-3 border-t border-border text-sm">
           <span className="flex items-center gap-1.5 min-w-0">
             {isOpen
               ? <span className="text-muted-foreground flex-shrink-0">Leading:</span>
-              : <><Trophy className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" /><span className="sr-only">Won by </span></>}
+              : <><Trophy className="w-4 h-4 text-foreground flex-shrink-0" aria-hidden="true" /><span className="sr-only">Won by </span></>}
             <span className="font-medium text-foreground truncate">
               {outcome.leaders.map((p, i) => (
                 <span key={p.player_id}>{i > 0 ? ' & ' : ''}<Name>{p.name}</Name></span>
@@ -102,7 +107,7 @@ export default function SessionCard({ session, roundCount, outcome, myPlayerId }
           </span>
           {/* The viewer's own result. In first place the line beside it already has the score. */}
           {mine && (mine.rank === 1 ? (
-            <span className="text-primary whitespace-nowrap">{isOpen ? 'You lead' : 'You won'}</span>
+            <span className="font-medium text-foreground whitespace-nowrap">{isOpen ? 'You lead' : 'You won'}</span>
           ) : (
             <span className="text-muted-foreground whitespace-nowrap">
               You: {ordinal(mine.rank)} · <span className={`font-heading font-bold ${scoreTone(mine.total)}`}>{formatScore(mine.total)}</span>
