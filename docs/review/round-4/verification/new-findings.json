@@ -1,0 +1,90 @@
+[
+  {
+    "id": "v4-1",
+    "title": "Tricks keypad stops advancing while the total is over 13, so re-typing a full column top to bottom overwrites the row above",
+    "where": "/round/:id results step (and Edit round)",
+    "steps": [
+      "Round 4 with all four tricks already entered (3,2,1,7)",
+      "Tap יוסי's row, then tap 4, 1, 2, 6 intending יוסי 4, Maya 1, Dan 2, נועה 6"
+    ],
+    "expected": "Each tap lands on the next row, as it does on empty rows",
+    "actual": "After 4 the total is 14 so the highlight stays on יוסי; 1 overwrites יוסי, then the highlight moves on: result יוסי 1, Maya 2, Dan 6, נועה 7 (16/13, Save disabled)",
+    "why_it_matters": "Correcting a whole round at the table is exactly when people type down the column; the 13-total check blocks most wrong saves, but the user has to work out what happened",
+    "severity": "minor",
+    "evidence": [
+      "shots/007-r4-seat-order-results2.png",
+      "~ [10] button \"Tricks for יוסי: 1\" … ~ [16] button \"Tricks for Dan: 6\" … (alert) Tricks must total 13 — now 16"
+    ],
+    "suggested_fix": "Advance after every tap (as on empty rows) and let the over-13 alert do the warning, or advance to the next row explicitly chosen by the user"
+  },
+  {
+    "id": "v4-2",
+    "title": "Race notice says 'The table you picked was not started' when the other phone started the very same table",
+    "where": "/session/:id 'Same players' after another phone started it",
+    "steps": [
+      "Two phones as Maya on the same open session",
+      "Phone A taps 'Same players as last round — Dan bids first'",
+      "Phone B taps the same button"
+    ],
+    "expected": "A softer line when the tables match (e.g. 'Your table was already started on another phone')",
+    "actual": "'It was started with Dan, נועה, יוסי and Maya. The table you picked was not started.' — same four, same order",
+    "why_it_matters": "Makes the user think something differs when nothing does",
+    "severity": "minor",
+    "evidence": [
+      "v4-b output: alertdialog 'A round was just started on another phone' — 'It was started with Dan, נועה, יוסי and Maya. The table you picked was not started.'"
+    ],
+    "suggested_fix": "Compare the picked table with the open round's and drop the second sentence when equal"
+  },
+  {
+    "id": "v4-3",
+    "title": "First-bidder mark is missing on the round card, the round page and Edit round",
+    "where": "/session/:id LAST ROUND card, /round/:id, /round/:id?edit=1",
+    "steps": [
+      "In round 5 tap Dan (seat 2) as first bidder; save",
+      "Look at the card, the round page and Edit round"
+    ],
+    "expected": "Per the seat-order ruling, the first bidder is marked wherever the round is shown",
+    "actual": "Bidding and Results show 'Dan first bid'; the card, round page and Edit round show Dan with no mark (only the trump winner's suit icon)",
+    "why_it_matters": "With seat order fixed, the mark is the only way to tell later who opened the bidding",
+    "severity": "minor",
+    "evidence": [
+      "shots/013-r4-round-page.png",
+      "Edit round 5 listing: '[10] Dan / bid 5 · made +35' (no 'first bid')"
+    ],
+    "suggested_fix": "Show the same 'first bid' tag on the card, round page and edit view"
+  },
+  {
+    "id": "v4-4",
+    "title": "Activity inside a group lists other groups' notes under that group's header",
+    "where": "Thursday Whist › Menu › Activity",
+    "steps": [
+      "Inside Thursday Whist open Menu › Activity"
+    ],
+    "expected": "Either only this group's notes, or a clear 'all groups' label",
+    "actual": "Under the THURSDAY WHIST header the feed includes 'Anonymous left a note about נועה — Family Table' and 'נועה left a note about אמא — Family Table'; no tab is highlighted",
+    "why_it_matters": "Small mixed-context signal; each card does name its group",
+    "severity": "minor",
+    "evidence": [
+      "shots/001-r1-activity-in-group.png"
+    ],
+    "suggested_fix": "Filter to the current group, or add an 'All groups' subtitle"
+  },
+  {
+    "id": "v4-5",
+    "title": "'Round 3 saved' note stays on screen after closing the session",
+    "where": "/session/:id after Close session",
+    "steps": [
+      "Save round 3",
+      "Close session"
+    ],
+    "expected": "The saved note goes away (or is replaced by 'Session closed')",
+    "actual": "Closed session page still shows '(alert) Round 3 saved' above FINAL RESULT",
+    "why_it_matters": "Cosmetic; stale status",
+    "severity": "minor",
+    "evidence": [
+      "shots/023-night-closed.png",
+      "(alert) Round 3 saved | [6] # Verifier night … Closed"
+    ],
+    "suggested_fix": "Clear the toast on close"
+  }
+]

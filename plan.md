@@ -569,3 +569,19 @@ Bound: stop after three review rounds, or 80 turns, and report exactly what rema
   was fixed and checked at 320 px.
 - **Decision:** the store icon stays the owner's choice; an alternative drawn from the in-app mark is in
   `docs/listing/`, and the round-2 and round-3 visual designers both recommended it.
+
+#### Round 4 — decisions (Nov 19 2026)
+
+- **Decision (owner):** run a fourth round after the three planned; then "fix the eight, verify, deploy,
+  and stop". Round 4: 0 blockers, 8 majors, 47 minors, 10 ideas; all 8 majors and 4 cheap minors fixed,
+  verified by the independent tester (12/12 fixed, no regression), deployed (`index-BjQCevZZ.js`).
+- **Decision:** one player order for a round on every screen — seat order — with the trump winner and the
+  first bidder marked, never moved. Supersedes the round-2 "results start from the trump winner", which
+  made tricks typed in seat order land on the wrong players.
+- **Decision:** a trump winner below the top bid gets a visible warning, not a block (the app records what
+  the table decided).
+- **Decision (owner):** the store icon is the jester; a flat jester mark for inside the app will be
+  designed by the owner in Claude Design and then replace the spade mark everywhere.
+- **Observation for the guide:** majors per round 39 → 13 → 4 → 8 — after the third round, fresh reviewers
+  mostly find new edge cases at roughly the same rate; a "zero majors from fresh reviewers" bar is not a
+  practical stopping rule beyond that point.

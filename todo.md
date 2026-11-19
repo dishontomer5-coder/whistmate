@@ -4,12 +4,14 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026): **Phase 13 is CLOSED.** Three review rounds, three fix rounds, all
-> deployed: live bundle `index-CKd8aPs4.js` (= local build), signed-out entity reads `[]`, public pages
-> clean at 320/390/1440 px. Review record in `docs/review/round-{1,2,3}/`; guide in
-> `docs/web-app-best-practices.md`. Next is the owner's: choose the store icon, a signed-in look on a
-> real phone, then submit the Clonitt listing (P12-10). Open minors and ideas are listed in each round's
-> RULINGS.md for a later phase.
+> ▶ RESUME HERE (Nov 19 2026): **Phase 13 is CLOSED** after four review rounds (the fourth at the owner's
+> request) and four fix rounds, all deployed: live bundle `index-BjQCevZZ.js` (= local build), signed-out
+> entity reads `[]`, public pages clean at 320/390/1440 px. Review record in `docs/review/round-{1..4}/`;
+> guide in `docs/web-app-best-practices.md`. The owner chose the JESTER for the store icon and will design a
+> flat jester mark in Claude Design; when the files land in `docs/listing/`, replace the in-app spade mark
+> (Logo.jsx, header, auth/invite pages, loading screen), the favicon and the manifest icons. Next is the
+> owner's: signed-in look on a real phone, a Hebrew question to the live assistant, then submit the
+> Clonitt listing (P12-10). Open minors and ideas are in each round's RULINGS.md for a later phase.
 > in_progress: none.
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
 > **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
@@ -719,8 +721,8 @@
 - [x] **P13-10** *(done Nov 19 2026 — the block in the closing report)*: refresh the CLONITT LISTING block for anything renamed or added. Do not submit.
 - [ ] **P13-11** *(owner)*: final signed-in look at the live app, then P12-10.
 
-> **🎉 PHASE 13 CLOSED (Nov 19 2026):** three independent review rounds — majors 39 → 13 → 4, minors 84 → 59 → 50
-> (round 3: 1 blocker, found and fixed); every round's blocker and majors fixed, verified by an independent
+> **🎉 PHASE 13 CLOSED (Nov 19 2026):** four independent review rounds — majors 39 → 13 → 4 → 8, blockers 0 → 0 → 1 → 0,
+> minors 84 → 59 → 50 → 47 (round 4 run at the owner's request; its 8 majors fixed, verified 12/12, deployed); every round's blocker and majors fixed, verified by an independent
 > tester and deployed. 24 of 24 write functions under the access test (522 checks). Left on purpose: the minors and
 > ideas listed in each round's RULINGS.md; the store icon (owner's choice).
 

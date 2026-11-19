@@ -1,0 +1,152 @@
+{
+  "items": [
+    {
+      "item": "returning-player-1",
+      "ruling": "Activity opened from the group menu keeps the group frame, with a back link",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/001-r1-activity-in-group.png",
+        "shots/004-r1-activity-320.png",
+        "Menu > Activity → /activity, header 'Groups | THURSDAY WHIST', back button 'Standings' (from Standings) / 'Sessions' (from Sessions); tapping it → /"
+      ],
+      "notes": "The group tab bar stays (Standings/Sessions/Players/Admin), none highlighted. The feed still includes notes from Family Table under the Thursday Whist header (see new finding v4-4)."
+    },
+    {
+      "item": "visual-designer-1",
+      "ruling": "Menu gets 'My stats & account' from anywhere, with a back link",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/003-r2-me-from-group.png",
+        "From /history: Menu > 'My stats & account' → /profile/global with back button 'Sessions' → /history"
+      ],
+      "notes": ""
+    },
+    {
+      "item": "scorekeeper-1",
+      "ruling": "After a discard, 'Same players' offers the last PLAYED table; Redeal is a second smaller option naming the four",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/014-r3-after-discard.png",
+        "After discarding round 6 (Maya, Omer, Rachel, אבי): '[8] Same players as last round — Dan bids first' + '[9] Redeal — Maya, Omer, Rachel, אבי'; Same players → bidding 1 Dan 2 נועה 3 יוסי 4 Maya (round 5's table)",
+        "After discarding a round whose table = last played table, only 'Same players' is shown (no duplicate Redeal)",
+        "New session, first round discarded: 'Redeal — שלומי 2, Maya, Dan, נועה' offered and reproduced the table"
+      ],
+      "notes": ""
+    },
+    {
+      "item": "whist-player-1 (+ scorekeeper-2)",
+      "ruling": "One player order for a round everywhere: seat order; trump winner and first bidder marked, never moved",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/006-r4-seat-order-results.png",
+        "shots/008-r4-before-save.png",
+        "shots/009-m3-saved.png",
+        "shots/010-r4-bidding-seat-order.png",
+        "shots/012-r4-results-r5.png",
+        "shots/013-r4-round-page.png",
+        "shots/064-r4-original-scenario.png",
+        "shots/067-x-desktop_round_39d6fb1a2c0364ac30f0c2a.png",
+        "Round 4 (trump winner נועה in seat 4): typed 3,2,1,7 on empty rows top-to-bottom → יוסי 3, Maya 2, Dan 1, נועה 7 (each on the row typed)",
+        "Round 5 seat order Maya, Dan, נועה, יוסי; tapped Dan as first bidder → Dan stays row 2 with 'first bid'; trump winner נועה (seat 3) stays row 3; tricks 5,5,1,2 typed top-to-bottom → Maya 5 (−10), Dan 5 (+35), נועה 1 (−20), יוסי 2 (+14); saved card and round page list the same order and the same scores",
+        "Original scenario replayed (Dan 6, Omer 1, Rachel 3 trump ♥, אבי 0; tricks 5,6,2,0): Dan −10, Omer −50, Rachel −10, אבי +50; saved card identical, standings sum matched (closed 'Verifier night' totals נועה +61, Maya +33, Dan +9, שלומי 2 −94 = sum of the three cards)"
+      ],
+      "notes": "Order and stored scores match on every screen. Two side-issues: the first-bidder mark is not shown on the round card, round page or Edit round (v4-3); the keypad does not auto-advance while the running total is over 13, so re-typing a full column top-to-bottom can overwrite the previous row (v4-1). Neither puts a value on a row other than the highlighted one."
+    },
+    {
+      "item": "whist-player-2",
+      "ruling": "Visible warning in the dock when the marked winner's bid is below the top bid, also at lock time; locking allowed",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/011-r5-trump-warning.png",
+        "shots/063-r5-warning-320.png",
+        "(alert) נועה bid 3 — the top bid was 6 (Maya). Is נועה really the trump winner?",
+        "(alert) Rachel bid 3 — the top bid was 6 (Dan). Is Rachel really the trump winner?",
+        "Lock bids enabled and worked; warning also shown in Edit round; not shown when the winner ties the top bid (Dan 4 / נועה 4)"
+      ],
+      "notes": "At 320x568 the dock with the warning leaves room for one player row (known minors newcomer-5 / visual-designer-13, slightly worse with the extra line)."
+    },
+    {
+      "item": "qa-tester-1",
+      "ruling": "409 with open_round_id → 'A round was just started on another phone with <names>' + Open that round / Back to session",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/016-r6-race-notice.png",
+        "alertdialog 'A round was just started on another phone' — 'It was started with Omer, Rachel, אבי and נועה. The table you picked was not started.' [Open that round] [Back to session]",
+        "Same via the session page's 'Same players' shortcut",
+        "! http 409 POST startRound (expected)"
+      ],
+      "notes": "When the other phone started the identical table the text still says 'The table you picked was not started' (v4-2)."
+    },
+    {
+      "item": "qa-tester-2",
+      "ruling": "Anonymous switch warns before posting, to everyone incl. admins",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/b-001-r7-anon-warning.png",
+        "Switch on → 'Anonymous notes can't be deleted later — not even by you. A group admin can remove one.' (as Maya, admin, and as Dan, player)"
+      ],
+      "notes": "Text appears only after the switch is turned on, which is still before posting."
+    },
+    {
+      "item": "qa-tester-3",
+      "ruling": "Gone group → 'This group was deleted' + Your groups; one-time notice on Your groups",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/017-r8-deleted-player.png",
+        "shots/018-r8-groups-notice.png",
+        "'# This group was deleted / A group admin deleted it. Nobody can open it any more. / [Your groups]'",
+        "(alert) Family Table was deleted by a group admin. Nobody can open it any more, and its rounds no longer count in your totals.",
+        "After reload the notice is gone (one-time)",
+        "! http 404 getGroupData code group_deleted (expected)"
+      ],
+      "notes": ""
+    },
+    {
+      "item": "whist-player-3 (cheap minor)",
+      "ruling": "Hebrew name ending in a digit separated from seat number",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/019-m1-hebrew-digit-bidding.png",
+        "Seat number in its own badge; name 'שלומי 2' renders as one RTL unit"
+      ],
+      "notes": ""
+    },
+    {
+      "item": "scorekeeper-3 (cheap minor)",
+      "ruling": "Resume on group card opens the round in play",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/005-m2-resume-round.png",
+        "tapped [6] button 'Resume' → now at /round/e43f939bbcb4286a5e420fc4"
+      ],
+      "notes": ""
+    },
+    {
+      "item": "scorekeeper-4 (cheap minor)",
+      "ruling": "'Saved' confirmed after Save round / Save changes",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/009-m3-saved.png",
+        "(alert) Round 4 saved",
+        "(alert) Changes to round 5 saved"
+      ],
+      "notes": "The 'Round 3 saved' note is still on screen after Close session (v4-5)."
+    },
+    {
+      "item": "qa-tester-5 (cheap minor)",
+      "ruling": "Edit of a round deleted meanwhile → 'This round was deleted' with way back; Save disabled",
+      "verdict": "fixed",
+      "evidence": [
+        "shots/b-002-m4-edit-deleted.png",
+        "'# This round was deleted / It was deleted on another phone while you were editing it. Your changes were not saved. / [Back to session]' — Save changes gone"
+      ],
+      "notes": ""
+    }
+  ],
+  "cross_cutting": {
+    "overflow": "No horizontal overflow (clientWidth == scrollWidth, no element past the right edge) at 320, 390 and 1440 on /home, / (Standings), /history, /session/:id, bidding, results, a scored /round/:id, /profile, /player/:id, /activity, /profile/global, /admin, /about, /rules, /login, /register, /join?code=… (shots x-small_*.png).",
+    "console": "Only expected 4xx: 409 startRound (race), 404 getGroupData group_deleted, 404 updateRound (deleted round), 401 User/me when signed out. No console errors or exceptions.",
+    "full_night": "Verifier night as Maya: round 1 started with שלומי 2 first, discarded, Redeal; R1 scored; R2 with a renege (שלומי 2 −20 −100 = −120) and an off-top trump warning; R3 everyone fell (all 0, 'Everyone fell' tag); closed. Final: נועה +61 winner, Maya +33, Dan +9, שלומי 2 −94, '3 rounds played · 1 cancelled (everyone fell)'. Arithmetic checked by hand. Also closed Midweek special. No regressions found.",
+    "environment": "Chrome refuses port 5061 (net::ERR_UNSAFE_PORT, it is the SIP-TLS port). All browsing went through a local pass-through proxy on 5072 (HTTP + websocket) in the scratchpad; not an app issue, but the sandbox port should change for future runs."
+  }
+}
