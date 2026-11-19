@@ -1,0 +1,1126 @@
+[
+ {
+  "id": "newcomer-1",
+  "title": "Account is named by e-mail prefix, not by player name",
+  "where": "Me page /profile/global, menu",
+  "steps": [
+   "Sign up as yoav.guest3@example.com",
+   "Claim אבי via invite",
+   "Open Me"
+  ],
+  "expected": "My name (אבי) or a way to set one",
+  "actual": "Heading '# yoav.guest3'; no name field anywhere",
+  "why_it_matters": "After claiming a player the app still calls me something I never chose; feels unfinished",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/020-me-page.png",
+   "# yoav.guest3 / All groups: +186 in 72 rounds"
+  ],
+  "suggested_fix": "Ask for a name at sign-up or offer an edit; default to the player name",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-2",
+  "title": "'Added' confirmation repeated under every new player card and calls people 'it'",
+  "where": "/admin members",
+  "steps": [
+   "Add Avi, Ben, Gal"
+  ],
+  "expected": "One short toast",
+  "actual": "Three identical persistent paragraphs: 'you can score rounds for it now, and its owner claims it'",
+  "why_it_matters": "Clutters the member list; \"it\" for a friend reads oddly",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/006-admin-members2.png"
+  ],
+  "suggested_fix": "Single transient toast; use 'them'",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-3",
+  "title": "Unexplained dots on Groups back link and menu icon",
+  "where": "Group header",
+  "steps": [
+   "Join Thursday Whist",
+   "Look at header"
+  ],
+  "expected": "Meaning is visible or labelled",
+  "actual": "White dots; meaning (Activity 9 new) only visible after opening the menu",
+  "why_it_matters": "Newcomer cannot tell what needs attention",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/018-thursday-standings.png",
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/b-001-desktop-session.png"
+  ],
+  "suggested_fix": "Show a count badge or label, or put the dot on Activity only",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-4",
+  "title": "Two start buttons after a round with unexplained difference",
+  "where": "/session/:id",
+  "steps": [
+   "Save round 1"
+  ],
+  "expected": "Clear which to use",
+  "actual": "'Start round 2' and 'Same table — Avi bids first' side by side",
+  "why_it_matters": "Hesitation at every round",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/014-session-after-r1.png"
+  ],
+  "suggested_fix": "Rename the first to 'Pick players for round 2'",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-5",
+  "title": "On 320px, bidding shows only 2 of 4 players",
+  "where": "Round bidding, small viewport",
+  "steps": [
+   "Start a round at 320x568"
+  ],
+  "expected": "All four bids visible",
+  "actual": "Only Avi and Ben visible above keypad",
+  "why_it_matters": "Must scroll to check others' bids",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/b-002-small-bidding.png"
+  ],
+  "suggested_fix": "Compact rows on small screens",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-6",
+  "title": "Forgot password drops the typed e-mail",
+  "where": "/login → /forgot-password",
+  "steps": [
+   "Type e-mail on login",
+   "Tap Forgot password?"
+  ],
+  "expected": "E-mail prefilled",
+  "actual": "Empty field",
+  "why_it_matters": "Extra typing on phone",
+  "severity": "minor",
+  "evidence": [
+   "/forgot-password: [1] input:email \"Email address\" empty"
+  ],
+  "suggested_fix": "Pass the e-mail along",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-7",
+  "title": "Code-only invite link does not name the group",
+  "where": "/join?code=NHUA1B",
+  "steps": [
+   "Open signed out"
+  ],
+  "expected": "Group name shown",
+  "actual": "'You're invited to join a whist group on WhistMate'",
+  "why_it_matters": "Unsure what I am joining until after sign-up (app-made links do include the name)",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/016-invite-landing.png"
+  ],
+  "suggested_fix": "Look up the group name from the code",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-8",
+  "title": "Signed-out About back link says 'Groups'",
+  "where": "/about signed out",
+  "steps": [
+   "Open About signed out"
+  ],
+  "expected": "'← Back' or 'Home'",
+  "actual": "'← Groups' leads to landing",
+  "why_it_matters": "Small mismatch",
+  "severity": "minor",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/002-about.png"
+  ],
+  "suggested_fix": "Label by destination",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "newcomer-9",
+  "title": "Landing could state cost and what is required",
+  "where": "/home signed out",
+  "steps": [
+   "Open landing"
+  ],
+  "expected": "Know it is free and needs only an e-mail",
+  "actual": "Not stated",
+  "why_it_matters": "Lowers hesitation before sign-up",
+  "severity": "idea",
+  "evidence": [
+   "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/newcomer/shots/001-landing.png"
+  ],
+  "suggested_fix": "Add one line under the features",
+  "reviewer": "newcomer"
+ },
+ {
+  "id": "scorekeeper-1",
+  "title": "A second phone's 'Lock bids' silently overwrites bids already locked by the first phone",
+  "where": "/round/<id> (Bidding, two phones on the same round)",
+  "steps": [
+   "Phone A and phone B (both Maya) open the same session; A taps 'Same table', B taps 'Same table' (B correctly joins A's round after a 409)",
+   "A enters 2,2,2,2 and taps Lock bids",
+   "B enters 4,4,4,4 and taps Lock bids"
+  ],
+  "expected": "The second lock is refused or warns 'bids were already locked on another device' (as starting a round and saving results already do with a 409)",
+  "actual": "Both locks succeed with no event or message. Phone A shows 'DOWN · 8, bid 2' and phone B shows 'UP · 16, bid 4' for the same round; after reloading, A shows the 4s. Starting the round twice and saving results twice are both caught (409 'A round is already in progress' / 'This round has already been scored'), but locking bids twice is not",
+  "why_it_matters": "If a second player 'helps' on their own phone, the bids can change without the scorekeeper knowing, and the two phones disagree about the table type and the points shown",
+  "severity": "minor",
+  "evidence": [
+   "shots/027-twophone-s3.png",
+   "shots/s3b-001-twophone.png",
+   "s3 listing before reload: '[6] ▼ | DOWN | · 8 ... Dan bid 2'; s3-b listing: '[6] ▲ | UP | · 16 ... Dan bid 4'; no EVENTS on the second Lock bids"
+  ],
+  "suggested_fix": "Reject a lock on a round whose bids are already locked (409) and tell the second phone to reload, the same way startRound and saveRoundResults already do",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-2",
+  "title": "After discarding a round started with the wrong players, the shortcut offers to redeal that same wrong table, and 'same players as last round' is gone",
+  "where": "/session/<id> and /session/<id>/round/new after Discard round",
+  "steps": [
+   "Start round 6 with Maya, Dan, Omer, Rachel (wrong table)",
+   "Discard round → confirm",
+   "Look at the session page and the Pick the table screen"
+  ],
+  "expected": "The shortcut still offers the last scored round's table ('Same table — Dan bids first'), or both options",
+  "actual": "The button now reads 'Redeal — same table, Maya bids first' and recreates the discarded Maya/Dan/Omer/Rachel table; the picker's 'Same players as last round' option is replaced by the same 'Redeal' option, so the right table has to be picked again by hand (4 taps + Start)",
+  "why_it_matters": "The usual reason for discarding is 'wrong players'; the one-tap shortcut then repeats the mistake, and getting back to the correct table costs 8 taps in total (Discard, confirm, Start round, 4 names, Start)",
+  "severity": "minor",
+  "evidence": [
+   "shots/016-redeal.png",
+   "listing after Redeal: '[6] 1. | Maya ... [10] 3. | Omer | [12] 4. | Rachel'",
+   "picker after discard: '[5] Redeal — same table, Maya bids first'"
+  ],
+  "suggested_fix": "Ask on discard 'Why? Wrong players / Redeal', or offer both shortcuts; also offer 'Change players' on the Bidding screen before any bids are entered",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-3",
+  "title": "Running score is below the fold on a 375x667 phone",
+  "where": "/session/<id> at 375x667",
+  "steps": [
+   "Save a round at 375x667",
+   "Look at the session page"
+  ],
+  "expected": "At least the top of the standings is visible between rounds",
+  "actual": "Start round, Same table and the Last round card fill the screen; 'Standings' begins under the bottom nav, so you have to scroll every round to see the score",
+  "why_it_matters": "Checking the score between rounds is the most frequent look on game night",
+  "severity": "minor",
+  "evidence": [
+   "shots/019-session375.png",
+   "VIEW custom 375x667 · '-- below the fold -- [15] link \"#1 נ נועה Leading...\"'"
+  ],
+  "suggested_fix": "Show a compact one-line standings strip above the Last round card, or collapse the Last round card on short screens",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-4",
+  "title": "'Restored: 4 bids and the trump mark.' stays on screen after the bids are locked",
+  "where": "/round/<id> Results step",
+  "steps": [
+   "Enter bids, reload the page (Restored note appears)",
+   "Tap Lock bids"
+  ],
+  "expected": "The restore note goes away once you act on the restored bids",
+  "actual": "The Results step (0/13 tricks) still shows 'Restored: 4 bids and the trump mark.' in green",
+  "why_it_matters": "A message about bids on the tricks screen makes you wonder whether something was reloaded again",
+  "severity": "minor",
+  "evidence": [
+   "shots/021-staleRestored.png"
+  ],
+  "suggested_fix": "Clear the restore note when bids are locked or the first trick count is entered",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-5",
+  "title": "Bidding rows stay numbered by seat even when the trump winner bids first",
+  "where": "/round/<id> Bidding (classic)",
+  "steps": [
+   "Same table round with Maya as '1.'",
+   "Mark Dan as the trump winner and pick a suit"
+  ],
+  "expected": "The numbers show the bidding order, or there are no numbers",
+  "actual": "The keypad moves to 'Bid for Dan' (correct) but the rows still read '1. Maya, 2. Dan, ...'; the Results step then lists Dan first",
+  "why_it_matters": "The '1.' next to Maya suggests she bids first, which conflicts with the keypad prompt",
+  "severity": "minor",
+  "evidence": [
+   "shots/009-bids13.png",
+   "listing: '[6] 1. | Maya | — ... Bid for | Dan'"
+  ],
+  "suggested_fix": "Renumber the rows from the trump winner, or drop the numbers once a trump winner is marked",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-6",
+  "title": "'Edit bids' and 'Session' sit at the very top of the round screen",
+  "where": "/round/<id>",
+  "steps": [
+   "Hold a 390x844 phone in one hand and enter a round"
+  ],
+  "expected": "Frequent correction controls within thumb reach",
+  "actual": "Keypad, Lock bids and Save round are at the bottom (excellent), but 'Edit bids' (y≈217 of 844) and '← Session' (top-left) need a second hand",
+  "why_it_matters": "Fixing a wrong bid mid-round is common, and so is checking the score",
+  "severity": "minor",
+  "evidence": [
+   "shots/004-results-over.png"
+  ],
+  "suggested_fix": "Repeat 'Edit bids' next to Save round (for example as a secondary button), or let a tap on a row's 'bid N' open bid editing",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-7",
+  "title": "'Tonight' / 'Last night' on Standings actually mean 'this session' / 'last session'",
+  "where": "/ (Standings)",
+  "steps": [
+   "Close 'Midweek special' and 'Late night test' today, then start a third session today",
+   "Open Standings → Tonight, then Last night"
+  ],
+  "expected": "'Tonight' adds up today's sessions; 'Last night' is a previous night",
+  "actual": "Tonight shows only the open session (Maya '+45', not her -70 and -1 from earlier today); 'Last night' shows 'Last session: Late night test', which was played today",
+  "why_it_matters": "The labels suggest a time span; the numbers come from one session",
+  "severity": "minor",
+  "evidence": [
+   "home listing: '[6] Tonight | [7] Last night ... Maya ... +45'; after Last night: 'Last session: Late night test ... -1'"
+  ],
+  "suggested_fix": "Label the toggles 'This session' / 'Last session'",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-8",
+  "title": "Round limit is stated twice when reached",
+  "where": "/session/<id> with limit reached",
+  "steps": [
+   "Play 2 rounds in a session with Round limit 2"
+  ],
+  "expected": "One line",
+  "actual": "'Round limit 2 · 2 counted' and directly under it 'Round limit reached — 2 of 2 rounds counted.'",
+  "why_it_matters": "Clutter at the moment you want just 'Close session'",
+  "severity": "minor",
+  "evidence": [
+   "shots/026-limit.png"
+  ],
+  "suggested_fix": "Replace the first line with the second when the limit is reached",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "scorekeeper-9",
+  "title": "No keyboard number entry on desktop",
+  "where": "/round/<id> at desktop",
+  "steps": [
+   "Open Bidding on desktop",
+   "Press the 3 key"
+  ],
+  "expected": "Bid 3 entered for the highlighted player",
+  "actual": "Nothing happens ('Rachel —' unchanged)",
+  "why_it_matters": "Someone keeping score on a laptop has to click every number",
+  "severity": "idea",
+  "evidence": [
+   "shots/028-desktop-bid.png",
+   "after 'press 3': '[6] button \"1. Rachel —\" pressed'"
+  ],
+  "suggested_fix": "Map 0-9 (and 1 then 0-3 for 10-13) and Enter to the keypad and the Lock/Save buttons",
+  "reviewer": "scorekeeper"
+ },
+ {
+  "id": "returning-player-1",
+  "title": "Trump is missing from most rounds with no 'not recorded' note",
+  "where": "Session page /session/6588c94173caa4da2e6e579e and /session/966c35ef04bcea19a4e879b0, round page /round/1c3cf927ff32e331b0f13898",
+  "steps": [
+   "Sessions > open 'Last Thursday' or 'גשם בחוץ' (three sessions ago)",
+   "Read the round cards"
+  ],
+  "expected": "Every round says who took the trump and in which suit, or says plainly that the trump was not recorded",
+  "actual": "Only 3 of 10 rounds in Last Thursday (rounds 6, 3, 2) and 4 of 11 in גשם בחוץ show a 'Trump ♦ Diamonds · נועה' line. Other rounds (e.g. Round 9: נועה bid 6, the top bid) show nothing at all, so the question 'who took the trump?' has no answer and no explanation. The help text confirms the trump is optional ('the player marked as winning the trump or, when nobody was marked...').",
+  "why_it_matters": "Looking up who declared trump is a main reason to open an old round. A silent gap reads as 'nobody took trump' or as lost data.",
+  "severity": "major",
+  "evidence": [
+   "shots/005-rounds-lt.png",
+   "shots/009-round-page.png (Round 6 has trump) vs look output of Round 9: '# Round 9 ... נועה | bid 6 · took 4' with no Trump line"
+  ],
+  "suggested_fix": "Show 'Trump not recorded' on such rounds, and optionally mark the top bidder as the likely declarer.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-2",
+  "title": "Your own row is not marked in round cards, and the player order changes every round",
+  "where": "Session page, Rounds list",
+  "steps": [
+   "Open Last Thursday",
+   "Scan rounds for Dan's results"
+  ],
+  "expected": "Your row stands out (as it does in the standings with the 'You' badge) or sits in a fixed position",
+  "actual": "Dan is in row 4, 1, 2, 4, 3, 4, 2, 1, 3, 2 across the rounds, with no highlight; you must read every name to find yourself",
+  "why_it_matters": "'How did I do / which round hurt me' is slow to answer on the session page (it is easy on my player page's Round history, which I only found later)",
+  "severity": "minor",
+  "evidence": [
+   "shots/005-rounds-lt.png",
+   "shots/019-small-rounds.png"
+  ],
+  "suggested_fix": "Highlight the signed-in player's row in each round card (same style as the 'You' standings row); add a 'My rounds' link to the player page from the session.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-3",
+  "title": "Round cards on the session page are not tappable, though a round page exists",
+  "where": "Session page /session/...",
+  "steps": [
+   "Open a session",
+   "Tap a round card"
+  ],
+  "expected": "Opens the round page (/round/...) with player links",
+  "actual": "Tapping 'Round 5' does nothing ('h3 \"Round 5\" (plain text, not a detected control)'); the round page is reachable only from a player's Round history",
+  "why_it_matters": "Inconsistent map: the same round is a link in one place and dead text in another",
+  "severity": "minor",
+  "evidence": [
+   "browse output: OK tapped h3 \"Round 5\" (plain text, not a detected control)"
+  ],
+  "suggested_fix": "Make each round card link to its round page.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-4",
+  "title": "'Activity' in the group menu silently moves you out of the group",
+  "where": "Group menu > Activity → /activity",
+  "steps": [
+   "Inside Thursday Whist, open Menu",
+   "Tap Activity"
+  ],
+  "expected": "Stay inside the group, or a clear signal you left it",
+  "actual": "Header changes from '< Groups | THURSDAY WHIST' to '♠ WHISTMATE' and the tabs change from Standings/Sessions/Players to Groups/Activity/Me. To get back into the group you must use browser Back or go Groups > Thursday Whist.",
+  "why_it_matters": "Two levels of the app share a menu, and one item jumps level without warning; it blurs which level you are on",
+  "severity": "minor",
+  "evidence": [
+   "shots/012-menu.png",
+   "shots/013-activity.png"
+  ],
+  "suggested_fix": "Either filter Activity to this group when opened inside a group, or label it 'All activity' and keep a way back to the group on that page.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-5",
+  "title": "Account ('Me') is not reachable from inside a group",
+  "where": "Group menu",
+  "steps": [
+   "Inside a group, open the menu looking for my account"
+  ],
+  "expected": "An 'Account' / 'Me' entry",
+  "actual": "Menu shows the email as plain text, then Activity, Rules & scoring, About & privacy, Sign out. Account lives only under the top-level 'Me' tab (/profile/global)",
+  "why_it_matters": "Finding 'my account' takes a guess and a level change",
+  "severity": "minor",
+  "evidence": [
+   "shots/012-menu.png",
+   "shots/014-me-global.png"
+  ],
+  "suggested_fix": "Make the email line in the menu a link to Me / account.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-6",
+  "title": "'Last night' toggle shows a session from a week ago; a session named 'Last Thursday' makes it worse",
+  "where": "Standings",
+  "steps": [
+   "Open Standings while a session is open",
+   "Tap 'Last night'"
+  ],
+  "expected": "A label that matches what it shows",
+  "actual": "Label 'Last night'; the caption reads 'Last session: Last Thursday' and it is Nov 12 (today is Nov 19). The help calls it 'the last closed one'. Nights, sessions and a session literally named 'Last Thursday' blur",
+  "why_it_matters": "Naming of session / night is inconsistent across the app",
+  "severity": "minor",
+  "evidence": [
+   "shots/002-standings-lastnight.png"
+  ],
+  "suggested_fix": "Rename the toggle 'Open session' / 'Last session', and show the date in the caption.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-7",
+  "title": "Players tab largely repeats Standings",
+  "where": "Players tab /profile",
+  "steps": [
+   "Compare Standings and Players"
+  ],
+  "expected": "Players adds something distinct",
+  "actual": "Same 7 players, same totals and averages; differences are rounds count, 'no account' tag and you pinned first",
+  "why_it_matters": "Two of three tabs show the same list; the label 'Players' and URL '/profile' hint at a profile page",
+  "severity": "minor",
+  "evidence": [
+   "shots/006-players.png",
+   "shots/001-standings-tonight.png"
+  ],
+  "suggested_fix": "See proposed structure: fold the player list into Standings and turn the tab into 'Me' (my stats in this group).",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-8",
+  "title": "'Leave this group' sits at the bottom of my stats page",
+  "where": "/player/<me> MEMBERSHIP section",
+  "steps": [
+   "Open my player page and scroll to the end"
+  ],
+  "expected": "A destructive membership action lives in group settings / menu",
+  "actual": "'Leave this group' button under the round history",
+  "why_it_matters": "Unexpected place; easy to stumble on while reading stats",
+  "severity": "minor",
+  "evidence": [
+   "look output: '## MEMBERSHIP ... [45] Leave this group'"
+  ],
+  "suggested_fix": "Move to the group menu.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-9",
+  "title": "No sense of how the last session changed the race",
+  "where": "Standings",
+  "steps": [
+   "Ask: how did last night change the lead?"
+  ],
+  "expected": "Rank movement or previous gap",
+  "actual": "Only the session delta (+143 Maya, +110 נועה, +64 Dan); no ▲/▼ rank change or previous gap",
+  "why_it_matters": "The returning player's first question",
+  "severity": "idea",
+  "evidence": [
+   "shots/002-standings-lastnight.png"
+  ],
+  "suggested_fix": "Show rank change arrows and 'gap was X' when 'Last session' is selected.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "returning-player-10",
+  "title": "'By group' rows on Me are not links",
+  "where": "/profile/global BY GROUP",
+  "steps": [
+   "Open Me, tap Old Crew in By group"
+  ],
+  "expected": "Opens that group",
+  "actual": "Rows are plain text (not in the control list)",
+  "why_it_matters": "A natural shortcut between levels is missing",
+  "severity": "minor",
+  "evidence": [
+   "look output of /profile/global: '## BY GROUP Thursday Whist 113 rounds · +6.7 avg +757' with no control numbers"
+  ],
+  "suggested_fix": "Link each row to the group's standings or to my player page in it.",
+  "reviewer": "returning-player"
+ },
+ {
+  "id": "visual-designer-1",
+  "title": "Renege control outweighs the tricks entry, and its 'on' state hides its meaning",
+  "where": "Round results (step 2), /round/<id>",
+  "steps": [
+   "Open a round in play, step 2 (Results)",
+   "Look at any player row",
+   "Tap 'Renege' for Rachel"
+  ],
+  "expected": "The tricks number is the hero of each row; renege is a rare, secondary flag. When it is on, it still says what it is ('Renege −100').",
+  "actual": "Every row has a 72x44 outlined 'Renege' button as heavy as the tricks cell beside it, sitting where the thumb taps to select the row. One tap turns it into a solid red '−100' block with the word 'Renege' gone, so it reads like Rachel's round score next to 'bid 4'.",
+  "why_it_matters": "A one-tap −100 penalty in the primary tap zone of every row invites mistakes, and the on-state reads as a score rather than a penalty flag; that is a wrong mental model at the moment of scoring.",
+  "severity": "major",
+  "evidence": [
+   "shots/017-round-play.png",
+   "shots/032-renege.png",
+   "listing: button \"Renege for Rachel — on, −100\" pressed"
+  ],
+  "suggested_fix": "Make renege a quiet secondary control: a 32px-tall text/flag chip under the player name ('⚑ Renege'), hit area kept at 44px, muted text colour. On-state: red outline + red text 'Renege −100' (not a solid red fill), so the label stays.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-2",
+  "title": "'Last night' tab shows a session from a week ago",
+  "where": "Standings (group home), /",
+  "steps": [
+   "Open Thursday Whist standings",
+   "Tap 'Last night'"
+  ],
+  "expected": "The tab label describes what it shows: the previous session.",
+  "actual": "Tab says 'Last night'; the caption under it then says 'Last session: Last Thursday' (a session named 'Last Thursday', played Nov 12 — today is Nov 19). It is not last night, and 'Last Thursday' reads as a date, not a name.",
+  "why_it_matters": "The main screen states a wrong time frame for the numbers shown; players read the deltas as yesterday's results.",
+  "severity": "major",
+  "evidence": [
+   "shots/010-lastnight.png",
+   "shots/039-history-vp.png"
+  ],
+  "suggested_fix": "Rename the segments 'Tonight' / 'Last session'. Caption: '<session name> · Nov 12' with the name in the same weight as elsewhere, e.g. 'Last Thursday · Nov 12'. Keep the caption on the same line in both states so the layout does not jump (it wraps to its own line now).",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-3",
+  "title": "Gold outline means selected, focused, active row and trump winner all at once",
+  "where": "Standings toggle, Rules tabs, Bidding, Pick the table",
+  "steps": [
+   "Standings: look at 'Tonight'",
+   "Bidding: mark Dan as trump winner, then bid for the others"
+  ],
+  "expected": "One visual signal per meaning: selected segment, keyboard focus, and the row currently receiving input are told apart.",
+  "actual": "Selected segment = 2px gold border on navy (computed borderColor rgb(253,216,53), 2px); focus ring = gold outline; active bidding row = gold border; trump-winner chip = gold border. On the bidding screen Dan's trump chip and Omer's active row show two identical gold outlines at once.",
+  "why_it_matters": "The user cannot tell at a glance which row the keypad will write to.",
+  "severity": "minor",
+  "evidence": [
+   "shots/009-home-vp.png",
+   "shots/028-bid-3.png",
+   "shots/051-rules.png"
+  ],
+  "suggested_fix": "Selected segment: gold-tinted fill (rgba(253,216,53,.16)) + gold text, no border. Trump chip: solid gold fill with navy suit glyph. Keep the 2px gold outline only for the active input row and :focus-visible.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-4",
+  "title": "Tappable Up/Down and 'Everyone fell' badges are 24px tall; 'Edit round' is 36px",
+  "where": "Session page, round pages",
+  "steps": [
+   "Open the open session",
+   "Measure controls"
+  ],
+  "expected": "Every tappable control at least 44px in the touch dimension.",
+  "actual": "eval: '▲ UP · 14 73x24', '▼ DOWN · 12 95x24', 'Everyone fell 92x24', 'Edit round 111x36', 'What is a renege? 103x28'.",
+  "why_it_matters": "Small targets on a phone used at a table, often one-handed.",
+  "severity": "minor",
+  "evidence": [
+   "eval output: [\"▲ UP · 14 73x24\", \"Edit round 111x36\", \"Everyone fell 92x24\"]",
+   "shots/015-session.png"
+  ],
+  "suggested_fix": "Keep the pills visually 24px but give them a 44px hit area (padding + negative margin, or ::after inset -10px). Make 'Edit round' min-height 44px.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-5",
+  "title": "Two different bottom bars and two different 'new activity' badges",
+  "where": "Groups list vs inside a group",
+  "steps": [
+   "Look at the bottom bar on /home",
+   "Open a group and look at the bottom bar and header"
+  ],
+  "expected": "One navigation model; one badge component.",
+  "actual": "Top level: Groups / Activity / Me with a numeric badge '9'. Inside a group: Standings / Sessions / Players / Admin; Activity moves into the hamburger (with a '9' pill), 'Me' is not reachable, and new activity is shown as unlabeled white dots on '‹ Groups' and on the hamburger. The global menu's 'Activity' has no count while the in-group one does.",
+  "why_it_matters": "The same left-most tab position means 'Groups' on one screen and 'Standings' on the next; the dots do not say what is new.",
+  "severity": "minor",
+  "evidence": [
+   "shots/012-groups.png",
+   "shots/009-home-vp.png",
+   "shots/011-menu.png"
+  ],
+  "suggested_fix": "Use the numeric gold/white badge everywhere (drop the bare dots); add 'My profile' to the in-group menu; show the count on 'Activity' in both menus.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-6",
+  "title": "Section headings change style between screens and look like card labels",
+  "where": "Player profile, Me vs Standings, Session",
+  "steps": [
+   "Compare Standings ('Awards') with Player profile ('AWARDS HELD', 'RESULTS')"
+  ],
+  "expected": "One section-heading style; card eyebrows visibly subordinate.",
+  "actual": "Standings/Session use bold sentence-case h2 ('Standings', 'Earlier rounds', 'Awards'). Player profile and Me use 12px uppercase grey ('AWARDS HELD', 'RESULTS', 'BIDDING', 'ACCOUNT') — the same style as the card labels inside them ('TOTAL SCORE', 'AVG / ROUND'). Long uppercase labels wrap to two lines ('CONTRACT ACCURACY', 'LOST TAKING TOO FEW', 'FELL AS TOP BIDDER'), making uneven cards.",
+  "why_it_matters": "Weak hierarchy on the longest screens (the profile is ~3,700px tall); the page reads as one flat list of labels.",
+  "severity": "minor",
+  "evidence": [
+   "shots/042-player-2.png",
+   "shots/045-me.png",
+   "shots/008-home.png"
+  ],
+  "suggested_fix": "Section headings: 18px/700 sentence case like 'Awards' on Standings. Card labels: keep 12px uppercase but shorten ('Accuracy', 'Zero bids', 'Lost: too few', 'Lost: too many', 'Fell as top bid') so they fit one line.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-7",
+  "title": "Desktop is a stretched phone",
+  "where": "All signed-in screens at 1440x900",
+  "steps": [
+   "Open /home and / at desktop size"
+  ],
+  "expected": "Wide screens use the space: larger type, top navigation, a second column.",
+  "actual": "640px centred column, bottom tab bar across a 1440px screen, meta text at 12px, ~800px of empty navy on each side.",
+  "why_it_matters": "Works, but feels unfinished on a laptop or tablet where people review history.",
+  "severity": "minor",
+  "evidence": [
+   "shots/014-groups-desk.png",
+   "shots/054-desk-standings.png",
+   "shots/055-desk-player.png"
+  ],
+  "suggested_fix": "At ≥1024px: move tabs into the header, raise body/meta to 15/13px, and lay Standings beside the open-session card or the stats grid beside the chart (two columns, max-width ~1040px).",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-8",
+  "title": "Rules intro paragraph has broken line spacing",
+  "where": "Rules & scoring, /rules",
+  "steps": [
+   "Open Rules & scoring"
+  ],
+  "expected": "Even 24px leading.",
+  "actual": "The inline 'Ask a question' is a button with vertical padding, so the two intro lines sit 32px apart instead of the paragraph's 24px line-height.",
+  "why_it_matters": "Looks like a layout glitch on the first line of the help page.",
+  "severity": "minor",
+  "evidence": [
+   "shots/051-rules.png",
+   "eval: fontSize 16px, lineHeight 24px"
+  ],
+  "suggested_fix": "Render the inline control as a link-styled button with padding-block 0 and display:inline; give it a 44px hit area with ::after instead.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-9",
+  "title": "Raw invite URL wraps mid-word and shows %20",
+  "where": "Group admin, /admin",
+  "steps": [
+   "Open Group admin"
+  ],
+  "expected": "A readable link, or none (there are already Copy and Share buttons).",
+  "actual": "'http://localhost:4904/join?code=NHUA1B&name=Thursd' / 'ay%20Whist' broken across two lines under the code.",
+  "why_it_matters": "Noise in the most-used admin card; looks technical.",
+  "severity": "minor",
+  "evidence": [
+   "shots/048-admin-vp.png"
+  ],
+  "suggested_fix": "Drop the raw URL, or show it on one line with text-overflow: ellipsis and the name decoded.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-10",
+  "title": "Signed-out About page offers '← Groups'",
+  "where": "About, /about (signed out)",
+  "steps": [
+   "Signed out, open About",
+   "Tap '← Groups'"
+  ],
+  "expected": "A back link that names where it goes.",
+  "actual": "Label 'Groups', destination /home (the landing page).",
+  "why_it_matters": "A signed-out visitor has no groups.",
+  "severity": "minor",
+  "evidence": [
+   "shots/007-about.png",
+   "OK tapped [3] button \"Groups\" → now at /home"
+  ],
+  "suggested_fix": "Signed out: label it '← Home'.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-11",
+  "title": "Error/empty states use two different patterns",
+  "where": "Page not found vs Round not found",
+  "steps": [
+   "Open /nonexistent-page",
+   "Open /round/doesnotexist"
+  ],
+  "expected": "One empty/error component.",
+  "actual": "404 page: centred vertically, gold primary 'Back to groups'. Round not found: placed high, outline 'Back to sessions', and the header title stays '…' as if loading.",
+  "why_it_matters": "Small inconsistency; the '…' title looks like a stuck load.",
+  "severity": "minor",
+  "evidence": [
+   "shots/058-notfound.png",
+   "shots/059-round-missing.png"
+  ],
+  "suggested_fix": "Use the same layout and a gold primary in both; show the group name or nothing in the header instead of '…'.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-12",
+  "title": "Register uses the browser's native validation bubble",
+  "where": "Sign up, /register",
+  "steps": [
+   "Tap 'Create account' with empty fields"
+  ],
+  "expected": "The app's own inline alert, as on Log in ('Invalid email or password') and on the password mismatch.",
+  "actual": "Chrome's grey/orange 'Please fill out this field.' tooltip.",
+  "why_it_matters": "Off-brand moment on the first screen a new user sees.",
+  "severity": "minor",
+  "evidence": [
+   "shots/b-001-otp.png",
+   "shots/005-login-err.png"
+  ],
+  "suggested_fix": "Add noValidate and show the existing red inline alert ('Enter your email').",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-13",
+  "title": "Rounds without a trump record leave a gap",
+  "where": "Scored round / session cards",
+  "steps": [
+   "Open round 10 of 'Last Thursday'",
+   "Compare with round 2 of 'Midweek special'"
+  ],
+  "expected": "Every round card has the same rows.",
+  "actual": "Some cards show 'Trump ♥ Hearts · Dan'; others show nothing at all, so the card rhythm shifts and the user cannot tell 'no trump' from 'not recorded'.",
+  "why_it_matters": "Minor ambiguity and uneven cards.",
+  "severity": "minor",
+  "evidence": [
+   "shots/034-scored.png",
+   "shots/036-everyone-falls.png",
+   "shots/015-session.png"
+  ],
+  "suggested_fix": "Show a muted 'Trump not recorded' line (14px, text-secondary) when there is none.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-14",
+  "title": "Keypad dock uses an 8px gutter; the rest of the page uses 16px",
+  "where": "Bidding / Results keypad",
+  "steps": [
+   "Open a round's keypad"
+  ],
+  "expected": "Same 16px side gutter as cards and the Save button.",
+  "actual": "eval: key '0' left 8, key '6' right 382; Save round left 16, right 374.",
+  "why_it_matters": "The keypad visibly sticks out past the column it sits under.",
+  "severity": "minor",
+  "evidence": [
+   "eval: {\"k\":[[\"0\",8,55,47,48],[\"6\",335,382,47,48]],\"save\":[16,374,52]}",
+   "shots/019-round-over.png"
+  ],
+  "suggested_fix": "Pad the dock 16px and reduce the key gap to 6px (7 keys still ≥44px wide at 390px).",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-15",
+  "title": "Landing tagline orphans a word; at 320px the CTA starts below the fold",
+  "where": "Landing, /home (signed out)",
+  "steps": [
+   "Open the landing on phone and small"
+  ],
+  "expected": "Tagline on one line or a balanced two; primary CTA visible without scrolling.",
+  "actual": "'ISRAELI WHIST · COMPANION &' / 'SCOREKEEPER' (letter-spaced 12px uppercase). At 320x568 the 'Sign in / Sign up' button is cut by the fold.",
+  "why_it_matters": "First impression polish.",
+  "severity": "minor",
+  "evidence": [
+   "shots/001-landing.png",
+   "shots/002-landing-small.png"
+  ],
+  "suggested_fix": "Shorten to 'Israeli Whist scorekeeper' or text-wrap: balance; shrink the hero tile from 112px to 80px at heights <640px.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-16",
+  "title": "Players tab nearly duplicates Standings",
+  "where": "Players, /profile",
+  "steps": [
+   "Compare Standings with Players"
+  ],
+  "expected": "Distinct purpose per tab.",
+  "actual": "Same rows, same order, same totals; only 'behind'/'wins' swap for 'rounds'.",
+  "why_it_matters": "Two of four tabs look the same; users wonder which to use.",
+  "severity": "minor",
+  "evidence": [
+   "shots/044-players.png",
+   "shots/009-home-vp.png"
+  ],
+  "suggested_fix": "Sort Players alphabetically with claimed/unclaimed status and last played date, or merge it into Standings.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-17",
+  "title": "Store icon: prefer the flat spade",
+  "where": "Store listing (outside the app)",
+  "steps": [
+   "Compare the painted jester icon with docs/listing/whistmate-icon-1024.png and the in-app mark"
+  ],
+  "expected": "The home-screen icon matches what opens.",
+  "actual": "The jester artwork is painterly, red/gold/cream, says 'Whist' (not WhistMate), and its detail (faces, card pips, banner text) will not read at 48px. The flat navy spade on yellow is the same mark as the in-app tile and logo.",
+  "why_it_matters": "Owner's choice; my view only.",
+  "severity": "idea",
+  "evidence": [
+   "/Users/tomerdi/Personal/whistmate/docs/listing/whistmate-icon-1024.png",
+   "shots/001-landing.png"
+  ],
+  "suggested_fix": "Use the flat spade; if the jester is loved, keep it for the store screenshots or the About page instead.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "visual-designer-18",
+  "title": "Show the seating as a table",
+  "where": "Pick the table",
+  "steps": [
+   "Start a new round"
+  ],
+  "expected": "A small square 'table' with four seats filling in as players are tapped.",
+  "actual": "A two-column list with order numbers.",
+  "why_it_matters": "Would make the bidding order obvious and add card-table feel.",
+  "severity": "idea",
+  "evidence": [
+   "shots/024-pick-two.png"
+  ],
+  "suggested_fix": "Add a 120px table diagram above the list: seats N/E/S/W fill with the initials in order 1–4.",
+  "reviewer": "visual-designer"
+ },
+ {
+  "id": "whist-player-1",
+  "title": "Trick keypad jumps to the first player after a correction that overshoots 13",
+  "where": "Results (step 2 of 2), /round/<id>",
+  "steps": [
+   "Round 5 of Midweek special: enter tricks 5,0,1,7 (13/13)",
+   "Tap 8 for the last player (נועה) by mistake",
+   "Tap 7 intending to fix נועה"
+  ],
+  "expected": "The keypad stays on נועה, so the 7 replaces her 8",
+  "actual": "After the 8, the keypad moved to the first row (יוסי). The 7 overwrote יוסי's 5: 'יוסי bid 7 · made +59', '16 / 13 tricks'",
+  "why_it_matters": "This is a trap when fixing typos at the table. Save is blocked until the total is 13, so no wrong score can be saved, but it costs time and attention",
+  "severity": "minor",
+  "evidence": [
+   "shots/011-r5-14tricks.png",
+   "CHANGED ~ [8] button \"יוסי bid 7 · made +59\" … (alert) Tricks must total 13 — now 16"
+  ],
+  "suggested_fix": "When every row is filled, keep the keypad on the row just edited and don't auto-advance",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-2",
+  "title": "Average per round shows 0.0 for −4 in 76 rounds",
+  "where": "Standings (/) and player profile /player/05d5073539845ad32f70cd72 (אבי)",
+  "steps": [
+   "Open the standings or אבי's profile after the round-3 sessions"
+  ],
+  "expected": "−4 / 76 = −0.05 a round, which rounds to −0.1",
+  "actual": "'1474 behind · 0 wins · 0.0 avg' and 'AVG / ROUND 0.0' next to '-4 in 76 rounds'",
+  "why_it_matters": "A small but visible error. A negative player looks break-even. Every other average I checked (Maya 1470/141, Omer 130/82, Rachel 464/83, Dan 747/117) was right",
+  "severity": "minor",
+  "evidence": [
+   "shots/026-avi-profile.png",
+   "# אבי -4 in 76 rounds … AVG / ROUND 0.0"
+  ],
+  "suggested_fix": "Compute total/rounds and round half away from zero to one decimal; never show 0.0 for a non-zero negative",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-3",
+  "title": "'Last night' tab names a session closed today",
+  "where": "Standings (/)",
+  "steps": [
+   "Close Midweek special (Nov 19, today)",
+   "On Standings, tap 'Last night'"
+  ],
+  "expected": "A label that fits, e.g. 'Last session'",
+  "actual": "Tab 'Last night' with the caption 'Last session: Midweek special' (dated today, Nov 19)",
+  "why_it_matters": "A small wording slip. Groups that play two sessions a day, or close a session after midnight, will notice",
+  "severity": "minor",
+  "evidence": [
+   "shots/024-home-lastnight.png"
+  ],
+  "suggested_fix": "Rename the tab 'Last session' (the caption already says it)",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-4",
+  "title": "Renege row doesn't show the player's net score",
+  "where": "Results screen",
+  "steps": [
+   "Round 6: יוסי bid 5, took 5",
+   "Tap Renege for יוסי"
+  ],
+  "expected": "'+35 − 100 = −65'",
+  "actual": "'bid 5 · made +35 − 100 renege'; −65 appears only on the session page after saving",
+  "why_it_matters": "The arbiter has to do the subtraction before saving; the other rows show their final figure",
+  "severity": "minor",
+  "evidence": [
+   "shots/012-r6-renege.png",
+   "יוסי | [23] Renege −100 | bid 5 · took 5 | -65"
+  ],
+  "suggested_fix": "Append the net score, e.g. '… − 100 renege = −65'",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-5",
+  "title": "Chat refusal is flippant ('IDK bro 🤷'); live transcript answers a Hebrew question in English",
+  "where": "/rules → Ask a question",
+  "steps": [
+   "Ask a question that isn't covered (the sandbox simulator matched my Hebrew question to the refusal)",
+   "Read the live transcript's Hebrew Q&A"
+  ],
+  "expected": "A short, courteous refusal; Hebrew answered in Hebrew",
+  "actual": "'IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring…' The live transcript answers 'מה קורה אם כולם נופלים?' in English",
+  "why_it_matters": "The rules authority should sound authoritative. The Hebrew issue may already be fixed (the transcript predates the prompt change), so it needs re-checking against the real model",
+  "severity": "minor",
+  "evidence": [
+   "shots/037-chat-long.png",
+   "rules-assistant-live.txt: 'A: IDK bro 🤷 — that's not in the WhistMate rulebook.'"
+  ],
+  "suggested_fix": "Use a plain refusal ('That isn't in the WhistMate rulebook.') and re-run the Hebrew question against the live model",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-6",
+  "title": "'Contract' in one alert, 'bid' everywhere else",
+  "where": "Results screen alert",
+  "steps": [
+   "Enter tricks so all four miss"
+  ],
+  "expected": "One term throughout",
+  "actual": "'Nobody made their contract — everyone falls, all contract points are 0', while the rows say 'bid 5 · everyone fell 0' and the help says 'Making your bid'",
+  "why_it_matters": "A small inconsistency for new members",
+  "severity": "minor",
+  "evidence": [
+   "shots/015-r7-everyonefalls.png"
+  ],
+  "suggested_fix": "'Nobody made their bid — everyone falls, all bid points are 0'",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "whist-player-7",
+  "title": "Show the dealer/leader for each round",
+  "where": "Pick the table / Bidding",
+  "steps": [
+   "Start a round with 'Same players — X bids first'"
+  ],
+  "expected": "(idea) the table also sees who deals",
+  "actual": "Only the first bidder is shown",
+  "why_it_matters": "Saves the 'whose deal is it?' argument; it fits the existing rotation",
+  "severity": "idea",
+  "evidence": [
+   "'Same table — Maya bids first'"
+  ],
+  "suggested_fix": "Show 'X deals' next to 'Y bids first'",
+  "reviewer": "whist-player"
+ },
+ {
+  "id": "qa-tester-1",
+  "title": "Two admins editing the same scored round: the later save silently overwrites the earlier one, including rows the later editor never touched",
+  "where": "/round/579ae075098281d89c967fb0?edit=1 (Thursday Whist, Last Thursday, Round 10)",
+  "steps": [
+   "Maya makes Dan an admin (Admin > Actions for Dan > Make admin).",
+   "Maya (phone A) and Dan (phone B) both open /round/579ae075098281d89c967fb0?edit=1. Both show Maya 3/3, Dan 3/3, Rachel 5/2, נועה 5/5.",
+   "Dan sets tricks Maya 2, Dan 4, Rachel 2, נועה 5 > Save changes > confirm 'Change a round of a closed session?' > Save changes. Saved.",
+   "On her still-open (stale) form Maya sets Maya 3, Dan 3, Rachel 3, נועה 4 > Save changes > confirm.",
+   "Open /round/579ae075098281d89c967fb0."
+  ],
+  "expected": "Maya's save is refused or warned ('someone changed this round since you opened it'), the same way a new round already is ('Already saved from another phone ... What you typed on this phone was not used.').",
+  "actual": "Both saves succeed with no warning. The round now reads 'Maya | bid 3 · took 3 | +19 / Dan | bid 3 · took 3 | +19 / Rachel | bid 5 · took 3 | -10 / נועה | bid 5 · took 4 | -5'. Dan's correction is gone without a trace, and the session's final standings changed with it. No 409 or other event was recorded.",
+  "why_it_matters": "Lost data: the scores in a closed session's final standings silently fall back to an older set, and Dan believes his fix is saved. The app already detects this conflict when a new round is scored, so this path is inconsistent.",
+  "severity": "blocker",
+  "evidence": [
+   "shots/edit-overwrite.png",
+   "browser: both 'OK tapped [1] button \"Save changes\" → now at /session/6588c94173caa4da2e6e579e', no EVENTS"
+  ],
+  "suggested_fix": "Send the round's version (updated_at) with the edit and refuse with 409 when it changed, then show the stale-save message the new-round flow already uses.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-2",
+  "title": "A player whose account an admin detaches is just dropped from the group with no explanation",
+  "where": "/home and /activity as Omer, after Admin > Actions for Omer > Detach account",
+  "steps": [
+   "As Maya: Admin > Actions for Omer > Detach account > confirm. Toast: 'Account detached. Omer is now an unclaimed player and keeps its rounds and scores.'",
+   "As Omer, open the app."
+  ],
+  "expected": "Omer is told he was taken out of Thursday Whist (and how to rejoin or claim his player again), at least once.",
+  "actual": "Home says 'No groups yet ... Create a group for your whist circle, or join an existing one with an invite code.' Activity says 'No activity yet'. Me says 'No groups yet'. Nothing says what happened.",
+  "why_it_matters": "From Omer's side his group and history simply vanished. That reads like lost data and leads to support questions.",
+  "severity": "major",
+  "evidence": [
+   "shots/omer-nogroups.png"
+  ],
+  "suggested_fix": "On the next visit show a one-time notice such as 'You were removed from Thursday Whist by an admin. Your rounds are kept under Omer. Ask for the invite link to claim them again.'",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-3",
+  "title": "A round's page shows the points but not the scoring method, so progressive misses look wrong",
+  "where": "/round/579ae075098281d89c967fb0 (a Progressive session)",
+  "steps": [
+   "Open a round of 'Last Thursday' (Progressive) from a profile, an activity item or a link.",
+   "Read Rachel's row, then tap How scoring works."
+  ],
+  "expected": "The round says which method scored it, as the session page does ('Progressive scoring').",
+  "actual": "'Rachel | bid 5 · took 2 | -15'. The page never says Progressive, and the help it opens starts with 'Classic: −10 for each trick off', under which this miss would be −30. The group default is Classic.",
+  "why_it_matters": "A player who arrives at a round directly will think the score is wrong.",
+  "severity": "minor",
+  "evidence": [
+   "shots/round10-progressive.png",
+   "browser text: '# Round 10 | ▲ | UP | · 16 / Rachel | bid 5 · took 2 | -15'"
+  ],
+  "suggested_fix": "Show the 'Progressive scoring' chip in the round header, and open the help at the session's method.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-4",
+  "title": "A note linked to a session does not appear on that session",
+  "where": "/session/001ca3e176b3422b4928e3db (Midweek special)",
+  "steps": [
+   "The seeded note 'Dan promised pizza tonight. We remember.' is linked to Midweek special (Activity shows 'Thursday Whist · Midweek special').",
+   "Open the Midweek special session and look for it."
+  ],
+  "expected": "Notes linked to a session can be found on that session.",
+  "actual": "Searching the whole session page finds no note and no table-talk section. The note is only on Dan's profile.",
+  "why_it_matters": "'Link to a session (optional)' implies the note belongs to that night, but you cannot reach it from there.",
+  "severity": "minor",
+  "evidence": [
+   "browser: look --all on /session/001ca3e176b3422b4928e3db | grep -iE 'pizza|note|talk' returned nothing"
+  ],
+  "suggested_fix": "Add a compact 'Table talk' list to the session page showing the notes linked to it.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-5",
+  "title": "Round limit can read '2 of 1 rounds counted' after an edit",
+  "where": "/session/<id> with round limit 1",
+  "steps": [
+   "Start a session with Round limit 1.",
+   "Round 1: everyone falls (doesn't count). Round 2: a normal round. 'Round limit reached — 1 of 1'.",
+   "Edit round 1 so somebody makes their bid > Save."
+  ],
+  "expected": "Either refuse the edit or word it sensibly, e.g. 'Round limit reached (2 rounds counted, limit 1)'.",
+  "actual": "'Round limit 1 · 2 counted' / 'Round limit reached — 2 of 1 rounds counted.'",
+  "why_it_matters": "This is an edge case, but the wording looks broken.",
+  "severity": "minor",
+  "evidence": [
+   "browser text: '[6] Classic scoring | Round limit 1 · 2 counted / Round limit reached — 2 of 1 rounds counted.'"
+  ],
+  "suggested_fix": "Reword it to 'limit 1 reached (2 counted)'.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-6",
+  "title": "After an admin is demoted, their open admin page keeps all the controls; each action fails with a stacked error toast",
+  "where": "/admin (Dan, after Maya made him a player again)",
+  "steps": [
+   "Dan (admin) opens /admin. Maya demotes Dan.",
+   "Dan, still on the same page: Regenerate code, Save settings, Make Omer admin."
+  ],
+  "expected": "On the first 403 the page refreshes into the 'Admins only' view.",
+  "actual": "The server refuses correctly ('Only group admins can regenerate invite codes', '... update group settings', '... change member roles'). The page keeps every control live, and three error toasts pile up on screen together.",
+  "why_it_matters": "Permissions hold, but the user is left clicking dead buttons.",
+  "severity": "minor",
+  "evidence": [
+   "browser: '(alert) Only group admins can regenerate invite codes / (alert) Only group admins can change member roles / (alert) Only group admins can update group settings'"
+  ],
+  "suggested_fix": "On a 403 from an admin action, reload the group data and re-render the page.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-7",
+  "title": "The 'round was discarded' message blames another player when the admin closed the session",
+  "where": "/round/e43f939bbcb4286a5e420fc4",
+  "steps": [
+   "Dan types tricks on the round in play.",
+   "Maya closes the session (Discard round and close).",
+   "Dan taps Save round."
+  ],
+  "expected": "'The session was closed and this round was discarded.'",
+  "actual": "'This round was discarded — nothing to save. Another player discarded it while you were entering it.' (The handling itself is good: nothing was saved.)",
+  "why_it_matters": "The message gives a slightly wrong account of what happened.",
+  "severity": "minor",
+  "evidence": [
+   "browser text quoted above; EVENTS '! http 404 POST .../saveRoundResults — {\"error\":\"Round not found\"}'"
+  ],
+  "suggested_fix": "Have the server say why (session closed or round discarded) and word the message to match.",
+  "reviewer": "qa-tester"
+ },
+ {
+  "id": "qa-tester-8",
+  "title": "Hebrew group name inside an English sentence breaks the reading order",
+  "where": "/ (new group, first-run card), 320 px",
+  "steps": [
+   "Create the group '🃏♠️ ווויסט של יום חמישי בערב עם כל החבר'ה מהשכונה הישנה 🎉'.",
+   "Read the 'Three steps' card."
+  ],
+  "expected": "The name stays together as one piece, followed by 'is ready'.",
+  "actual": "The 🎉 and 'is ready' get mixed into the RTL run, so the sentence reads out of order.",
+  "why_it_matters": "This is cosmetic, but the app is aimed at Hebrew speakers.",
+  "severity": "minor",
+  "evidence": [
+   "shots/newgroup-bidi-small.png"
+  ],
+  "suggested_fix": "Wrap user-supplied names in <bdi> (or dir=auto spans) wherever they appear in running text.",
+  "reviewer": "qa-tester"
+ }
+]
