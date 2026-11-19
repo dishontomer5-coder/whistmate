@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WhistMate">
+  <!-- The in-app mark as a square icon: the gold tile with the navy spade. Platforms round the corners themselves. -->
+  <rect width="512" height="512" fill="#FDD835"/>
+  <path fill="#0E1D3E" d="M256 92C204 158 108 214 108 300c0 48 38 82 82 82 26 0 48-11 61-30-4 38-18 62-46 80h102c-28-18-42-42-46-80 13 19 35 30 61 30 44 0 82-34 82-82 0-86-96-142-148-208z"/>
+</svg>
