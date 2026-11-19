@@ -37,9 +37,13 @@ export default function Join() {
       <main className="m-auto flex w-full max-w-sm flex-col items-center text-center">
         <Logo size="lg" showText />
 
+        {/* The group's name gets a line of its own: it is the news, and a Hebrew name that
+            wrapped in the middle of the English sentence would read out of order. */}
         <h1 className="page-title mt-6">
           You're invited to join{' '}
-          {invite.name ? <Name className="text-primary">{invite.name}</Name> : 'a whist group'}{' '}
+          {invite.name
+            ? <Name className="block break-words text-primary">{invite.name}</Name>
+            : 'a whist group '}
           on WhistMate
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">

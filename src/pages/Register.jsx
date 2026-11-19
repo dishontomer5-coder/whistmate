@@ -175,9 +175,9 @@ export default function Register() {
           <Link to={withReturnTo("/login", returnTo)} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
             Log in
           </Link>
-          <br />
+          <span aria-hidden="true" className="mx-2">·</span>
           <Link to="/about" className="inline-flex min-h-11 items-center hover:text-foreground hover:underline">
-            About WhistMate &amp; privacy
+            About &amp; privacy
           </Link>
         </>
       }
