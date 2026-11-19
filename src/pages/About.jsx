@@ -25,7 +25,7 @@ const DATA_POINTS = [
   },
   {
     title: 'On your device',
-    body: 'Your sign-in and your last-opened group are kept in your browser’s storage.',
+    body: 'Your sign-in and your last-opened group are kept in your browser’s storage. So are the bids and tricks you have typed for a round but not yet locked or saved, so they survive a reload; they are removed once the round is saved or discarded on this device, and are ignored after 24 hours in any case.',
   },
   {
     title: 'Permissions',

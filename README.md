@@ -22,7 +22,7 @@ The app's own About page says the same; keep the two in step when either changes
 - **What your group records:** group and player names (including players someone added without an account), session names, dates and locations, bids, tricks, scores and table-talk notes. They are stored on Base44's servers. Only members of that group, and the developer as app administrator, can see them.
 - **Rules assistant:** the question you ask, with the recent conversation, is sent to an AI model through Base44 to write the answer. WhistMate does not save the conversation.
 - **Hosting analytics:** Base44 logs page views and basic usage, and may set a referral cookie for 30 days if you arrive from another site. There are no ads and no third-party trackers.
-- **On your device:** your sign-in and your last-opened group are kept in your browser's storage.
+- **On your device:** your sign-in and your last-opened group are kept in your browser's storage. So are the bids and tricks you have typed for a round but not yet locked or saved, so they survive a reload; they are removed once the round is saved or discarded on this device, and are ignored after 24 hours in any case.
 - **Permissions:** none. WhistMate does not ask for your camera, microphone, location, contacts or notifications.
 
 To have your account or your data deleted, write to the contact address above.
