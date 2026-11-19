@@ -4,18 +4,17 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026, 10:40): **Phase 13 — fix round 1 is MERGED on `main` (pushed); the
-> independent verification (P13-5) is running.** All four implementers finished: foundation and stats
-> (wave 1), structure & navigation, the round flow, onboarding & admin (wave 2); plus small follow-ups
-> (an exact `is_mine` flag on Activity, the round-limit wording, nameless sessions, `viewport-fit=cover`).
-> On main every check passes: build, lint, rules:check, 8 node test files (scoring 38, whist-stats 20,
-> standings 17, scoring-help 15, format 9, authReturnTo 13, round-drafts 30, functions-access 505 —
-> all 24 write functions), sandbox smoke 28. NOT deployed yet: the live site still runs the Phase 12
-> frontend and the stats-era functions — deploy after the verification passes.
-> The QA tester is re-checking every fixed cluster on sandboxes built from main (ports 4631/4632);
-> its results go to the scratchpad `review/r1/verify/`. The review record is in
-> `docs/review/round-1/` (briefs, 138 findings, 86 verified problems, 66 rulings).
-> THEN: fix anything the verifier finds that is blocker or major,
+> ▶ RESUME HERE (Nov 19 2026, 11:30): **Phase 13 — round-1 fixes DEPLOYED LIVE and verified; review
+> round 2 (P13-6) is running.** Fix round 1 + a polish pass are merged and deployed (functions: 11
+> deployed / 20 unchanged; entity rules pushed; site published from the CLI; main pushed at 5e04287).
+> Live check: served bundle `index-CuDtOPpb.js` = the local build; signed out, all seven data entities
+> return `[]` and User is 401; landing, About, login, sign-up and the invite page render at 320/390/1440
+> px with no horizontal overflow and no console error but the expected signed-out 401.
+> Independent verification of the fixes: 69 fixed, 5 partly, 0 regressed (record in
+> `docs/review/round-1/verification/`); the polish pass then closed C42/C54/C57 and verify-1…8.
+> Round 2: six FRESH reviewers, same briefs (`docs/review/round-1/briefs/`), sandboxes 4701–4706 built
+> from main; output in the scratchpad `review/r2/<persona>/`.
+> THEN: if round 2 leaves any blocker or major — fix, verify, deploy, and run round 3; otherwise
 > deploy (functions → site → push), re-probe the live site, run review round 2 with fresh reviewers
 > (P13-6), refresh the listing (P13-10), close the phase.
 > Waiting on the owner (not blocking): choose the store icon — the jester artwork or
