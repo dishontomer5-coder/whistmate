@@ -123,7 +123,7 @@ export default function RoundView() {
 
       // Lay what was typed here earlier over what the server holds (unscored rounds only).
       pruneDrafts();
-      const restored = applyDraft(readDraft(id), { status: rnd.status, playerIds: ids, server });
+      const restored = applyDraft(readDraft(id), { status: rnd.status, stamp: rnd.created_date, playerIds: ids, server });
       const entry = restored || server;
 
       setRound(rnd); setSession(sess); setResults(sorted);
@@ -153,16 +153,17 @@ export default function RoundView() {
   // the bids until they are locked (and again while they are being re-edited), the tricks
   // and reneges until the round is saved. An entry with nothing in it is removed.
   const status = round?.status;
+  const stamp = round?.created_date; // ties a draft to this very round
   useEffect(() => {
     if (hydratedFor !== id || !status || archived) return;
     if (status === 'bidding') {
-      writeDraft(id, { bids, trump, trumpOwner, hierarchy });
+      writeDraft(id, { stamp, bids, trump, trumpOwner, hierarchy });
     } else if (status === 'playing') {
-      writeDraft(id, { tricks, reneges, ...(editBids ? { editingBids: true, bids, trump, trumpOwner, hierarchy } : {}) });
+      writeDraft(id, { stamp, tricks, reneges, ...(editBids ? { editingBids: true, bids, trump, trumpOwner, hierarchy } : {}) });
     } else {
       clearDraft(id);
     }
-  }, [hydratedFor, id, status, archived, bids, trump, trumpOwner, hierarchy, tricks, reneges, editBids]);
+  }, [hydratedFor, id, status, stamp, archived, bids, trump, trumpOwner, hierarchy, tricks, reneges, editBids]);
 
   if (loading) return <LoadingSpinner showLogo />;
   if (!round) {

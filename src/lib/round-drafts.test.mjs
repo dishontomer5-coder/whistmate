@@ -72,6 +72,14 @@ test('values of the wrong shape never get into a draft', () => {
   assert.deepEqual(draft, { v: 1, savedAt: NOW, bids: { p5: 7 }, reneges: { p3: true } });
 });
 
+test('the round stamp travels with a draft, but is not a reason to keep one', () => {
+  assert.equal(packDraft({ stamp: '2026-11-19T20:30:00.000Z' }, NOW), null);
+  assert.deepEqual(packDraft({ stamp: '2026-11-19T20:30:00.000Z', bids: { p1: 4 } }, NOW),
+    { v: 1, savedAt: NOW, bids: { p1: 4 }, stamp: '2026-11-19T20:30:00.000Z' });
+  const stored = JSON.stringify(packDraft({ stamp: 'A', tricks: { p1: 2 } }, NOW));
+  assert.equal(parseDraft(stored, NOW).stamp, 'A');
+});
+
 test('"Edit bids" in progress is itself worth keeping', () => {
   assert.deepEqual(packDraft({ editingBids: true }, NOW), { v: 1, savedAt: NOW, editingBids: true });
 });
@@ -129,6 +137,16 @@ test('no draft, or a scored round, restores nothing', () => {
   assert.equal(applyDraft(null, { status: 'bidding', playerIds: PLAYERS, server: emptyServer() }), null);
   assert.equal(applyDraft(draft, { status: 'complete', playerIds: PLAYERS, server: emptyServer() }), null);
   assert.equal(applyDraft(draft, { status: 'cancelled', playerIds: PLAYERS, server: emptyServer() }), null);
+});
+
+test('a draft typed for another round that carries the same id is not put back', () => {
+  const draft = packDraft({ stamp: 'created-monday', bids: { p1: 4, p2: 3 } }, NOW);
+  const args = { status: 'bidding', playerIds: PLAYERS, server: emptyServer() };
+  assert.equal(applyDraft(draft, { ...args, stamp: 'created-tuesday' }), null);
+  assert.equal(applyDraft(draft, { ...args, stamp: 'created-monday' }).restored.bids, 2);
+  // An older draft without a stamp, or a round without a date, is still used.
+  assert.equal(applyDraft(packDraft({ bids: { p1: 4 } }, NOW), { ...args, stamp: 'created-tuesday' }).restored.bids, 1);
+  assert.equal(applyDraft(draft, args).restored.bids, 2);
 });
 
 test('bidding: three typed bids and the trump mark come back', () => {

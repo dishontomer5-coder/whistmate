@@ -6,8 +6,11 @@
 // read back when the scorer returns, with a one-line note saying so.
 //
 //   key      whistmate:round-draft:<round id>
-//   value    { v: 1, savedAt, bids?, trump?, trumpOwner?, hierarchy?, tricks?, reneges?, editingBids? }
+//   value    { v: 1, savedAt, stamp?, bids?, trump?, trumpOwner?, hierarchy?, tricks?, reneges?, editingBids? }
 //            bids / tricks: { [player_id]: 0..13 }   reneges: { [player_id]: true }
+//            stamp: when the round was created (its created_date) — a draft is only put
+//            back into the very round it was typed for, never into another one that
+//            happens to carry the same id.
 //   removed  when the round is locked, saved or discarded (nothing is left to keep), and
 //            ignored once it is 24 hours old.
 //
@@ -68,6 +71,8 @@ export function packDraft(fields = {}, now = Date.now()) {
   if (HIERARCHIES.includes(fields.hierarchy)) draft.hierarchy = fields.hierarchy;
   if (fields.editingBids === true) draft.editingBids = true;
   if (Object.keys(draft).length === 0) return null;
+  // The stamp alone is not worth keeping, so it is added after the "anything typed?" test.
+  if (typeof fields.stamp === 'string' && fields.stamp) draft.stamp = fields.stamp;
   return { v: DRAFT_VERSION, savedAt: now, ...draft };
 }
 
@@ -92,6 +97,7 @@ export function parseDraft(text, now = Date.now()) {
 //
 //   draft     from parseDraft() (may be null)
 //   status    the round's status on the server: 'bidding' | 'playing' | …
+//   stamp     the round's created_date; a draft stamped for a different round is ignored
 //   playerIds the round's four player ids
 //   server    what the server holds: { bids, tricks, reneges, trump, trumpOwner, hierarchy }
 //
@@ -105,8 +111,9 @@ export function parseDraft(text, now = Date.now()) {
 //            scorer was in the middle of "Edit bids" (editingBids) — otherwise the bids
 //            are locked on the server and the server's are the truth.
 // Values for players who are not in the round are ignored.
-export function applyDraft(draft, { status, playerIds = [], server = {} }) {
+export function applyDraft(draft, { status, stamp, playerIds = [], server = {} }) {
   if (!draft || (status !== 'bidding' && status !== 'playing')) return null;
+  if (draft.stamp && stamp && draft.stamp !== stamp) return null;
   const inRound = new Set(playerIds);
   const only = (map) => Object.fromEntries(Object.entries(map || {}).filter(([playerId]) => inRound.has(playerId)));
 
