@@ -23,7 +23,7 @@ How to build and ship a small web app well, written from one project's mistakes.
 
 This guide is for a person deciding how to build a small web app and for the AI agents who build it: a single-page app (one page of code that draws every screen in the browser) on a hosted backend platform (a service providing sign-in, storage and server functions), used mostly on phones by small groups. Each practice says what to do, gives a five-minute **Check**, and tells the lesson that earned it.
 
-The lessons come from WhistMate, a scorekeeper for the card game Israeli Whist, ported from a poker app onto the Base44 platform and built largely by AI agents for one owner. A *group* plays *sessions* (one evening) made of *rounds* (one hand), in which four players *bid* and then *take* tricks. In November 2026 six independent reviewers reported 138 findings, a verifier reduced them to 86 problems, and the lead (the coordinating agent) wrote a ruling on each. The fixes were still in progress when this was written and no second review had run, so lessons report what was found and decided. Platform facts are dated; test them on your own platform.
+The lessons come from WhistMate, a scorekeeper for the card game Israeli Whist, ported from a poker app onto the Base44 platform and built largely by AI agents for one owner. A *group* plays *sessions* (one evening) made of *rounds* (one hand), in which four players *bid* and then *take* tricks. In November 2026 six independent reviewers reported 138 findings, a verifier reduced them to 86 problems, and the lead (the coordinating agent) wrote a ruling on each. Three review rounds followed, each with fresh reviewers on the rebuilt app. Majors went from 39 to 13 to 4, and minors from 84 to 59 to 50. The third round also found one blocker: two people editing the same round could silently overwrite each other. It was fixed and checked by an independent verifier rather than a fourth review. Lessons report what was found and how it was fixed. Platform facts are dated; test them on your own platform.
 
 ## 2. Structure and navigation
 
@@ -375,6 +375,14 @@ End each task with what was checked and what was not.
 
 **WhistMate lesson:** Two August changes to server functions were closed without a recorded live test; the November deploy showed they had never reached the live app. The task list still flags that no signed-in outsider has been tried against the real backend.
 
+### 11.7 Test two people at once
+
+Any record two people can change needs a test where both change it from stale screens. The server should refuse the second write and say why.
+
+**Check:** Open the same record in two browsers, change it in both, and save the older one last.
+
+**WhistMate lesson:** Two review rounds passed before a tester opened the same scored round as two admins: the later save silently replaced the earlier one and changed a closed session's winner. Locking bids from two phones did the same. The fix was a version check: each save sends the version it loaded, and the server refuses a stale one with a clear message.
+
 ## 12. Shipping
 
 ### 12.1 Know what each deploy path ships, and fix the order
@@ -523,6 +531,7 @@ Agree what agents decide alone, what is the owner's (identity, artwork, house ru
 - [ ] A resettable sandbox with realistic data exists.
 - [ ] Findings were reproduced and measured, before and after.
 - [ ] The task list names what is unverified.
+- [ ] Two people saving the same record from stale screens: the second is refused.
 
 **Shipping**
 
