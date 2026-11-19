@@ -4,33 +4,18 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026, 08:00): **Phase 13, fix round 1 (P13-4) — wave 2 is HALF DONE and was
-> interrupted by the account's usage limit for the third time (resets 08:50 Asia/Jerusalem).** The
-> three implementers' work is SAVED, mostly uncommitted, in their worktrees — do not delete them:
-> `.claude/worktrees/agent-a75d148a03a271a5a` (A, structure and navigation — ~27 files changed),
-> `.claude/worktrees/round-flow` (B, the round flow — 3 commits + work in progress),
-> `.claude/worktrees/agent-ad1b372e4c9989166` (C, onboarding and admin — ~23 files changed).
-> In the SAME session: resume the three agents with a message once the limit has reset. In a NEW
-> session: start a fresh implementer per worktree, telling it to continue the work found there.
-> Done and on `main` (pushed): the sandbox, review round 1 (138 findings → 86 verified problems, all
-> listed below with owners), the backend hardening and the role fix (live), wave 1 = stats/backend
-> (functions deployed live) + the foundation (shared components; frontend NOT yet deployed — the live
-> site is still the Phase 12 build, compatible with the live functions), and
-> `docs/web-app-best-practices.md` (first full version; final pass owed after round 2).
-> NEXT: finish wave 2 — three implementers in separate worktrees with disjoint files: (A) structure
-> and navigation, (B) the round flow, (C) onboarding and admin — and the best-practices guide writer
-> (P13-8; no file written yet). In the SAME session, resume the interrupted agents with a message;
-> in a new session, start them again from their briefs. Everything they need is in the session
-> scratchpad folder `review/r1/`: `RULINGS.md` (66 rulings, owner per ruling), `SHARED-PIECES.md`,
-> `DATA-SHAPES.md`, `triage-verified.json`, `all-findings.json`; if the scratchpad is gone, plan.md
-> "Round 1 — design decisions" and the P13-R1-Cxx list below carry the substance. Agreements between
-> the three: A owns `App.jsx`, `Layout.jsx` and the menu, hides the tab bar on `/session/new`,
-> `/session/:id/round/new`, `/round/:id`, and exposes a group-from-page helper in
-> `ActiveGroupContext`; B owns the session/round pages and builds a sticky action bar that works with
-> or without the tab bar; C owns auth, join, admin, the rules page and `askRules` outside the
-> generated block. A's interrupted worktree (`.claude/worktrees/agent-a75d148a03a271a5a`) holds two
-> uncommitted starts (`ActiveGroupContext.jsx`, a new `BackLink.jsx`); B and C had changed nothing.
-> THEN: merge the three, have the QA tester verify every changed flow (before/after screenshots),
+> ▶ RESUME HERE (Nov 19 2026, 10:40): **Phase 13 — fix round 1 is MERGED on `main` (pushed); the
+> independent verification (P13-5) is running.** All four implementers finished: foundation and stats
+> (wave 1), structure & navigation, the round flow, onboarding & admin (wave 2); plus small follow-ups
+> (an exact `is_mine` flag on Activity, the round-limit wording, nameless sessions, `viewport-fit=cover`).
+> On main every check passes: build, lint, rules:check, 8 node test files (scoring 38, whist-stats 20,
+> standings 17, scoring-help 15, format 9, authReturnTo 13, round-drafts 30, functions-access 505 —
+> all 24 write functions), sandbox smoke 28. NOT deployed yet: the live site still runs the Phase 12
+> frontend and the stats-era functions — deploy after the verification passes.
+> The QA tester is re-checking every fixed cluster on sandboxes built from main (ports 4631/4632);
+> its results go to the scratchpad `review/r1/verify/`. The review record is in
+> `docs/review/round-1/` (briefs, 138 findings, 86 verified problems, 66 rulings).
+> THEN: fix anything the verifier finds that is blocker or major,
 > deploy (functions → site → push), re-probe the live site, run review round 2 with fresh reviewers
 > (P13-6), refresh the listing (P13-10), close the phase.
 > Waiting on the owner (not blocking): choose the store icon — the jester artwork or
