@@ -59,7 +59,7 @@ export default function TableTalkCard({ note, canDelete = false, onDeleted }) {
       <div className="flex items-start gap-2">
         <MessageSquare className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-1" />
         {/* The note keeps its own direction: a Hebrew note reads right-to-left and aligns right. */}
-        <UserText as="p" className="min-w-0 flex-1 text-sm text-foreground leading-relaxed break-words">{note.note}</UserText>
+        <UserText as="p" className="min-w-0 flex-1 text-start text-sm text-foreground leading-relaxed break-words">{note.note}</UserText>
       </div>
       {confirming && (
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">

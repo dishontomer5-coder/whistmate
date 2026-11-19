@@ -56,4 +56,17 @@ export function Suit({ suit, label = false, className }) {
   );
 }
 
+// Free text that may contain suit symbols (an answer from the rules assistant): the hearts
+// and diamonds in it are drawn in the red text colour, like everywhere else. Not for text
+// on a gold fill (a user's own chat bubble), where red would not read.
+//   <SuitText>{answer}</SuitText>
+export function SuitText({ children }) {
+  const parts = String(children ?? '').split(/([♥♦][︎️]?)/);
+  return parts.map((part, i) => (
+    /^[♥♦]/.test(part)
+      ? <span key={i} className="text-negative">{part[0]}{'︎'}</span>
+      : part
+  ));
+}
+
 export default Suit;

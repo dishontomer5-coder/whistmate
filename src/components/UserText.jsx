@@ -14,7 +14,8 @@
 //       Free text shown on its own. Sets dir="auto": the text decides its direction from its
 //       first strong letter. As an inline element (the default <span>) it only fixes the
 //       order; as a block (as="p", "div", "h1"…) a Hebrew text also aligns to the right,
-//       which is what a note should do.
+//       which is what a note should do. Inside something that sets `text-left` (a button,
+//       a card), add `text-start` to the block so it follows its own direction again.
 //
 //   <Input {...dirAuto} />   <Textarea {...dirAuto} />
 //       Every field a person types free text into, so Hebrew is typed right-to-left.

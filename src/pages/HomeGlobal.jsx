@@ -148,8 +148,8 @@ export default function HomeGlobal() {
                       <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium uppercase">Archived</span>
                     )}
                   </p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {m.role}{stats ? ` · ${stats.rounds_played} round${stats.rounds_played !== 1 ? 's' : ''}` : ''}
+                  <p className="text-xs text-muted-foreground">
+                    <span className="capitalize">{m.role}</span>{stats ? ` · ${stats.rounds_played} round${stats.rounds_played !== 1 ? 's' : ''}` : ''}
                   </p>
                 </div>
                 {stats && (

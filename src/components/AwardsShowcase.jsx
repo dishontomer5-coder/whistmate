@@ -34,9 +34,15 @@ export default function AwardsShowcase({ awards }) {
                 <p className="text-xs text-muted-foreground">{blurb}</p>
               </div>
               <div className="text-right flex-shrink-0">
+                {/* One holder: a 44px-tall tap area around the name, without a taller card.
+                    Several: taller rows, so a neighbouring name is not hit by mistake.
+                    (The name is cut off inside a span: the link itself must not clip its ::after.) */}
                 {holders.map((h) => (
-                  <Link key={h.player_id} to={`/player/${h.player_id}`} className="block text-sm font-medium text-foreground truncate max-w-[8rem]">
-                    <Name>{h.name}</Name>
+                  <Link key={h.player_id} to={`/player/${h.player_id}`}
+                    className={`relative block text-sm font-medium text-foreground ${
+                      holders.length === 1 ? "after:absolute after:-inset-x-3 after:-inset-y-3 after:content-['']" : 'py-2'
+                    }`}>
+                    <span className="block truncate max-w-[8rem]"><Name>{h.name}</Name></span>
                   </Link>
                 ))}
                 <span className={`block text-xs font-heading font-bold ${tone(value)}`}>{fmt(value)}</span>

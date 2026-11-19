@@ -36,7 +36,7 @@ export function ScoringHelp({ open, onOpenChange, section }) {
     if (!body) return;
     const target = section ? body.querySelector(`[data-section="${section}"]`) : null;
     if (target) {
-      body.scrollTop = target.offsetTop - body.offsetTop;
+      body.scrollTop = target.offsetTop - body.offsetTop - 12; // a little air above the section
       target.focus({ preventScroll: true });
     } else {
       body.scrollTop = 0;

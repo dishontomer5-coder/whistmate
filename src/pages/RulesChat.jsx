@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Send, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SuitText } from "@/components/Suit";
 
 // The game rules + LLM behavior live in the backend function `askRules`, which
 // inlines docs/whist-rules.md as the assistant's sole knowledge. This UI only
@@ -95,7 +96,8 @@ export default function RulesChat() {
                   : "bg-card text-card-foreground rounded-bl-md"
               }`}
             >
-              {m.text}
+              {/* Hearts and diamonds in an answer are red, as on every other screen. */}
+              {m.role === "user" ? m.text : <SuitText>{m.text}</SuitText>}
             </div>
           </div>
         ))}

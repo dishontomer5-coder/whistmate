@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Loader2, Trash2, Pencil, Gavel, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2, Pencil, Gavel, ClipboardCheck, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import TableBadge from '@/components/TableBadge';
 import { Suit, SUITS_IN_AUCTION_ORDER, SUIT_LABEL } from '@/components/Suit';
@@ -156,7 +157,7 @@ export default function RoundView() {
   if (!round) {
     // A missing round cannot be fixed by trying again — offer the way back instead.
     return notFound || !error ? (
-      <ErrorState title="Round not found" message="It was deleted, or the link is wrong."
+      <EmptyState as="h1" icon={SearchX} title="Round not found" description="It was deleted, or the link is wrong."
         action={<Button variant="outline" onClick={() => navigate('/')}>Back to sessions</Button>} />
     ) : (
       <ErrorState title="Couldn't load this round" message={error} onRetry={load} />
@@ -273,7 +274,7 @@ export default function RoundView() {
           <p className="text-xs uppercase tracking-wide text-muted-foreground text-right pr-2">trump</p>
           {results.map((r, i) => (
             <button key={r.id} onClick={() => setActiveIdx(i)}
-              className={`w-full flex items-center justify-between rounded-lg border p-3 transition-colors ${
+              className={`w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition-colors ${
                 activeIdx === i ? PHASE.bidding.row : 'border-border bg-card'
               }`}>
               <span className="text-sm font-medium text-foreground text-left">{i + 1}. <Name>{r.player_name}</Name></span>
@@ -363,7 +364,7 @@ export default function RoundView() {
               {total} / 13 tricks
             </span>
           } />
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 -my-2">
           {round.table_state ? (
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
               <TableBadge state={round.table_state} onClick={() => setHelpSection('updown')} />
@@ -593,8 +594,8 @@ export default function RoundView() {
   };
 
   return (
-    <div className="space-y-5">
-      <button onClick={() => navigate(`/session/${round.session_id}`)} className="flex items-center gap-1 min-h-11 pr-2 -my-2 text-sm text-muted-foreground hover:text-foreground">
+    <div className="space-y-4">
+      <button onClick={() => navigate(`/session/${round.session_id}`)} className="flex items-center gap-1 min-h-11 pr-2 -my-3 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="w-4 h-4" /> Session
       </button>
       {editing ? renderEdit()

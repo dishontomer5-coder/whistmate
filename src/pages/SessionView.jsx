@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Plus, Play, RefreshCw, Lock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Play, RefreshCw, Lock, Loader2, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Leaderboard from '@/components/Leaderboard';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -82,7 +82,7 @@ export default function SessionView() {
   if (error && !session) {
     // A missing session cannot be fixed by trying again — offer the way back instead.
     return notFound ? (
-      <ErrorState title="Session not found" message="It was deleted, or the link is wrong."
+      <EmptyState as="h1" icon={SearchX} title="Session not found" description="It was deleted, or the link is wrong."
         action={<Button asChild variant="outline"><Link to="/">Back to sessions</Link></Button>} />
     ) : (
       <ErrorState title="Couldn't load this session" message={error} onRetry={() => load(true)} />
@@ -201,7 +201,7 @@ function RoundFeedItem({ round, results, editable, onTableHelp }) {
         </div>
       )}
       {editable && !inProgress && (
-        <div className="mt-2 border-t border-border">
+        <div className="mt-2 -mb-3 border-t border-border">
           <Link to={`/round/${round.id}`} className="inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-foreground">Edit round</Link>
         </div>
       )}

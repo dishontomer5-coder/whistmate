@@ -17,7 +17,7 @@ export default function TableBadge({ state, total, onClick, className }) {
   const meaning = up ? 'Up table: the bids total more than 13' : 'Down table: the bids total less than 13';
   const classes = cn(
     'relative inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-input px-2 text-xs font-bold leading-none text-foreground',
-    onClick && "transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-['']",
+    onClick && "transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']",
     className
   );
   const content = (

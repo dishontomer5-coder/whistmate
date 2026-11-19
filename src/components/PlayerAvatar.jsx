@@ -6,16 +6,19 @@ import { cn } from '@/lib/utils';
 //   <PlayerAvatar name={player.player_name} size="sm" />  32px (tight rows, the table picker)
 //   <PlayerAvatar name={player.player_name} size="lg" />  56px (the head of a profile)
 //
-// The colour comes from the name, so a player keeps the same colour wherever they appear.
-// The hues stay away from gold, red and green, which mean gained / lost / moved up.
-// Each letter colour is at least 4.5:1 on its tint over a card.
+// The colour comes from the name, so a player keeps the same colour wherever they appear
+// (two players can land on the same one — there are eight). The hues stay away from gold,
+// red and green, which mean gained / lost / moved up. Each letter colour is at least
+// 4.5:1 on its tint over a card. Neighbouring hues are kept apart in the list.
 const TONES = [
   'bg-sky-500/20 text-sky-300',
-  'bg-teal-500/20 text-teal-300',
   'bg-violet-500/20 text-violet-300',
-  'bg-pink-500/20 text-pink-300',
+  'bg-slate-400/20 text-slate-300',
+  'bg-teal-500/20 text-teal-300',
   'bg-orange-500/20 text-orange-300',
+  'bg-pink-500/20 text-pink-300',
   'bg-indigo-500/20 text-indigo-300',
+  'bg-fuchsia-500/20 text-fuchsia-300',
 ];
 
 // The initial is drawn at half the circle's width (the old avatars used 14px in 36px).
