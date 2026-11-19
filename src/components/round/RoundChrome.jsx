@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Gavel, ClipboardCheck, RotateCcw, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,9 +55,16 @@ export function RestoredNote({ what }) {
 // After a lock or a save was refused because another phone changed the round since this
 // screen loaded it: the round on screen has been read again, and nothing typed here was used.
 export function ChangedNote({ show }) {
+  // The page keeps its scroll position when the round is read again, so on a short phone
+  // this note can sit under the sticky header and the numbers seem to snap back for no
+  // reason. Bring it into view (below the header: scroll-margin) each time it appears.
+  const ref = useRef(null);
+  useEffect(() => {
+    if (show && ref.current) ref.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [show]);
   if (!show) return null;
   return (
-    <p role="status" data-changed-note className="flex items-start gap-1.5 text-xs leading-snug text-warning">
+    <p ref={ref} role="status" data-changed-note className="flex scroll-mt-24 items-start gap-1.5 text-xs leading-snug text-warning">
       <RefreshCw className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
       <span><span className="font-semibold">This round was changed on another phone.</span> It has been reloaded — what you typed here was not used.</span>
     </p>

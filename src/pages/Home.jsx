@@ -117,7 +117,9 @@ export default function Home() {
   // tonight's first round is scored, or under "Last session" — it is the last closed
   // session, which may be a week old: the label says so and gives its date
   // ("Last session: Last Thursday, Nov 12"), so nobody reads it as yesterday's.
-  const deltaDate = deltaRecord ? formatDayMonth(deltaRecord.session_date || deltaRecord.created_date) : '';
+  // An unnamed session is already shown by its date, so the date is not repeated after it.
+  const deltaDate = deltaRecord && (deltaRecord.name || '').trim()
+    ? formatDayMonth(deltaRecord.session_date || deltaRecord.created_date) : '';
   const deltaLabel = deltaName && deltaSession?.status !== 'open'
     ? `Last session: ${deltaName}${deltaDate ? `, ${deltaDate}` : ''}` : deltaName;
 
