@@ -112,6 +112,8 @@ export default function SessionView() {
   const otherRounds = rounds.filter((r) => r.id !== featured?.id);
   const nextNumber = nextRoundNumber(rounds);
   const limit = roundLimit(session, rounds);
+  // Scored rounds that were cancelled (everyone fell): played, but not counted toward the limit.
+  const cancelledCount = scoredRounds.length - limit.played;
   const canEditScored = isAdmin && !archived;
   // A plain player is told once who can change a scored round.
   const tellAdminOnly = role === 'player' && !archived;
@@ -244,7 +246,7 @@ export default function SessionView() {
             </button>
           )}
           {limit.limit != null && (
-            <span className="whitespace-nowrap" data-round-limit>Round limit {limit.limit} · {limit.played} played</span>
+            <span className="whitespace-nowrap" data-round-limit>Round limit {limit.limit} · {limit.played} counted</span>
           )}
         </p>
       </div>
@@ -269,7 +271,8 @@ export default function SessionView() {
           )}
           {scoredRounds.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
-              {scoredRounds.length} round{scoredRounds.length !== 1 ? 's' : ''} played · the session is closed
+              {scoredRounds.length} round{scoredRounds.length !== 1 ? 's' : ''} played
+              {cancelledCount > 0 ? ` · ${cancelledCount} cancelled (everyone fell)` : ''} · the session is closed
             </p>
           )}
         </section>
@@ -285,7 +288,7 @@ export default function SessionView() {
           ) : limit.reached ? (
             <>
               <p className="text-sm text-muted-foreground" data-limit-reached>
-                Round limit reached — {limit.played} of {limit.limit} rounds played.
+                Round limit reached — {limit.played} of {limit.limit} rounds counted.
               </p>
               {closeButton(true)}
               {errorAt === 'close' && <ErrorState inline message={error} />}
@@ -321,16 +324,19 @@ export default function SessionView() {
         </div>
       )}
 
-      {/* ---- standings ---- */}
-      <div className="space-y-3">
-        <h2 className="section-title">{isOpen ? 'Standings' : 'Final standings'}</h2>
-        {standings.length === 0 ? (
-          <EmptyState compact title="No scores yet"
-            description={isOpen ? 'Standings appear when the first round is saved.' : 'No round was scored in this session.'} />
-        ) : (
-          <Leaderboard players={standings} sortBy="total" />
-        )}
-      </div>
+      {/* ---- standings ----
+          A session with no rounds at all says so once, under "Rounds", not twice. */}
+      {rounds.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="section-title">{isOpen ? 'Standings' : 'Final standings'}</h2>
+          {standings.length === 0 ? (
+            <EmptyState compact title="No scores yet"
+              description={isOpen ? 'Standings appear when the first round is saved.' : 'No round was scored in this session.'} />
+          ) : (
+            <Leaderboard players={standings} sortBy="total" />
+          )}
+        </div>
+      )}
 
       {/* Closing sits right under the standings, not below the whole list of rounds. */}
       {canWrite && !(limit.reached && !openRound) && (

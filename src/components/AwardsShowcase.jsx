@@ -48,7 +48,7 @@ export default function AwardsShowcase({ awards }) {
                 {holders.map((h) => (
                   <Link key={h.player_id} to={`/player/${h.player_id}`}
                     className={`relative block text-sm font-medium text-foreground ${
-                      holders.length === 1 ? "after:absolute after:-inset-x-3 after:-inset-y-3 after:content-['']" : 'py-2'
+                      holders.length === 1 ? "after:absolute after:-inset-x-3 after:-inset-y-3 after:content-['']" : 'py-3'
                     }`}>
                     <span className="block truncate max-w-[8rem]"><Name>{h.name}</Name></span>
                   </Link>

@@ -75,7 +75,10 @@ export default function Layout() {
     if (!user && pathname !== '/') {
       return <Navigate to={`/login?from_url=${encodeURIComponent(window.location.href)}`} replace />;
     }
-    return <Navigate to="/home" replace />;
+    // A link to one session, round or player of a group the user is not in: say so on the
+    // Groups list rather than landing there without a word.
+    const linked = /^\/(session|round|player)\//.test(pathname);
+    return <Navigate to="/home" replace state={linked ? { notice: "That page isn't available — you're not in its group." } : undefined} />;
   }
 
   const tabs = inGroup

@@ -264,7 +264,6 @@ export default function AppAdminDashboard() {
             <p className="text-xs text-muted-foreground">Deletes sessions and rounds that belong to no group, and notes about removed players.</p>
           </div>
           <Button
-            size="sm"
             variant="outline"
             disabled={cleaning}
             onClick={handleCleanOrphans}
@@ -305,7 +304,6 @@ export default function AppAdminDashboard() {
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                   {g.status !== 'active' && (
                     <Button
-                      size="sm"
                       variant="outline"
                       disabled={actionLoading === g.id}
                       onClick={() => handleStatusChange(g, 'active')}
@@ -317,7 +315,6 @@ export default function AppAdminDashboard() {
                   )}
                   {g.status !== 'archived' && (
                     <Button
-                      size="sm"
                       variant="outline"
                       disabled={actionLoading === g.id}
                       onClick={() => handleStatusChange(g, 'archived')}
@@ -328,7 +325,6 @@ export default function AppAdminDashboard() {
                   )}
                   {g.status !== 'deleted' && (
                     <Button
-                      size="sm"
                       variant="outline"
                       disabled={actionLoading === g.id}
                       onClick={() => handleStatusChange(g, 'deleted')}
@@ -339,7 +335,6 @@ export default function AppAdminDashboard() {
                     </Button>
                   )}
                   <Button
-                    size="sm"
                     variant="destructive"
                     onClick={() => { setPurgeTarget(g); setPurgeConfirm(''); }}
                     className="ml-auto"
@@ -400,7 +395,6 @@ export default function AppAdminDashboard() {
                   {u.id !== user?.id && (
                     <Button
                       onClick={() => toggleAdminRole(u)}
-                      size="sm"
                       variant="outline"
                       className={`flex-shrink-0 ${u.role === 'admin' ? 'text-negative' : 'text-primary'}`}
                     >
