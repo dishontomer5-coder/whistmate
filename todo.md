@@ -10,8 +10,8 @@
 > guide in `docs/web-app-best-practices.md`. The JESTER is live (Nov 19 2026, bundle `index-IHTend1X.js`):
 > mark in Logo.jsx/header/404, animated loader in LoadingSpinner, favicon + apple-touch icon, store icon at
 > https://whist-mate-pro.base44.app/icon-512.png. Owner did: manifest icons, real-phone pass, Hebrew
-> question, deleted `whistmate-role-test`. ONLY LEFT: submit the Clonitt listing (P12-10) — Clonitt was
-> NOT accepting submissions on Nov 19; check `requirements` first. Listing now: repo_url https://github.com/dishontomer5-coder/whistmate, license MIT, open_source true, icon_url https://whist-mate-pro.base44.app/icon-512.png. ⚠️ The base44 CLI must be logged in as
+> question, deleted `whistmate-role-test`. Clonitt listing SUBMITTED Nov 19 2026 (P12-10): status in_review,
+> submission_id `6aff26e77847998fa701a31e` (admin accounts bypass the closed-submissions switch). Listing now: repo_url https://github.com/dishontomer5-coder/whistmate, license MIT, open_source true, icon_url https://whist-mate-pro.base44.app/icon-512.png. ⚠️ The base44 CLI must be logged in as
 > dishontomer5@gmail.com (not the work account) to deploy. Open minors/ideas: each round's RULINGS.md.
 > in_progress: none.
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (PUBLIC since Nov 19 2026, MIT; the owner's personal GitHub), local clone
