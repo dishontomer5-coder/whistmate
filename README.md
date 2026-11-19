@@ -93,3 +93,7 @@ base44 deploy
 - [Using GitHub with Base44](https://docs.base44.com/Integrations/Using-GitHub)
 - [Base44 CLI command reference](https://docs.base44.com/developers/references/cli/commands/introduction)
 - [Base44 support](https://app.base44.com/support)
+
+## License
+
+MIT, see [LICENSE](LICENSE). Made by Tomer Dishon; contact dishontomer5@gmail.com.

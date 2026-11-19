@@ -1,6 +1,7 @@
 {
   "name": "base44-app",
   "private": true,
+  "license": "MIT",
   "version": "0.0.0",
   "description": "WhistMate: a scorekeeper and stats tracker for Israeli Whist.",
   "author": "Tomer Dishon",
