@@ -5,14 +5,33 @@ import { cn } from '@/lib/utils';
 import { PHASE } from './RoundChrome';
 import { dockScrollMargins, useRowsInView } from './ActionDock';
 
-// The four players of a round with their bids, in bidding order, and at the end of each
+// The seat number in front of a name: drawn in a small circle, so it is never read as
+// part of a name — a Hebrew name ending in a digit ("שלומי 2") shows that digit on its
+// left, right next to the number (whist-player-3, round 4).
+export function SeatNumber({ n }) {
+  return (
+    <span aria-label={`seat ${n}`}
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold tabular-nums text-muted-foreground">
+      {n}
+    </span>
+  );
+}
+
+// "first bid": the mark on the row of the player whose bid was entered first. Rows are
+// never moved for it — every screen of a round keeps seat order.
+export function FirstBidMark() {
+  return <span className="shrink-0 whitespace-nowrap text-xs font-normal text-muted-foreground" data-first-bid>first bid</span>;
+}
+
+// The four players of a round with their bids, in seat order, and at the end of each
 // row the trump mark: tap it to record that this player won the trump.
 //
 // The app cannot work the trump winner out by itself — equal bids are settled by suit at
 // the table, in an auction WhistMate never sees — so the table's decision is recorded, and
 // any of the four may be marked.
 //
-//   players       [{ player_id, player_name }] in bidding order
+//   players       [{ player_id, player_name }] in seat order
+//   firstBidderId the player whose bid was entered first (marked), or null
 //   bids          the four values in the same order (null = not entered)
 //   focus         { field: 'bid' | 'trump', index } — which row the pad is entering, or
 //                 that the trump keys are showing
@@ -23,7 +42,7 @@ import { dockScrollMargins, useRowsInView } from './ActionDock';
 //
 // A row is two buttons side by side — the row itself (select it for the pad) and its
 // trump mark — never a button inside a button.
-export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, trump, onPickTrumpOwner, trumpRequired, tiedIds = [] }) {
+export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, trump, onPickTrumpOwner, trumpRequired, tiedIds = [], firstBidderId = null }) {
   const blockRef = useRef(null);
   const rowRefs = useRef([]);
   const activeIndex = focus.field === 'bid' ? focus.index : -1;
@@ -51,9 +70,10 @@ export default function BidRows({ players, bids, focus, onSelect, trumpOwnerId, 
             <button type="button" onClick={() => onSelect(i)} aria-pressed={active}
               className="flex h-full min-w-0 flex-1 items-center justify-between gap-2 rounded-l-lg pl-3 pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
               {/* The seat number is its own element, so it stays on the left of a Hebrew name too. */}
-              <span className="flex min-w-0 items-baseline gap-1 text-sm font-medium text-foreground" dir="ltr">
-                <span className="shrink-0 tabular-nums">{i + 1}.</span>
+              <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground" dir="ltr">
+                <SeatNumber n={i + 1} />
                 <span className="min-w-0 truncate"><Name>{p.player_name}</Name></span>
+                {firstBidderId === p.player_id && <FirstBidMark />}
               </span>
               <span className="w-8 shrink-0 text-center font-heading text-lg font-bold text-foreground">
                 {bid != null ? bid : <span className="text-muted-foreground" aria-label="no bid yet">—</span>}

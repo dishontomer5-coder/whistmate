@@ -22,7 +22,7 @@ import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { readDraft, writeDraft, clearDraft, pruneDrafts, applyDraft, describeRestored } from '@/lib/round-drafts';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
-import BidRows from '@/components/round/BidRows';
+import BidRows, { SeatNumber } from '@/components/round/BidRows';
 import BidKeys from '@/components/round/BidKeys';
 import TrickRows, { TrickKeys } from '@/components/round/TrickRows';
 import { PhaseBanner, RestoredNote, ChangedNote } from '@/components/round/RoundChrome';
@@ -30,7 +30,7 @@ import { EveryoneFellBadge, ResultLines, TrumpLine } from '@/components/round/Ro
 import { returnToSession, rememberRedeal } from '@/components/round/session-return';
 import {
   nextEmptyIndex, blockedBid, lockBlocker, saveBlocker, tricksAreWrong, previewRound,
-  defaultTrumpOwnerIndex, topBidders, trumpOwnerHint, biddingOrder, nextTrickIndex,
+  defaultTrumpOwnerIndex, topBidders, trumpOwnerWarning, seatOrder, nextTrickIndex,
 } from '@/components/round/round-logic';
 
 // One round, from its first bid to its saved result. What is on screen follows the
@@ -78,15 +78,6 @@ function serverEntry(round, results) {
   };
 }
 
-// The seat the bidding started from: the trump winner's when one is recorded, else the
-// first bidder's, else seat 1 (index 0).
-function startSeat(ids, trumpOwnerId, firstBidderId) {
-  const owner = trumpOwnerId ? ids.indexOf(trumpOwnerId) : -1;
-  if (owner >= 0) return owner;
-  const first = firstBidderId ? ids.indexOf(firstBidderId) : -1;
-  return first >= 0 ? first : 0;
-}
-
 // The first row in `order` with no value yet — or the first row of the order when all are in.
 function firstEmptyInOrder(values, order) {
   const at = order.find((i) => values[i] == null);
@@ -113,8 +104,8 @@ export default function RoundView() {
   const [hierarchy, setHierarchy] = useState(null);
   const [tricks, setTricks] = useState({});
   const [reneges, setReneges] = useState({});
-  // The player whose bid was entered first: where the bidding started at the table. The
-  // results sheet starts there too (unless a trump winner is recorded — they bid first).
+  // The player whose bid was entered first: where the bidding started at the table. Their
+  // row is marked on the bidding and results screens; the rows themselves stay in seat order.
   const [firstBidder, setFirstBidder] = useState(null);
 
   // Where the pad is: a player's bid or the trump keys; and which player's tricks.
@@ -131,6 +122,8 @@ export default function RoundView() {
   const [error, setError] = useState('');
   // Set when locking or saving finds the round gone: another player discarded it meanwhile.
   const [discarded, setDiscarded] = useState(false);
+  // Set when saving an edit of a scored round finds it gone: another admin deleted it.
+  const [deletedMeanwhile, setDeletedMeanwhile] = useState(false);
   // Set when saving finds the round already scored: another phone saved it first. The
   // screen then shows what was saved.
   const [savedElsewhere, setSavedElsewhere] = useState(false);
@@ -154,7 +147,7 @@ export default function RoundView() {
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
-    setLoadError(''); setNotFound(false); setHydratedFor(null); setDiscarded(false);
+    setLoadError(''); setNotFound(false); setHydratedFor(null); setDiscarded(false); setDeletedMeanwhile(false);
     try {
       // Membership-checked read — the round, its session and its four results.
       const res = await base44.functions.invoke('getGroupData', { scope: 'round', round_id: id });
@@ -178,8 +171,7 @@ export default function RoundView() {
       const firstBid = nextEmptyIndex(ids.map((pid) => entry.bids[pid] ?? null), -1);
       const needsTrump = !!sess?.advanced_rules_enabled && (!entry.trump || !entry.hierarchy);
       setBidFocus({ field: rnd.status === 'bidding' && firstBid < 0 && needsTrump ? 'trump' : 'bid', index: Math.max(firstBid, 0) });
-      const order = biddingOrder(ids.length, startSeat(ids, entry.trump ? entry.trumpOwner : null, restored?.firstBidder));
-      setTrickIndex(firstEmptyInOrder(ids.map((pid) => entry.tricks[pid] ?? null), order));
+      setTrickIndex(firstEmptyInOrder(ids.map((pid) => entry.tricks[pid] ?? null), seatOrder(ids.length)));
       setEditTab('tricks');
       setError('');
       setHydratedFor(id);
@@ -217,6 +209,14 @@ export default function RoundView() {
       <EmptyState as="h1" icon={Ban} title="This round was discarded — nothing to save"
         description="Another player discarded it while you were entering it. What you typed here was dropped."
         action={<Button variant="outline" onClick={() => returnToSession({ navigate, location, sessionId: round.session_id, top: true })}>Back to session</Button>} />
+    );
+  }
+  if (deletedMeanwhile && round) {
+    // An edit of a scored round that another admin deleted meanwhile: nothing to save to.
+    return (
+      <EmptyState as="h1" icon={Trash2} title="This round was deleted"
+        description="Another admin deleted it while you were editing it. Your changes were not saved."
+        action={<Button variant="outline" onClick={() => returnToSession({ navigate, location, sessionId: round.session_id })}>Back to session</Button>} />
     );
   }
   if (!round) {
@@ -264,17 +264,27 @@ export default function RoundView() {
     : 'summary';
 
   const bidBlocker = lockBlocker({ bids: bidVals, advanced, trump, trumpOwnerId, hierarchy });
-  const hintTail = trumpOwnerHint(bidVals, ids.indexOf(trumpOwnerId));
-  const bidHint = hintTail ? <><Name>{trumpOwnerName}</Name> {hintTail}</> : null;
+  // The marked trump winner bid less than the top bid: a warning in the dock, beside
+  // whatever else it says, up to and including the moment of locking (never a block).
+  const ownerWarning = trumpOwnerWarning(bidVals, ids.indexOf(trumpOwnerId));
+  const trumpWarning = ownerWarning ? (
+    <DockStatus tone="warn">
+      <Name>{trumpOwnerName}</Name> bid {ownerWarning.own} — the top bid was {ownerWarning.top}{' '}
+      ({ownerWarning.topIndexes.map((i, n) => (
+        <span key={ids[i]}>{n > 0 ? ' and ' : ''}<Name>{players[i].player_name}</Name></span>
+      ))}). Is <Name>{trumpOwnerName}</Name> really the trump winner?
+    </DockStatus>
+  ) : null;
   const trickBlocker = saveBlocker({ tricks: trickVals });
-  // The results sheet in the order the table bid: from the trump winner (they state their
-  // contract first), else from the row where the first bid was entered, else seat 1.
+  // The results sheet keeps seat order, like every screen of the round; the trump winner
+  // (as locked, or as marked in the editor) and the first bidder are marked on their rows.
+  const order = seatOrder(ids.length);
   const sheetOwner = view === 'edit' ? (trump ? trumpOwnerId : null) : (round.trump_suit ? round.highest_bidder_player_id : null);
-  const order = biddingOrder(ids.length, startSeat(ids, sheetOwner, firstBidder));
+  const sheetTrump = view === 'edit' ? trump : round.trump_suit;
   // What each row will score, from the same engine the server uses.
   const preview = previewRound({ bids: bidVals, tricks: trickVals, reneges: renegeVals, scoringMethod: session?.scoring_method });
 
-  const goToSession = (top = false) => returnToSession({ navigate, location, sessionId: round.session_id, top });
+  const goToSession = (top = false, saved = '') => returnToSession({ navigate, location, sessionId: round.session_id, top, saved });
 
   // ---- entering bids and the trump record --------------------------------------------
   const pickBid = (n) => {
@@ -339,8 +349,7 @@ export default function RoundView() {
       if (!advanced) setHierarchy(null);
       setEditBids(false);
       setRestoredNote(''); // the restored bids are locked now; the note was about them
-      const lockedOwner = trump ? trumpOwnerId : null;
-      setTrickIndex(firstEmptyInOrder(trickVals, biddingOrder(ids.length, startSeat(ids, lockedOwner, firstBidder))));
+      setTrickIndex(firstEmptyInOrder(trickVals, seatOrder(ids.length)));
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch (err) {
       if (err.response?.status === 404) { roundGone(); return; }
@@ -389,7 +398,7 @@ export default function RoundView() {
       ids.forEach((pid) => { tMap[pid] = Number(tricks[pid]); gMap[pid] = !!reneges[pid]; });
       await base44.functions.invoke('saveRoundResults', { game_id: id, tricks: tMap, reneges: gMap });
       clearDraft(id);
-      goToSession(true); // the session page opens on the result of this round
+      goToSession(true, `Round ${round.round_number} saved`); // the session page opens on the result of this round
     } catch (err) {
       if (err.response?.status === 404) { roundGone(); return; }
       if (err.response?.status === 409 && await scoredMeanwhile()) return;
@@ -453,8 +462,8 @@ export default function RoundView() {
       }
     }
     clearDraft(id);
-    // A discard is usually a redeal: the session page offers the same table, same order.
-    rememberRedeal(round.session_id, ids, round.round_number);
+    // A discard is often a redeal: the session page offers this table again, as a second choice.
+    rememberRedeal(round.session_id, players, round.round_number);
     goToSession(true);
   };
 
@@ -540,9 +549,10 @@ export default function RoundView() {
         trump_owner_player_id: trump ? trumpOwnerId : undefined,
         expected_updated_date: round.updated_date,
       });
-      goToSession();
+      goToSession(false, `Changes to round ${round.round_number} saved`);
     } catch (err) {
       if (roundChanged(err)) { await changedMeanwhile(err, { editing: true }); return; }
+      if (err.response?.status === 404) { setSaving(false); setDeletedMeanwhile(true); return; }
       setError(errorMessage(err, 'Failed to update round.'));
       setSaving(false);
     }
@@ -577,7 +587,7 @@ export default function RoundView() {
     </Badge>
   );
   const bidRows = (
-    <BidRows players={players} bids={bidVals} focus={focus}
+    <BidRows players={players} bids={bidVals} focus={focus} firstBidderId={firstBidder}
       onSelect={(i) => setBidFocus({ field: 'bid', index: i })}
       trumpOwnerId={trumpOwnerId} trump={trump} onPickTrumpOwner={pickTrumpOwner} trumpRequired={advanced}
       tiedIds={tiedForTop} />
@@ -592,6 +602,7 @@ export default function RoundView() {
   );
   const trickRows = (
     <TrickRows players={players} bids={bidVals} tricks={trickVals} reneges={renegeVals} order={order}
+      trumpOwnerId={sheetTrump ? sheetOwner : null} trump={sheetTrump} firstBidderId={firstBidder}
       activeIndex={trickIndex} onSelect={setTrickIndex} onToggleRenege={toggleRenege} preview={preview} />
   );
   const trickKeys = (
@@ -603,11 +614,16 @@ export default function RoundView() {
   const tricksStatus = trickBlocker
     ? <DockStatus tone={tricksAreWrong(trickVals) ? 'error' : 'muted'}>{trickBlocker}</DockStatus>
     : <DockStatus tone="warn">{preview.everyoneFalls ? EVERYONE_FALLS_LINE : ''}</DockStatus>;
-  // Why Lock bids is off; once it can go ahead, a gentle note if the marked trump winner
-  // bid less than the top bid (a hint, never a block).
-  const bidsStatus = bidBlocker
-    ? <DockStatus tone={allBidsSet && !liveTable ? 'error' : 'muted'}>{bidBlocker}</DockStatus>
-    : <DockStatus tone="warn">{bidHint}</DockStatus>;
+  // Why Lock bids is off — and, whether it is off or not, the warning about a trump winner
+  // below the top bid.
+  const bidsStatus = (
+    <>
+      {trumpWarning}
+      {bidBlocker || !trumpWarning
+        ? <DockStatus tone={allBidsSet && !liveTable ? 'error' : 'muted'}>{bidBlocker}</DockStatus>
+        : null}
+    </>
+  );
 
   // ---- the views -----------------------------------------------------------------------
   let body;
@@ -697,6 +713,7 @@ export default function RoundView() {
         <ActionDock label="Edit round">
           {editTab === 'bids' ? bidKeys : trickKeys}
           <ErrorState inline message={error} />
+          {trumpWarning}
           {blocker
             ? <DockStatus tone="error">{blocker}</DockStatus>
             : preview.everyoneFalls
@@ -722,7 +739,10 @@ export default function RoundView() {
         <ul className="space-y-1.5">
           {players.map((p, i) => (
             <li key={p.id} className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm">
-              <span className="min-w-0 truncate text-foreground">{i + 1}. <Name>{p.player_name}</Name></span>
+              <span className="flex min-w-0 items-center gap-2 text-foreground" dir="ltr">
+                <SeatNumber n={i + 1} />
+                <span className="min-w-0 truncate"><Name>{p.player_name}</Name></span>
+              </span>
               <span className="shrink-0 text-xs text-muted-foreground">{p.bid != null ? `bid ${p.bid}` : 'no bid'}</span>
             </li>
           ))}
@@ -773,7 +793,8 @@ export default function RoundView() {
           )}
           <TrumpLine round={round} players={players} className="block" showMissing />
         </div>
-        <ResultLines results={players} onHelp={setHelp} size="lg" linkPlayers />
+        <ResultLines results={players} onHelp={setHelp} size="lg" linkPlayers
+          trumpOwnerId={round.trump_suit ? round.highest_bidder_player_id : null} trump={round.trump_suit} />
         <ErrorState inline message={error} />
         {canChangeScored ? (
           // Fixing a round is routine; deleting it is not — so Delete is a quiet text button,

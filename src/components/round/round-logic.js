@@ -35,8 +35,9 @@ export function nextEmptyIndex(values, from) {
   return -1;
 }
 
-// Where the tricks pad goes after `value` is tapped on row `index`. `order` is the seat
-// indexes in bidding order. On to the next player round the table with no tricks yet; on a
+// Where the tricks pad goes after `value` is tapped on row `index`. `order` is the rows'
+// indexes in the order the pad goes round (seat order). On to the next player round the
+// table with no tricks yet — from whichever row was tapped, wrapping past the end; on a
 // full sheet a correction moves on to the next player too — unless it pushes the total over
 // 13: then the pad stays on the row just edited, so the next tap fixes that row instead of
 // overwriting the next player's (whist-player-1).
@@ -148,25 +149,30 @@ export function defaultTrumpOwnerIndex(bids, advanced) {
   return top.length === 1 ? top[0] : -1;
 }
 
-// A gentle note (never a block) when the marked trump winner bid less than the top bid:
-// the winner of the auction normally holds it. null when there is nothing to say. The
-// screen puts the winner's name in front ("Dan bid 0, below …"), isolated as user text.
-export function trumpOwnerHint(bids, ownerIndex) {
+// A warning (never a block) when the marked trump winner bid less than the top bid: the
+// winner of the auction normally holds it, so the table may have marked the wrong player.
+// Locking stays allowed — the app records what the table decided. null when there is
+// nothing to say; otherwise { own, top, topIndexes } for the screen to word, with the
+// names isolated as user text ("Rachel bid 3 — the top bid was 6 (Maya). Is Rachel
+// really the trump winner?").
+export function trumpOwnerWarning(bids, ownerIndex) {
   if (ownerIndex < 0 || !bids.every(isSet)) return null;
   const top = Math.max(...bids.map(Number));
   const own = Number(bids[ownerIndex]);
   if (own >= top) return null;
-  return `bid ${own}, below the top bid of ${top} — is that the right trump winner?`;
+  return { own, top, topIndexes: topBidders(bids) };
 }
 
-// --- the order of the results sheet ----------------------------------------------------
+// --- the order of the rows ----------------------------------------------------------
+//
+// Every screen of a round lists the four in seat order (the order they were picked),
+// bidding, results, the round card and the round page alike. The trump winner and the
+// first bidder are marked on their rows, never moved to the top: a scorer reading tricks
+// round the table must find the rows where they were on the bidding screen.
 
-// The rows' indexes in the order the table bid: round the table from `start`, wrapping.
-// The results sheet follows it, so tricks are read out in the order people bid.
-// biddingOrder(4, 2) → [2, 3, 0, 1]
-export function biddingOrder(count, start = 0) {
-  const s = start >= 0 && start < count ? start : 0;
-  return Array.from({ length: count }, (_, i) => (s + i) % count);
+// The rows' indexes in seat order: [0, 1, 2, 3].
+export function seatOrder(count) {
+  return Array.from({ length: count }, (_, i) => i);
 }
 
 // --- one row of the results preview ----------------------------------------------------
