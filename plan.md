@@ -47,7 +47,7 @@ Source spec: `~/Downloads/israeli_whist_gameapp_plan.md`. Reference code (read-o
 | 10 | Trump winner tracking + suit-rank fix | CLOSED Aug 3 (deployed; live round test never recorded) | Record the auction winner instead of deriving it. Detail in todo.md. |
 | 11 | Fix locked bids + phase colours | CLOSED Aug 3 in code (function deploy never recorded) | Edit bids after locking; bidding vs results visually distinct. Detail in todo.md. |
 | 12 | Public-listing readiness (Clonitt) | OPEN — deployed + verified signed out Nov 18; owner's signed-in test and the submission remain | Close the open data API, name who is accountable, remove poker leftovers, so the app can be listed publicly. |
-| 13 | Substantial UX improvement by an independent team | OPEN — planned Nov 18, not started | The owner is not convinced the app is clear enough to publish. Review → fix → re-review until independent reviewers find no blocker or major problem. |
+| 13 | Substantial UX improvement by an independent team | CLOSED Nov 19 — three review rounds, all fixes live | The owner is not convinced the app is clear enough to publish. Review → fix → re-review until independent reviewers find no blocker or major problem. |
 
 Ordered by dependency and risk: scaffold → data → pure logic → server logic → UI shell → the
 flow that depends on all of it → stats → deploy. Scoring (Phase 2) is sequenced early and
@@ -365,7 +365,7 @@ standalone because it's the highest-risk domain logic and fully testable without
 
 ---
 
-## Phase 13: Substantial UX improvement by an independent team — OPEN (v1 — Nov 2026; planned, not started)
+## Phase 13: Substantial UX improvement by an independent team — CLOSED Nov 19 2026 (v1 — Nov 2026)
 
 > After Phase 12 the owner opened the live app and was not convinced: "I am not sure the user
 > experience and clarity of the web app is quite there." Nobody but the owner has ever used the
@@ -549,3 +549,23 @@ The lead's final message shows all of this as evidence:
 - (h) a short list of what only the owner can check.
 
 Bound: stop after three review rounds, or 80 turns, and report exactly what remains.
+
+#### Rounds 2 and 3 — decisions (Nov 19 2026)
+
+- **Decision:** Players opens a LIST of the group's players (two reviewers independently); your own page is
+  reached from your row; another player's page shows your value under each of their figures instead of a
+  separate comparison screen (an idea kept for later).
+- **Decision:** "Rules & scoring" is a page — the written guide first, the chat second; the guide is
+  readable signed out.
+- **Decision:** gold is rationed to the primary action, the brand mark and the active tab; gained scores
+  are bold foreground; statuses and "You" are neutral outlines; selection is a gold outline.
+- **Decision:** a session in which no round counted has no winner.
+- **Decision:** an identical note within 10 seconds is the same note (server-side), not only a disabled button.
+- **Decision (round 3 blocker):** every write that replaces a round's data carries the version the screen
+  loaded (`expected_updated_date`), and the server refuses a stale one — optional, so an old cached site
+  keeps working. Lesson for the guide: concurrency was found only in round 3; test two people at once.
+- **Decision:** stop after three rounds as the goal set; round 3's blocker and majors were fixed and
+  independently verified instead of a fourth review. The verifier's extra major (note hidden at 320 px)
+  was fixed and checked at 320 px.
+- **Decision:** the store icon stays the owner's choice; an alternative drawn from the in-app mark is in
+  `docs/listing/`, and the round-2 and round-3 visual designers both recommended it.

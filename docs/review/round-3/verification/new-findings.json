@@ -1,0 +1,54 @@
+[
+  {
+    "id": "verify-r3-1",
+    "title": "On a 320 px phone the 'changed on another phone' notice is hidden under the header after the reload",
+    "where": "/round/<id>?edit=1 at 320x568",
+    "steps": [
+      "Phone A (390) and phone B (320x568) open /round/579ae075098281d89c967fb0?edit=1",
+      "A changes Rachel/נועה and saves",
+      "B, scrolled to the rows (the keypad covers the lower half), changes Maya 2 / Dan 4 > Save changes > confirm"
+    ],
+    "expected": "B sees the refusal message next to the reloaded numbers",
+    "actual": "409 is handled and the form reloads A's numbers, but the page keeps scrollY 142 and the notice sits at top 23-38 px, under the ~68 px sticky header. B's screen shows only the numbers snapping back; nothing visible says why. At 390 the notice is visible.",
+    "why_it_matters": "The data is safe, but the editor on a small phone does not learn that someone else changed the round, and the natural reaction is to type the values again and save, overwriting the other admin knowingly-blind.",
+    "severity": "major",
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/003-01-edit-409-320-direct.png",
+      "eval: notice rect top/bottom/scrollY = [23, 38, 142]"
+    ],
+    "suggested_fix": "After a 409 reload scroll the notice into view (or show it as a toast/banner fixed below the header)."
+  },
+  {
+    "id": "verify-r3-2",
+    "title": "'Last session' caption repeats the date for default-named sessions",
+    "where": "Standings /, no session open",
+    "steps": [
+      "Start a session without a name (it becomes 'Thursday, 19 Nov'), play a round, close it",
+      "Open Standings"
+    ],
+    "expected": "Last session: Thursday, 19 Nov",
+    "actual": "Last session: Thursday, 19 Nov, Nov 19",
+    "why_it_matters": "Reads like a stutter; small polish.",
+    "severity": "minor",
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/014-05-last-session-same-day.png"
+    ],
+    "suggested_fix": "Omit the date when the name is the default date name."
+  },
+  {
+    "id": "verify-r3-3",
+    "title": "Renege net preview wraps to three lines at 320 px and spaces the minus inconsistently",
+    "where": "/round/<id> Results at 320x568",
+    "steps": [
+      "Results step, enter tricks, tap Renege for a player at 320 px"
+    ],
+    "expected": "A compact net line",
+    "actual": "'bid 5 · made +35 / − 100 renege / = −65' over three lines; '− 100' has a space after the minus while '−65' does not",
+    "why_it_matters": "Polish only; the meaning is clear.",
+    "severity": "minor",
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/006-04-renege-on-320.png"
+    ],
+    "suggested_fix": "Write '−100' without the space; consider 'made +35 · renege −100 = −65'."
+  }
+]

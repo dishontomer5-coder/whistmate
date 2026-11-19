@@ -4,26 +4,13 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026, 11:30): **Phase 13 — round-1 fixes DEPLOYED LIVE and verified; review
-> round 2 (P13-6) is running.** Fix round 1 + a polish pass are merged and deployed (functions: 11
-> deployed / 20 unchanged; entity rules pushed; site published from the CLI; main pushed at 5e04287).
-> Live check: served bundle `index-CuDtOPpb.js` = the local build; signed out, all seven data entities
-> return `[]` and User is 401; landing, About, login, sign-up and the invite page render at 320/390/1440
-> px with no horizontal overflow and no console error but the expected signed-out 401.
-> Independent verification of the fixes: 69 fixed, 5 partly, 0 regressed (record in
-> `docs/review/round-1/verification/`); the polish pass then closed C42/C54/C57 and verify-1…8.
-> Round 2: six FRESH reviewers, same briefs (`docs/review/round-1/briefs/`), sandboxes 4701–4706 built
-> from main; output in the scratchpad `review/r2/<persona>/`.
-> THEN: if round 2 leaves any blocker or major — fix, verify, deploy, and run round 3; otherwise
-> deploy (functions → site → push), re-probe the live site, run review round 2 with fresh reviewers
-> (P13-6), refresh the listing (P13-10), close the phase.
-> Waiting on the owner (not blocking): choose the store icon — the jester artwork or
-> `docs/listing/whistmate-icon-1024.png`; delete the throwaway Base44 app `whistmate-role-test`.
-> Phase 12 (Clonitt listing readiness) is DEPLOYED and verified on the live site signed out; the owner
-> then opened the live app signed in and Home and History loaded with data (Nov 18 2026). The listing
-> is NOT to be submitted (P12-10) until Phase 13 closes — the owner's call.
-> The Base44 CLI on this machine is logged in as **dishontomer5@gmail.com**, the account that owns the
-> app (the owner logged in on Nov 18 2026; the work account `tomerdi@base44.com` is refused by the app).
+> ▶ RESUME HERE (Nov 19 2026): **Phase 13 is CLOSED.** Three review rounds, three fix rounds, all
+> deployed: live bundle `index-CKd8aPs4.js` (= local build), signed-out entity reads `[]`, public pages
+> clean at 320/390/1440 px. Review record in `docs/review/round-{1,2,3}/`; guide in
+> `docs/web-app-best-practices.md`. Next is the owner's: choose the store icon, a signed-in look on a
+> real phone, then submit the Clonitt listing (P12-10). Open minors and ideas are listed in each round's
+> RULINGS.md for a later phase.
+> in_progress: none.
 > CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
 > **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
 > disabled — never push there. The owner allows pushing and deploying on this repo only. Two-way-synced
@@ -33,7 +20,6 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-6d (fix round 3: the concurrent-overwrite blocker and four majors).
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -650,8 +636,14 @@
   (blocker/major/minor/idea); total **1 blocker, 4 majors, 50 minors, 6 ideas** (round 2: 0/13/59/8; round 1:
   0/39/84/15). The blocker: two people editing the same round silently overwrite each other.
   Rulings: `docs/review/round-3/RULINGS.md`.
-- [ ] 🔄 **P13-6d:** fix round 3 (the blocker + 4 majors + cheap minors) → independent verification → deploy → close.
-- [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
+- [x] **P13-6d** *(done Nov 19 2026)*: **fix round 3** — no silent overwrite (a version check on `updateRound`
+  and `submitBids`, refused with "This round was changed on another phone"), a one-time notice for a
+  detached player, "Trump not recorded", a labelled Renege, "Tonight · Last session" with the date, five
+  cheap minors. **Verified** by the QA tester: all six items fixed, no regression; it found one more major
+  (at 320 px the refusal note hid under the header) — fixed and re-checked in the sandbox at 320 px (note
+  at y=96, header ends at y=69). **Deployed** (functions 4 deployed / 27 unchanged; entities pushed; site
+  `index-CKd8aPs4.js`). Record: `docs/review/round-3/verification/`.
+- [x] **P13-6** *(done — see P13-6a…d)*: review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
   if needed, until a round ends with 0 open blockers and 0 open majors (at most three rounds).
 
 ### 13c. Security and the guide
@@ -661,7 +653,7 @@
   `GroupMember` row, which is re-read by id and counts only if it is the caller's, in that group; role
   and name come from the row. The access test went from 89 to 383 checks, 114 of which fail against the
   old code; it now classifies every function folder as read or write and fails on an unclassified one.
-- [ ] **P13-8** *(written Nov 19 2026 — 14 sections, 50 practices, each with a check and the WhistMate
+- [x] **P13-8** *(done Nov 19 2026; written, then updated with the three rounds' outcomes and "test two people at once" — — 14 sections, 50 practices, each with a check and the WhistMate
   lesson; ~5,000 words. Reports round 1 as "found / ruled"; needs one final pass after review round 2 to
   state outcomes)*: `docs/web-app-best-practices.md` — a project-agnostic guide for future builds of this
   kind (structure and navigation, flows, states, wording, visual design, phones, accessibility, data
@@ -722,10 +714,15 @@
 
 ### 13d. Ship
 
-- [ ] **P13-9:** deploy in the recorded order (functions → site → push) and re-probe the live site
+- [x] **P13-9** *(done Nov 19 2026 — after every fix round: functions → entities → site, then a signed-out re-probe of the live site)*: deploy in the recorded order (functions → site → push) and re-probe the live site
   signed out; key pages at 320 / 390 / 1440 px.
-- [ ] **P13-10:** refresh the CLONITT LISTING block for anything renamed or added. Do not submit.
+- [x] **P13-10** *(done Nov 19 2026 — the block in the closing report)*: refresh the CLONITT LISTING block for anything renamed or added. Do not submit.
 - [ ] **P13-11** *(owner)*: final signed-in look at the live app, then P12-10.
+
+> **🎉 PHASE 13 CLOSED (Nov 19 2026):** three independent review rounds — majors 39 → 13 → 4, minors 84 → 59 → 50
+> (round 3: 1 blocker, found and fixed); every round's blocker and majors fixed, verified by an independent
+> tester and deployed. 24 of 24 write functions under the access test (522 checks). Left on purpose: the minors and
+> ideas listed in each round's RULINGS.md; the store icon (owner's choice).
 
 ## Backlog
 

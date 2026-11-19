@@ -1,0 +1,112 @@
+[
+  {
+    "item": 1,
+    "finding": "qa-tester-1 (blocker) + scorekeeper-1",
+    "verdict": "fixed",
+    "checked": [
+      "Maya made Dan admin. Both opened /round/579ae075098281d89c967fb0?edit=1. Dan saved Maya 2 / Dan 4. Maya then saved Rachel 3 / נועה 4 from her stale form and confirmed. Result: 409 updateRound {\"error\":\"This round was changed on another phone — reload to see it\"}; the form reloaded with Dan's values and showed 'This round was changed on another phone. It has been reloaded — what you typed here was not used.' The round view showed Dan's edit intact (Maya took 2 -5, Dan took 4 -5, Rachel 2 -15, נועה 5 +35).",
+      "Bids, re-lock: two phones (Maya x2) on round e43f… both tapped Edit bids. A saved יוסי 5; C saved יוסי 1 from a stale screen → 409 submitBids, same message, bids show A's values.",
+      "Bids, first lock: Maya entered bids on round 5 of Midweek special; Dan (admin, 2nd phone) entered 1,1,1,1 on the same round; Maya locked first, Dan's Lock bids → 409, Dan's screen reloaded to Maya's bids with the message.",
+      "One editor alone: 6 saves of round 10 in a row by Maya (after the reload, via full page load, and via the in-app Edit round link without reload) and 2 bid re-locks in a row: no false refusal, each value persisted."
+    ],
+    "caveat": "At 320x568 the refusal message sits under the sticky header after the reload (measured top 23-38 px, header ~68 px, scrollY 142), so the editor sees the numbers snap back with no visible explanation. See new finding verify-r3-1.",
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/001-01-edit-409-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/001-01-round-after-refusal.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/c-001-01-bids-409-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/003-01-edit-409-320-direct.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/002-01-edit-409-320.png"
+    ]
+  },
+  {
+    "item": 2,
+    "finding": "qa-tester-2 (major)",
+    "verdict": "fixed",
+    "checked": [
+      "Omer opened /home (Thursday Whist listed). Maya: Admin > Actions for Omer > Detach account > confirm. Omer reloaded: '(alert) You were removed from Thursday Whist by an admin. Your rounds stay in its history.' with a close button; group list shows only Old Crew. Reloaded again and visited Activity → notice gone (one-time).",
+      "Rachel: own player page > Leave this group > Leave group → /home with no notice, also after reload."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/c-002-02-detached-notice-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/c-003-02-detached-notice-320.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/c-004-02-left-no-notice.png"
+    ]
+  },
+  {
+    "item": 3,
+    "finding": "returning-player-1 (major)",
+    "verdict": "fixed",
+    "checked": [
+      "Session cards (Midweek special round 3 and 6, גשם בחוץ rounds 9-11) and the round page /round/579ae… show a muted 'Trump not recorded'; rounds with a trump still show 'Trump ♠ Spades · נועה'. A round I played without marking trump also shows it."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/007-03-trump-not-recorded-session.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/018-03-scored-round-320.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/017-03-scored-round-1440.png"
+    ]
+  },
+  {
+    "item": 4,
+    "finding": "visual-designer-1 (major)",
+    "verdict": "fixed",
+    "checked": [
+      "Off: plain grey 'Renege' text, button 63x44 px (measured), lighter than the tricks number.",
+      "On: outlined red pill 'Renege · −100' (104x44 px), aria 'Renege for יוסי — on, −100'; tricks number stays the hero; the row's text reads 'bid 5 · made +35 − 100 renege = −65'.",
+      "Saved round shows 'Renege −100' and −65 on the session page."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/004-04-renege-off-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/005-04-renege-on-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/006-04-renege-on-320.png"
+    ]
+  },
+  {
+    "item": 5,
+    "finding": "visual-designer-2 (major)",
+    "verdict": "fixed",
+    "checked": [
+      "With a session open: switch 'Tonight | Last session'; Last session caption 'Last session: Last Thursday, Nov 12' at 390 and 320 (wraps to two lines at 320, no overflow).",
+      "With no session open the switch is replaced by 'Start new session' and the caption names the last session; for a default-named session it reads 'Last session: Thursday, 19 Nov, Nov 19' (redundant, new minor verify-r3-2)."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/008-05-last-session-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/009-05-last-session-320.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/014-05-last-session-same-day.png"
+    ]
+  },
+  {
+    "item": 6,
+    "finding": "cheap minors",
+    "verdict": "fixed (avg rounding verified indirectly)",
+    "checked": [
+      "Keypad: tricks 5,5,2,1 then tapped 8 on Dan → '20 / 13', 'Tricks must total 13 — now 20', keypad stayed on Dan; tapping 1 fixed Dan (not the first row).",
+      "Averages: −4/76 is not reproducible in the seed; session standings show −105 over 4 rounds as '-26.3 avg' (half away from zero) and −100/6 as '-16.7 avg'. Not seen: a 0.0 for a small negative.",
+      "Renege preview: 'made +35 − 100 renege = −65'.",
+      "Round page: 'Last Thursday · Nov 12, 2026 · Progressive scoring' (a link-styled control).",
+      "Restored: reload during bidding showed 'Restored: 4 bids and the trump mark.'; after Lock bids the Results step no longer shows it."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/003-06-keypad-overshoot.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/005-04-renege-on-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/018-03-scored-round-320.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/011-06-restored-gone-after-lock.png"
+    ]
+  },
+  {
+    "item": 7,
+    "finding": "cross-cutting regressions",
+    "verdict": "no regression found",
+    "checked": [
+      "scrollWidth == clientWidth (no element past the right edge) at 320, 390 and 1440 on /home, / (Standings), /history, two sessions, a round in play (results), Edit bids (bidding), a scored round, its edit page, /profile (Players), a player page, /profile/global (Me), /admin, /about, /rules, /activity; signed-out /login, /register, /join?code=…, /rules, /about, /home.",
+      "Console/network: Maya's session recorded only the deliberate 409; signed-out pages only the expected 401 on User/me.",
+      "Full night as Maya: finished Midweek special (round 4 with a renege, round 5 with trump and a two-phone lock race, round 6 down with a made zero bid), closed it; started a new session, picked a table including the detached Omer and departed Rachel, played and closed it. All round points, session totals (נועה +105, Maya +101, Dan +51, יוסי −100) and the all-time standings deltas add up by hand."
+    ],
+    "evidence": [
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/010-07-bidding-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/012-07-results-390.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/013-07-session-closed.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/015-08-bidding-320.png",
+      "/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r3/verify/shots/016-08-bidding-1440.png"
+    ]
+  }
+]
