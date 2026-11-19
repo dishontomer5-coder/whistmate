@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
@@ -12,6 +12,7 @@ import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name, UserText } from '@/components/UserText';
 import { formatDate, errorMessage, noteSessionName } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
+import BackLink from '@/components/BackLink';
 
 // When a note was written, in the words people use: "today", "yesterday", "3 days ago",
 // and the date itself once it is a week or more old.
@@ -33,6 +34,7 @@ export default function Activity() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const { setActiveGroup } = useActiveGroup();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState([]);
   const [error, setError] = useState('');
@@ -80,6 +82,8 @@ export default function Activity() {
 
   return (
     <div className="space-y-6">
+      {/* Opened from the menu (inside a group, or not): back to where that was. */}
+      {location.state?.fromMenu && <BackLink fallback="/home" className="-my-2" />}
       <h1 className="page-title">Activity</h1>
 
       {error ? (

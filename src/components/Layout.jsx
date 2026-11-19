@@ -31,8 +31,9 @@ const GROUP_TABS = [
 ];
 
 // Pages reached from the menu keep the frame of wherever they were opened from, so
-// reading About from inside a group does not look like leaving the group.
-const SIDE_PAGES = ['/about'];
+// reading About — or Activity — from inside a group does not look like leaving the group.
+// Activity is also a tab of the all-groups frame, and lights it when opened there.
+const SIDE_PAGES = ['/about', '/activity'];
 
 // Round entry is a focused screen: "pick the table", bidding, results and editing put
 // their own action bar at the bottom of the screen, so the tab bar is not drawn there.
