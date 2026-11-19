@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Check, Users, SearchX, Lock } from 'lucide-react';
+import { Loader2, Check, Users, SearchX, Lock, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
@@ -17,6 +17,7 @@ import { errorMessage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
 import { FROM_SESSION, redealTable, forgetRedeal } from '@/components/round/session-return';
+import { confirmStartedElsewhere } from '@/components/round/started-elsewhere';
 import { sameTableOrder, startBlocker, nextRoundNumber, roundLimit } from '@/components/round/round-logic';
 
 // Pick the table: exactly four players, then start the round.
@@ -37,8 +38,8 @@ export default function NewRound() {
   const [members, setMembers] = useState([]);
   const [roundNumber, setRoundNumber] = useState(1);
   const [selected, setSelected] = useState([]); // player ids, in the order picked
-  const [sameTable, setSameTable] = useState([]); // last round's four, moved on by one — or a redeal's four
-  const [isRedeal, setIsRedeal] = useState(false); // the last round was discarded: same four, same order
+  const [sameTable, setSameTable] = useState([]); // the last round played: its four, moved on by one
+  const [redeal, setRedeal] = useState([]); // right after a discard: that round's four, same order
   const [limit, setLimit] = useState({ limit: null, played: 0, reached: false });
   const [submitting, setSubmitting] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -69,16 +70,16 @@ export default function NewRound() {
       setRoundNumber(nextRoundNumber(rounds));
       setLimit(roundLimit(sess, rounds));
 
-      // After a discarded round (a redeal) the same four in the same order; otherwise the
-      // most recent round's table moved on by one — if all four are still in the group.
+      // The last round actually played (a discarded one is gone from the list), its table
+      // moved on by one; and, right after a discard, that table again as a second choice —
+      // each only if all four are still in the group.
       const previous = [...rounds].sort((a, b) => (b.round_number ?? 0) - (a.round_number ?? 0))[0];
       const rosterIds = new Set(roster.map((m) => m.id));
-      const redeal = redealTable(sessionId, rounds);
-      const order = redeal.length === 4 ? redeal
-        : previous ? sameTableOrder(results.filter((r) => r.game_id === previous.id)) : [];
-      const usable = order.length === 4 && order.every((pid) => rosterIds.has(pid));
-      setSameTable(usable ? order : []);
-      setIsRedeal(usable && redeal.length === 4);
+      const usable = (ids) => ids.length === 4 && ids.every((pid) => rosterIds.has(pid));
+      const order = previous ? sameTableOrder(results.filter((r) => r.game_id === previous.id)) : [];
+      const again = redealTable(sessionId, rounds)?.ids || [];
+      setSameTable(usable(order) ? order : []);
+      setRedeal(usable(again) && !again.every((pid, i) => order[i] === pid) ? again : []);
     } catch (err) {
       setNotFound(err.response?.status === 404);
       setLoadError(errorMessage(err, 'Failed to load the players.'));
@@ -108,7 +109,14 @@ export default function NewRound() {
       navigate(`/round/${res.data.round.id}`, { replace: true, state: roundState });
     } catch (err) {
       const openId = err.response?.data?.open_round_id;
-      if (openId) { navigate(`/round/${openId}`, { replace: true, state: roundState }); return; }
+      if (openId) {
+        // Another phone started a round first — maybe with another table. Say so, with its
+        // four names, and let the scorer choose; never carry on into it silently.
+        setSubmitting(false);
+        if (await confirmStartedElsewhere({ confirm, openRoundId: openId })) navigate(`/round/${openId}`, { replace: true, state: roundState });
+        else navigate(`/session/${sessionId}`, { replace: true });
+        return;
+      }
       setError(errorMessage(err, 'Failed to start round.'));
       setSubmitting(false);
     }
@@ -185,6 +193,7 @@ export default function NewRound() {
   const nameOf = (id) => members.find((m) => m.id === id)?.player_name || '';
   const blocker = startBlocker({ selected: selected.length, members: members.length });
   const isSameTable = sameTable.length === 4 && sameTable.every((pid, i) => selected[i] === pid);
+  const isRedeal = redeal.length === 4 && redeal.every((pid, i) => selected[i] === pid);
 
   return (
     <div className="-mt-4 space-y-3">
@@ -204,7 +213,21 @@ export default function NewRound() {
           )}>
           <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0">
-            {isRedeal ? 'Redeal — same table, ' : 'Same players as last round — '}<Name>{nameOf(sameTable[0])}</Name> bids first
+            Same players as last round — <Name>{nameOf(sameTable[0])}</Name> bids first
+          </span>
+        </button>
+      )}
+      {/* Right after a discard: that table again, same order — a second, smaller choice,
+          named by its four so it is never taken for the last round played. */}
+      {redeal.length === 4 && (
+        <button type="button" onClick={() => { setError(''); setSelected(redeal); }} aria-pressed={isRedeal} data-redeal
+          className={cn(
+            'flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors',
+            isRedeal ? 'border-2 border-primary text-foreground' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+          )}>
+          <RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0">
+            Redeal — {redeal.map((pid, i) => <span key={pid}>{i > 0 ? ', ' : ''}<Name>{nameOf(pid)}</Name></span>)}
           </span>
         </button>
       )}
@@ -255,6 +278,7 @@ export default function NewRound() {
           {submitting ? <><Loader2 className="animate-spin" /> Starting…</> : `Start round (${selected.length}/4)`}
         </Button>
       </ActionDock>
+      {confirmElement}
     </div>
   );
 }
