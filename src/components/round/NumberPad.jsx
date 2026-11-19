@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils';
 //
 //   value    the number currently held by the row being entered (shown selected)
 //   blocked  the one number that may not be picked (it would make the bids total 13)
-//   tone     'bid' gold | 'trick' green — the selected key takes the colour of the step
+//   tone     'bid' | 'trick' — the selected key takes the colour of the step: a gold outline
+//            while bidding (a selection is never a gold fill), green for the results
 const SELECTED = {
-  bid: 'bg-primary text-primary-foreground',
+  bid: 'bg-secondary text-foreground ring-2 ring-inset ring-primary',
   trick: 'bg-emerald-500 text-background',
 };
 

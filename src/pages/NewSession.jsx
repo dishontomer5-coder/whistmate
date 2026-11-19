@@ -105,7 +105,7 @@ export default function NewSession() {
         {back}
         <h1 className="page-title">New session</h1>
         {activeGroup?.status === 'archived' ? <ArchivedBanner /> : (
-          <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/10 p-4" data-open-session>
+          <div className="space-y-3 rounded-lg border border-border bg-card p-4" data-open-session>
             <p className="text-sm text-foreground">
               A session is already open — here it is:{' '}
               <span className="font-semibold"><UserText>{sessionName(openSession)}</UserText></span>
@@ -169,9 +169,9 @@ export default function NewSession() {
                 onClick={() => { touched.current.scoring = true; setScoringMethod(m); }}
                 className={cn(
                   'min-h-11 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground',
-                  scoringMethod === m ? 'border-primary bg-primary/10' : 'border-border bg-card'
+                  scoringMethod === m ? 'border-2 border-primary bg-card' : 'border-border bg-card'
                 )}>
-                <span className={cn('block text-sm font-semibold', scoringMethod === m ? 'text-primary' : 'text-foreground')}>
+                <span className={cn('block text-sm font-semibold', 'text-foreground')}>
                   {SCORING_METHOD_LABEL[m]}{m === defaultMethod ? <span className="font-normal text-muted-foreground"> · this group's usual</span> : null}
                 </span>
                 <span className="block text-xs text-muted-foreground">A missed bid: {SCORING_METHOD_SUMMARY[m]}.</span>

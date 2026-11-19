@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import TableBadge from '@/components/TableBadge';
 import { Suit } from '@/components/Suit';
 import { Name } from '@/components/UserText';
@@ -15,26 +17,28 @@ import { FROM_SESSION } from './session-return';
 // the UP / DOWN badge, the "Everyone fell" badge and a player's "Renege −100" mark.
 // `onHelp(section)` is called with 'updown' | 'everyone-falls' | 'renege'.
 
-// "Everyone fell" — the round was cancelled because nobody made their bid.
+// "Everyone fell" — the round was cancelled because nobody made their bid. A neutral
+// outline: it is not good news, and gold is kept for the one primary action.
 export function EveryoneFellBadge({ onClick }) {
-  const classes = 'relative inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full bg-yellow-500/20 px-2 text-xs font-medium uppercase text-yellow-500';
+  const classes = 'relative inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full border border-input px-2 text-xs font-medium text-muted-foreground';
   if (!onClick) return <span className={classes}>Everyone fell</span>;
   return (
     <button type="button" onClick={onClick} aria-label="Everyone fell: nobody made their bid, so the round scores 0. How scoring works"
-      className={cn(classes, "after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] hover:bg-yellow-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground")}>
+      className={cn(classes, "after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground")}>
       Everyone fell
     </button>
   );
 }
 
 // "Trump ♥ Hearts · Maya · Ace high" — who won the trump, the suit, and the card order of
-// an advanced session. Nothing when no trump was recorded for the round.
+// an advanced session; "No trump · Dan" when the call was no trump. Nothing when no trump
+// was recorded for the round.
 export function TrumpLine({ round, players = [], className }) {
   if (!round?.trump_suit) return null;
   const winner = players.find((p) => p.player_id === round.highest_bidder_player_id)?.player_name;
   return (
     <span className={cn('text-xs text-muted-foreground', className)} data-trump-line>
-      Trump <Suit suit={round.trump_suit} label />
+      {round.trump_suit === 'notrump' ? null : 'Trump '}<Suit suit={round.trump_suit} label />
       {winner ? <> · <span className="font-medium text-foreground"><Name>{winner}</Name></span></> : null}
       {round.hierarchy ? <> · <span className="whitespace-nowrap">{CARD_ORDER_LABEL[round.hierarchy] || round.hierarchy}</span></> : null}
     </span>
@@ -78,8 +82,10 @@ export function ResultLines({ results, onHelp, size = 'sm' }) {
 //   label            a small label above the number ("Last round")
 //   canEdit          the caller may change a scored round: one tap opens the editor
 //   onDiscard        offered on a round that is still in play ("Discard round")
+//   showEntryLink    a round in play links to its entry screen — unless the page already
+//                    has a "Resume round" button for it (one way in, not two)
 //   onHelp           see above
-export default function RoundCard({ round, results = [], label, canEdit = false, onDiscard, discarding = false, onHelp, className }) {
+export default function RoundCard({ round, results = [], label, canEdit = false, onDiscard, discarding = false, showEntryLink = true, onHelp, className }) {
   const inPlay = round.status === 'bidding' || round.status === 'playing';
   const cancelled = round.status === 'cancelled' || round.everyone_falls;
   return (
@@ -95,7 +101,7 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
             onClick={onHelp ? () => onHelp('updown') : undefined} />
           {cancelled && <EveryoneFellBadge onClick={onHelp ? () => onHelp('everyone-falls') : undefined} />}
           {inPlay && (
-            <span className="inline-flex h-6 items-center whitespace-nowrap rounded-full bg-primary/20 px-2 text-xs font-medium uppercase text-primary">
+            <span className="inline-flex h-6 items-center whitespace-nowrap rounded-full border border-input px-2 text-xs font-medium text-foreground">
               {round.status === 'bidding' ? 'Bidding' : 'In play'}
             </span>
           )}
@@ -116,10 +122,12 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
             ))}
           </p>
           <div className="-mb-2 mt-1 flex flex-wrap items-center justify-between gap-x-4">
-            <Link to={`/round/${round.id}`} state={FROM_SESSION}
-              className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">
-              {round.status === 'bidding' ? 'Enter the bids' : 'Enter the results'} →
-            </Link>
+            {showEntryLink ? (
+              <Link to={`/round/${round.id}`} state={FROM_SESSION}
+                className="inline-flex min-h-11 items-center text-sm font-medium text-foreground underline underline-offset-2">
+                {round.status === 'bidding' ? 'Enter the bids' : 'Enter the results'} →
+              </Link>
+            ) : <span />}
             {onDiscard && (
               <button type="button" onClick={() => onDiscard(round)} disabled={discarding}
                 className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-negative disabled:opacity-50">
@@ -132,11 +140,12 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
         <>
           <div className="mt-2"><ResultLines results={results} onHelp={onHelp} /></div>
           {canEdit && (
-            <div className="-mb-3 mt-2 border-t border-border">
-              <Link to={`/round/${round.id}?edit=1`} state={{ ...FROM_SESSION, editFromSession: true }}
-                className="inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-foreground">
-                Edit round
-              </Link>
+            <div className="mt-3 flex justify-end">
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/round/${round.id}?edit=1`} state={{ ...FROM_SESSION, editFromSession: true }}>
+                  <Pencil /> Edit round
+                </Link>
+              </Button>
             </div>
           )}
         </>
