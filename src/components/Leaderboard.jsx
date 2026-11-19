@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUp, ArrowDown, Trophy } from 'lucide-react';
-import { formatScore, scoreTone } from '@/lib/format';
+import { formatScore, formatAvg, scoreTone } from '@/lib/format';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import EmptyState from '@/components/EmptyState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name } from '@/components/UserText';
@@ -64,8 +65,9 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
 
         const facts = [];
         if (gap > 0) facts.push(`${gap} behind`);
+        // A win is a closed session finished first — the "?" beside the standings says so.
         if (!singleSession && player.wins != null) facts.push(plural(player.wins, 'win'));
-        if (byTotal && player.avg_score != null) facts.push(`${formatScore(Math.round(player.avg_score * 10) / 10)} avg`);
+        if (byTotal && player.avg_score != null) facts.push(`${formatAvg(player.avg_score)} avg`);
         const rounds = plural(player.rounds_played ?? 0, 'round');
 
         return (
@@ -85,15 +87,11 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
               <div className="min-w-0">
                 <span className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-medium text-foreground truncate"><Name>{player.player_name}</Name></span>
-                  {isMe && <span className="flex-shrink-0 text-xs text-primary">You</span>}
+                  {isMe && <Badge variant="selected" className="flex-shrink-0">You</Badge>}
                   {/* One session's own table: the top player leads while it is open and has won once it is closed. */}
-                  {singleSession && player.leading && (
-                    <span className="flex-shrink-0 rounded-full border border-primary/50 px-1.5 text-xs font-medium text-primary">Leading</span>
-                  )}
+                  {singleSession && player.leading && <Badge className="flex-shrink-0">Leading</Badge>}
                   {singleSession && !player.leading && player.wins > 0 && (
-                    <span className="flex flex-shrink-0 items-center gap-1 rounded-full bg-primary/20 px-1.5 text-xs font-medium text-primary">
-                      <Trophy className="h-3 w-3" aria-hidden="true" /> Winner
-                    </span>
+                    <Badge className="flex-shrink-0"><Trophy className="h-3 w-3" aria-hidden="true" /> Winner</Badge>
                   )}
                 </span>
                 <span className="block text-xs text-muted-foreground">
@@ -105,7 +103,7 @@ export default function Leaderboard({ players = [], sortBy = 'avg', limit, delta
             </div>
             <div className="flex flex-col items-end flex-shrink-0 ml-2">
               <span className={`font-heading font-bold text-base leading-none ${scoreTone(value)}`}>
-                {formatScore(value)}
+                {byTotal ? formatScore(value) : formatAvg(value)}
               </span>
               {/* The player's score in the session named by the legend: an arrow, green up, red down. */}
               {delta != null && delta !== 0 && (
