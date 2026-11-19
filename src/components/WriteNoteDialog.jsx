@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
@@ -18,8 +18,11 @@ import { Name, UserText, dirAuto } from '@/components/UserText';
 //             group of the player on screen, which is where the note belongs.
 export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, targetPlayerName, groupId, onSubmitted }) {
   const { user } = useAuth();
-  const { activeGroupId } = useActiveGroup();
+  const { activeGroupId, membershipIn } = useActiveGroup();
   const noteGroupId = groupId || activeGroupId;
+  // A group admin can delete any note; anyone else cannot delete an anonymous one — not
+  // even their own, since it is stored without an author (qa-tester-3).
+  const isGroupAdmin = noteGroupId ? membershipIn(noteGroupId)?.role === 'admin' : false;
   const [note, setNote] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState('none');
@@ -27,6 +30,9 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Set at once on the first tap, before React re-renders the disabled button, so a quick
+  // second tap sends nothing (the server also refuses a copy sent within 10 seconds).
+  const sending = useRef(false);
 
   useEffect(() => {
     if (open && user && targetPlayerId) {
@@ -63,11 +69,13 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
   };
 
   const handleSubmit = async () => {
+    if (sending.current) return;
     if (!note.trim()) {
       setError('Write the note first.');
       return;
     }
     try {
+      sending.current = true;
       setSubmitting(true);
       setError('');
       // Via createNote — author is derived server-side; anonymous notes store no
@@ -84,6 +92,7 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
     } catch (err) {
       setError(errorMessage(err, "Couldn't post the note."));
     } finally {
+      sending.current = false;
       setSubmitting(false);
     }
   };
@@ -144,6 +153,11 @@ export default function WriteNoteDialog({ open, onOpenChange, targetPlayerId, ta
             </div>
             <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} aria-label="Post anonymously" />
           </div>
+          {isAnonymous && !isGroupAdmin && (
+            <p role="note" className="text-xs text-muted-foreground -mt-2">
+              Only a group admin can delete an anonymous note — not even you.
+            </p>
+          )}
 
           <ErrorState inline message={error} />
         </div>

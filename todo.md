@@ -33,7 +33,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-4 (fix round 1; wave 1 = foundation + stats/backend running, wave 2 = structure, round flow, onboarding/admin next).
+> in_progress: P13-6b (fix round 2: implementers A structure, B round flow, C stats/backend).
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -635,6 +635,13 @@
 - [x] **P13-4** *(done Nov 19 2026 — four implementers in worktrees: foundation + stats (wave 1), structure & navigation, round flow, onboarding & admin (wave 2), all merged on main; every check green)*: fix every blocker and major from round 1, and the cheap minors.
 - [x] **P13-5** *(done Nov 19 2026 — the QA tester, as independent verifier, replayed every fixed cluster on fresh builds of main: **69 fixed, 5 partly, 0 not fixed, 0 regressed, 12 skipped as ruled**; none of the 30 major clusters fails (C42 touch targets partly — four controls under 44 px); cross-cutting checks clean on 19 screens at 320/390/1440 px; 8 new minor findings. Record: `docs/review/round-1/verification/`. A polish pass is clearing C42/C54/C57 and verify-1…8 before the deploy)*: verify round 1's fixes — the QA tester re-walks each changed flow, before and after
   screenshots; build, lint and all tests green.
+- [x] **P13-6a** *(done Nov 19 2026)*: **review round 2** — six fresh reviewers on the code of the live build.
+  Scorecard: Newcomer 0/1/9/2 · Scorekeeper **PUBLISH: yes** 0/1/6/2 · Returning player 0/5/9/1 ·
+  Visual designer 0/3/17/1 · Whist player 0/1/11/1 · QA tester 0/2/7/1 (blocker/major/minor/idea);
+  total **0 blockers, 13 majors, 59 minors, 8 ideas** (round 1: 0 / 39 / 84 / 15). Rulings in
+  `docs/review/round-2/RULINGS.md`: 11 majors fixed in fix round 2 (three implementers A/B/C), 2 not as
+  stated (store icon — owner's; results feed in Activity — idea, reachability fixed).
+- [ ] 🔄 **P13-6b:** fix round 2 → verify → deploy → review round 3 (the last allowed round).
 - [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
   if needed, until a round ends with 0 open blockers and 0 open majors (at most three rounds).
 

@@ -8,10 +8,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // Scopes (body.scope):
 //   group            { group_id, include_results? } -> { sessions, rounds, results }
 //   session          { session_id }                 -> { session, rounds, results }
+//                    every session here also carries counted_rounds and no_winner (below)
 //   round            { round_id }                   -> { round, session, results }
 //   player           { player_id }                  -> { player, results, rounds, sessions, total_rows, limit }
 //                    results = the player's latest `limit` scored rows, newest first, out of total_rows;
-//                    rounds = their Game records; sessions = { [session_id]: { id, name, session_date, status } }
+//                    rounds = their Game records; sessions = { [session_id]: { id, name, session_date, status, counted_rounds, no_winner } }
 //   shared_sessions  { player_id }                  -> { sessions }  (nights the caller and that player both played)
 
 const PAGE = 500; // the entity store caps one filter() at 500 rows
@@ -55,6 +56,18 @@ async function membershipIn(base44, user, groupId) {
   return null;
 }
 
+// How a session stands: counted_rounds = its rounds scored and not cancelled by everyone
+// falling; no_winner = none counted. A session in which no round counted has no result —
+// nobody wins it, nobody gets a podium (src/lib/whist-stats.js sessionHasResult says the
+// same from the result rows: a round counts when someone made their contract).
+function countedRounds(rounds, sessionId) {
+  return rounds.filter((g) => g.session_id === sessionId && g.status === 'complete' && !g.everyone_falls).length;
+}
+function withResult(session, rounds) {
+  const counted = countedRounds(rounds, session.id);
+  return { ...session, counted_rounds: counted, no_winner: counted === 0 };
+}
+
 const deny = (status, error) => Response.json({ error }, { status });
 
 // Gate for every scope. Returns { membership } (null for an app admin who isn't a member)
@@ -92,7 +105,7 @@ Deno.serve(async (req) => {
           fetchAll(db.Game, { group_id: body.group_id }),
           body.include_results === false ? [] : fetchAll(db.RoundResult, { group_id: body.group_id }),
         ]);
-        return Response.json({ sessions, rounds, results });
+        return Response.json({ sessions: sessions.map((s) => withResult(s, rounds)), rounds, results });
       }
 
       case 'session': {
@@ -105,7 +118,7 @@ Deno.serve(async (req) => {
           fetchAll(db.Game, { session_id: session.id }),
           fetchAll(db.RoundResult, { session_id: session.id }),
         ]);
-        return Response.json({ session, rounds, results });
+        return Response.json({ session: withResult(session, rounds), rounds, results });
       }
 
       case 'round': {
@@ -147,7 +160,9 @@ Deno.serve(async (req) => {
         const sessionIds = new Set(results.map((r) => r.session_id));
         const sessions = {};
         for (const s of groupSessions) {
-          if (sessionIds.has(s.id)) sessions[s.id] = { id: s.id, name: s.name, session_date: s.session_date, status: s.status };
+          if (!sessionIds.has(s.id)) continue;
+          const { counted_rounds, no_winner } = withResult(s, groupRounds);
+          sessions[s.id] = { id: s.id, name: s.name, session_date: s.session_date, status: s.status, counted_rounds, no_winner };
         }
         return Response.json({
           player: { id: member.id, name: member.player_name, group_id: member.group_id },
