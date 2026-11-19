@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Pencil, Trash2, SearchX, Ban, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useShowTabBar } from '@/components/TabBarContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
@@ -132,6 +134,9 @@ export default function RoundView() {
   // The caller's standing in the group this round belongs to — not in whichever group was
   // open before. An archived group is read-only.
   const { isAdmin, isArchived: archived, role } = usePageGroup(round?.group_id);
+  // A scored round is a page to read and move on from: it keeps the tab bar. The entry
+  // screens hide it, because they draw their own action bar.
+  useShowTabBar(round?.status === 'complete' || round?.status === 'cancelled');
 
   const applyEntry = (entry) => {
     setBids(entry.bids); setTricks(entry.tricks); setReneges(entry.reneges);
@@ -540,14 +545,10 @@ export default function RoundView() {
     <TableBadge state={liveTable} total={bidTotal} onClick={() => setHelp('updown')} />
   );
   const trickTotalBadge = (
-    <span data-trick-total className={cn(
-      'inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full px-2 text-xs font-bold',
-      tricksAreWrong(trickVals) ? 'bg-destructive/15 text-negative'
-        : trickTotal === 13 ? 'bg-emerald-500/20 text-emerald-400'
-        : 'bg-secondary text-muted-foreground'
-    )}>
+    <Badge data-trick-total variant={tricksAreWrong(trickVals) ? 'negative' : 'default'}
+      className={cn('h-6 shrink-0 font-bold', trickTotal === 13 && !tricksAreWrong(trickVals) && 'border-emerald-500/60 text-emerald-400')}>
       {trickTotal} / 13 tricks
-    </span>
+    </Badge>
   );
   const bidRows = (
     <BidRows players={players} bids={bidVals} focus={focus}
@@ -724,12 +725,16 @@ export default function RoundView() {
           </div>
           {session && (
             <p className="text-sm text-muted-foreground" data-round-session>
-              <UserText>{sessionName(session)}</UserText> · {formatDate(session.session_date || session.created_date)}
+              <Link to={`/session/${round.session_id}`}
+                className="-my-3 inline-flex min-h-11 items-center text-foreground underline underline-offset-2 hover:text-primary">
+                <UserText>{sessionName(session)}</UserText>
+              </Link>
+              {' · '}{formatDate(session.session_date || session.created_date)}
             </p>
           )}
           <TrumpLine round={round} players={players} className="block" />
         </div>
-        <ResultLines results={players} onHelp={setHelp} size="lg" />
+        <ResultLines results={players} onHelp={setHelp} size="lg" linkPlayers />
         <ErrorState inline message={error} />
         {canChangeScored ? (
           // Fixing a round is routine; deleting it is not — so Delete is a quiet text button,

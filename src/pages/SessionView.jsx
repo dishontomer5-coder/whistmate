@@ -35,7 +35,7 @@ const inPlay = (round) => round.status === 'bidding' || round.status === 'playin
 // A rule of the night in the session's header: a word in the line that opens its
 // explanation. 20px tall in the text, 44px to the thumb (the ::after reaches 12px above
 // and below, into the empty space around the line).
-const RULE_LINK = "relative underline decoration-dotted underline-offset-4 hover:text-foreground after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']";
+const RULE_LINK = 'inline-flex min-h-11 items-center underline decoration-dotted underline-offset-4 hover:text-foreground';
 
 export default function SessionView() {
   const { id } = useParams();
@@ -217,7 +217,8 @@ export default function SessionView() {
   return (
     <div className="-mt-3 space-y-4">
       <div className="-my-2 flex items-center justify-between">
-        <BackLink fallback="/history" className="-ml-1 pl-1" />
+        {/* Always "← Sessions", however the page was reached. */}
+        <BackLink to="/history" className="-ml-1 pl-1" />
         <div className="-mr-2 flex items-center">
           <ScoringHelpButton />
           <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground" disabled={refreshing} onClick={() => load(true)} aria-label="Refresh">
@@ -246,7 +247,7 @@ export default function SessionView() {
           {` · ${isOpen ? 'Open' : 'Closed'}`}
         </p>
         {/* The rules of the night. Each one opens its explanation. */}
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground" data-session-rules>
+        <p className="-mb-2 flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground" data-session-rules>
           <button type="button" onClick={() => setHelp('miss')} className={RULE_LINK}>
             {SCORING_METHOD_LABEL[session.scoring_method === 'progressive' ? 'progressive' : 'classic']} scoring
           </button>
