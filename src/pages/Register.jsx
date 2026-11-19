@@ -1,31 +1,57 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import AuthLayout from "@/components/AuthLayout";
+import AuthLayout, { PASSWORD_MIN_LENGTH, PASSWORD_HINT } from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
 import ErrorState from '@/components/ErrorState';
+import { Name } from '@/components/UserText';
 import { errorMessage } from '@/lib/format';
+import {
+  DEFAULT_AFTER_SIGN_IN, pendingReturnTo, rememberReturnTo, consumeReturnTo, withReturnTo, inviteFromPath,
+} from '@/lib/authReturnTo';
 
 export default function Register() {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Each message sits under the field it is about; `error` is for what the server says.
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [resent, setResent] = useState(false);
+
+  // Where the visitor was headed when they were asked to sign up (an invite link…):
+  // ?from_url= on this page — it stays in the address through the e-mail code step — or
+  // the address remembered for this tab. Always a path on this site (authReturnTo.js).
+  const returnTo = pendingReturnTo(location.search);
+  const invite = inviteFromPath(returnTo);
+
+  useEffect(() => { if (returnTo) rememberReturnTo(returnTo); }, [returnTo]);
+
+  if (isAuthenticated) return <Navigate to={returnTo || DEFAULT_AFTER_SIGN_IN} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setPasswordError("");
+    setConfirmError("");
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(`Use at least ${PASSWORD_MIN_LENGTH} characters.`);
+      return;
+    }
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setConfirmError("The two passwords are not the same.");
       return;
     }
     setLoading(true);
@@ -47,7 +73,9 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      window.location.href = "/home";
+      // A full page load, so the app starts again signed in — at the invitation or page
+      // the visitor came for, or the groups list.
+      window.location.assign(consumeReturnTo(location.search));
     } catch (err) {
       setError(errorMessage(err, "Invalid verification code"));
     } finally {
@@ -57,36 +85,47 @@ export default function Register() {
 
   const handleResend = async () => {
     setError("");
+    setResent(false);
     try {
       await base44.auth.resendOtp(email);
-      toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
-      });
+      setResent(true);
     } catch (err) {
       setError(errorMessage(err, "Failed to resend code"));
     }
   };
 
+  // Google sends the browser back to the address it is given, already signed in.
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/home");
+    base44.auth.loginWithProvider("google", consumeReturnTo(location.search));
   };
+
+  const joining = invite
+    ? <> to join {invite.name ? <Name className="font-semibold text-foreground">{invite.name}</Name> : 'the group'}</>
+    : null;
 
   if (showOtp) {
     return (
       <AuthLayout
-        icon={Mail}
         title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        subtitle={<>We sent a 6-digit code to <span className="break-all text-foreground">{email}</span>{joining && <>. One more step{joining}.</>}</>}
+        footer={
+          <button
+            type="button"
+            onClick={() => { setShowOtp(false); setOtpCode(""); setError(""); setResent(false); }}
+            className="inline-flex min-h-11 items-center text-primary font-medium hover:underline"
+          >
+            Use a different email
+          </button>
+        }
       >
-        <ErrorState inline message={error} className="mb-4" />
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <InputOTP
             maxLength={6}
             value={otpCode}
             onChange={setOtpCode}
             autoFocus
             autoComplete="one-time-code"
+            aria-label="Verification code"
           >
             <InputOTPGroup>
               <InputOTPSlot index={0} />
@@ -98,6 +137,7 @@ export default function Register() {
             </InputOTPGroup>
           </InputOTP>
         </div>
+        <ErrorState inline message={error} className="mb-4" />
         <Button
           size="lg" className="w-full"
           onClick={handleVerify}
@@ -112,26 +152,32 @@ export default function Register() {
             "Verify"
           )}
         </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
+        <p className="text-center text-sm text-muted-foreground mt-2">
           Didn't receive the code?{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
+          <button type="button" onClick={handleResend} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
             Resend
           </button>
         </p>
+        {resent && (
+          <p role="status" className="text-center text-sm text-foreground">Code sent again. Check your email.</p>
+        )}
       </AuthLayout>
     );
   }
 
   return (
     <AuthLayout
-      icon={UserPlus}
       title="Create your account"
-      subtitle="Sign up to get started"
+      subtitle={invite ? <>Sign up{joining}</> : "Sign up to get started"}
       footer={
         <>
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">
+          <Link to={withReturnTo("/login", returnTo)} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
             Log in
+          </Link>
+          <span aria-hidden="true" className="mx-2">·</span>
+          <Link to="/about" className="inline-flex min-h-11 items-center hover:text-foreground hover:underline">
+            About &amp; privacy
           </Link>
         </>
       }
@@ -153,8 +199,6 @@ export default function Register() {
           <span className="bg-card px-3 text-muted-foreground">or</span>
         </div>
       </div>
-
-      <ErrorState inline message={error} className="mb-4" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -184,11 +228,16 @@ export default function Register() {
               autoComplete="new-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
               className="pl-10"
+              aria-describedby="password-rule"
+              aria-invalid={passwordError ? true : undefined}
               required
             />
           </div>
+          {/* The rule is on screen before anything is sent */}
+          <p id="password-rule" className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
+          <ErrorState inline message={passwordError} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirm">Confirm password</Label>
@@ -200,12 +249,15 @@ export default function Register() {
               autoComplete="new-password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => { setConfirmPassword(e.target.value); setConfirmError(""); }}
               className="pl-10"
+              aria-invalid={confirmError ? true : undefined}
               required
             />
           </div>
+          <ErrorState inline message={confirmError} />
         </div>
+        <ErrorState inline message={error} />
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading ? (
             <>

@@ -7,8 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Loader2, UserPlus } from 'lucide-react';
 import ErrorState from '@/components/ErrorState';
 import { dirAuto } from '@/components/UserText';
-import { errorMessage } from '@/lib/format';
+import { adminError } from '@/components/admin/messages';
 
+// "Add player": an admin adds someone who has no account yet — an unclaimed player. Rounds
+// can be scored for them at once; when the person joins with the invite link they claim
+// this player and keep its history.
 export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded }) {
   const [playerName, setPlayerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +39,7 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
       onOpenChange(false);
       if (onAdded) onAdded(res.data.member);
     } catch (err) {
-      setError(errorMessage(err, 'Failed to add player.'));
+      setError(adminError(err, "Couldn't add the player."));
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +51,8 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
         <DialogHeader>
           <DialogTitle>Add player</DialogTitle>
           <DialogDescription>
-            Add a player who doesn't have an account yet. They can claim this player later, with its history.
+            For someone who has no account yet. You can score rounds for them straight away; when they join
+            with the invite link they claim this player and keep its history.
           </DialogDescription>
         </DialogHeader>
 
@@ -68,9 +72,9 @@ export default function GhostMemberDialog({ open, onOpenChange, groupId, onAdded
                 }
               }}
             />
+            {/* Under the field it is about (a name that is taken, an empty name) */}
+            <ErrorState inline message={error} />
           </div>
-
-          <ErrorState inline message={error} />
         </div>
 
         <DialogFooter>

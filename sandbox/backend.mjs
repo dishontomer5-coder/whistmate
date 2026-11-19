@@ -15,7 +15,9 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const APP_ID = 'sandbox';
 export const TOKEN_PREFIX = 'sbx-';
 const BUILT_IN_FIELDS = ['id', 'created_date', 'updated_date', 'created_by_id', 'created_by'];
-const DEFAULT_IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook.";
+// The assistant's refusal line, as in base44/functions/askRules/entry.ts (it is read from the
+// prompt; this copy is only the fallback if the prompt ever stops carrying it).
+const DEFAULT_IDK = "IDK bro 🤷 — that's not in the WhistMate rulebook. I only know the rules and scoring; for your account or your data, see About & privacy in the menu.";
 
 // --- seeded PRNG (xmur3 hash -> mulberry32) ----------------------------------------------------
 export function makeRng(seedText) {
