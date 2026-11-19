@@ -359,8 +359,8 @@ await t('player scope returns every scored round of a short history, newest firs
   assert.ok(data.results.every((r) => roundIds.has(r.game_id)));
   // Every row can name its night: the session's name, date and status, by session id.
   assert.deepEqual(data.sessions, {
-    sA1: { id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed' },
-    sA2: { id: 'sA2', name: 'Short Night', session_date: '2026-07-08', status: 'open' },
+    sA1: { id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed', counted_rounds: 130, no_winner: false },
+    sA2: { id: 'sA2', name: 'Short Night', session_date: '2026-07-08', status: 'open', counted_rounds: 1, no_winner: false },
   });
 });
 await t('player scope never returns the claim token', async () => {
@@ -1572,10 +1572,10 @@ await t('computeGlobalStats: the nights across groups, with the best and the wor
   fresh(statsTable);
   const { data } = await call('computeGlobalStats', sam, {});
   assert.deepEqual(data.sessions, [
-    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4, group_id: 'gS', group_name: 'Stats Table' },
-    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4, group_id: 'gS', group_name: 'Stats Table' },
-    { session_id: 'sBs', name: 'B Stats Night', session_date: '2026-08-10', status: 'closed', total: -50, rank: 4, players: 4, group_id: 'gB', group_name: 'Group B' },
-    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4, group_id: 'gS', group_name: 'Stats Table' },
+    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4, no_winner: false, group_id: 'gS', group_name: 'Stats Table' },
+    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4, no_winner: false, group_id: 'gS', group_name: 'Stats Table' },
+    { session_id: 'sBs', name: 'B Stats Night', session_date: '2026-08-10', status: 'closed', total: -50, rank: 4, players: 4, no_winner: false, group_id: 'gB', group_name: 'Group B' },
+    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4, no_winner: false, group_id: 'gS', group_name: 'Stats Table' },
   ]);
   assert.equal(data.best_session.session_id, 'sS1');   // +76 on First Friday
   assert.equal(data.worst_session.session_id, 'sBs');  // -50 in Group B
@@ -1588,12 +1588,12 @@ await t('computePlayerStats: one entry per session the player scored in, newest 
   fresh(statsTable);
   const stats = await playerStats('mSam', tal); // any member of the group may look
   assert.deepEqual(stats.sessions, [
-    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4 },
-    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4 },
-    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4 },
+    { session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 46, rank: 1, players: 4, no_winner: false },
+    { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4, no_winner: false },
+    { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4, no_winner: false },
   ]);
   // Wolf never sat at the closed nights; Xen never played at all.
-  assert.deepEqual((await playerStats('mWolf')).sessions, [{ session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 26, rank: 2, players: 4 }]);
+  assert.deepEqual((await playerStats('mWolf')).sessions, [{ session_id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', total: 26, rank: 2, players: 4, no_winner: false }]);
   assert.deepEqual((await playerStats('mXen')).sessions, []);
   // The chart's points can name their night too.
   assert.deepEqual(stats.timeline.map((p) => p.session_name), ['First Friday', 'First Friday', 'First Friday', 'Second Friday', 'Second Friday', 'Second Friday', 'Tonight', 'Tonight']);
@@ -1603,8 +1603,8 @@ await t('computePlayerStats: best and worst night are closed sessions; outsiders
   fresh(statsTable);
   const samStats = await playerStats('mSam');
   // Tonight's +46 would be Sam's second best night — it does not count while it is open.
-  assert.deepEqual(samStats.best_session, { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4 });
-  assert.deepEqual(samStats.worst_session, { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4 });
+  assert.deepEqual(samStats.best_session, { session_id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', total: 76, rank: 1, players: 4, no_winner: false });
+  assert.deepEqual(samStats.worst_session, { session_id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', total: 33, rank: 3, players: 4, no_winner: false });
   const uri = await playerStats('mUri');
   assert.deepEqual([uri.best_session.name, uri.best_session.total, uri.worst_session.name, uri.worst_session.total], ['First Friday', -20, 'Second Friday', -150]);
   assert.deepEqual([(await playerStats('mXen')).best_session, (await playerStats('mXen')).worst_session], [null, null]);
@@ -1653,7 +1653,7 @@ await t('computePlayerStats: players level on points share a place in a night �
   assert.deepEqual([await wins('mSam'), await wins('mTal'), await wins('mUri'), await wins('mVered')], [4, 2, 1, 1]);
   // Group A's Big Night ended with all four level: everyone is #1 of 4.
   const big = (await call('computePlayerStats', alice, { player_id: 'mBob' })).data.sessions;
-  assert.deepEqual(big, [{ session_id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed', total: 2470, rank: 1, players: 4 }]);
+  assert.deepEqual(big, [{ session_id: 'sA1', name: 'Big Night', session_date: '2026-07-01', status: 'closed', total: 2470, rank: 1, players: 4, no_winner: false }]);
 });
 
 // --- ruling 12: nothing to count is not 0% -------------------------------------------------------
@@ -1747,9 +1747,9 @@ await t('getGroupData player scope: every row names its session; a long history 
   const short = (await call('getGroupData', tal, { scope: 'player', player_id: 'mUri' })).data;
   assert.deepEqual([short.results.length, short.total_rows, short.limit], [8, 8, 200]); // the round in play is not history yet
   assert.deepEqual(short.sessions, {
-    sS1: { id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed' },
-    sS2: { id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed' },
-    sS3: { id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open' },
+    sS1: { id: 'sS1', name: 'First Friday', session_date: '2026-08-07', status: 'closed', counted_rounds: 2, no_winner: false },
+    sS2: { id: 'sS2', name: 'Second Friday', session_date: '2026-08-14', status: 'closed', counted_rounds: 2, no_winner: false },
+    sS3: { id: 'sS3', name: 'Tonight', session_date: '2026-08-21', status: 'open', counted_rounds: 1, no_winner: false },
   });
   assert.deepEqual(short.results.map((r) => short.sessions[r.session_id].name), ['Tonight', 'Tonight', 'Second Friday', 'Second Friday', 'Second Friday', 'First Friday', 'First Friday', 'First Friday']);
   // Sam's history in Stats Table does not carry his Group B night, nor Group B's session.
@@ -2072,6 +2072,116 @@ await t('no function trusts the membership cache: user.groups appears only where
     });
   }
   assert.deepEqual(offenders, []);
+});
+
+// =========================================================================================
+// Review round 2 (C): a session in which no round counted has no winner (qa-tester-1), and a
+// note is posted once (qa-tester-2).
+// =========================================================================================
+section = 'R2 stats and notes';
+
+// The stats table plus a closed night whose only round fell: bids 4,4,4,2 and tricks 3,3,3,4,
+// so nobody made their contract and everybody scored 0 — four players "level on top".
+const withFallenNight = () => {
+  statsTable();
+  db.Session.push({ id: 'sS4', group_id: 'gS', name: 'Nobody made it', status: 'closed', session_date: '2026-08-18', created_date: at(6250) });
+  const seats = [['mSam', 'Sam', 4, 3], ['mTal', 'Tal', 4, 3], ['mUri', 'Uri', 4, 3], ['mVered', 'Vered', 2, 4]];
+  const scored = scoreRound({ players: seats.map(([player_id, , bid, tricks_won]) => ({ player_id, bid, tricks_won, reneged: false })), scoringMethod: 'classic' });
+  assert.equal(scored.everyoneFalls, true, 'fixture: the round must be everyone-falls');
+  db.Game.push({ id: 'rS4-1', group_id: 'gS', session_id: 'sS4', round_number: 1, status: 'cancelled', everyone_falls: true, trump_suit: null, highest_bidder_player_id: 'mSam', created_date: at(6450) });
+  seats.forEach(([playerId, name, bid, tricks], i) => db.RoundResult.push({
+    id: `rS4-1-r${i}`, game_id: 'rS4-1', session_id: 'sS4', group_id: 'gS', player_id: playerId, player_name: name,
+    bid_order: i, bid, tricks_won: tricks, reneged: false, points: scored.results[i].points, created_date: at(6450),
+  }));
+};
+const RESULT_FIELDS = ['sessions_played', 'wins', 'podiums', 'win_ratio'];
+const resultOf = (performance) => Object.fromEntries(RESULT_FIELDS.map((f) => [f, performance[f]]));
+
+await t('computePlayerStats: a closed session where no round counted adds no win, no podium and no session played — for anyone', async () => {
+  fresh(statsTable);
+  const before = {};
+  for (const id of ['mSam', 'mTal', 'mUri', 'mVered']) before[id] = resultOf((await playerStats(id)).performance);
+  fresh(withFallenNight);
+  for (const id of ['mSam', 'mTal', 'mUri', 'mVered']) {
+    const stats = await playerStats(id);
+    assert.deepEqual(resultOf(stats.performance), before[id], id);
+    const night = stats.sessions.find((n) => n.session_id === 'sS4');
+    assert.equal(night.no_winner, true, `${id}: the night says it has no winner`);
+    assert.notEqual(stats.best_session?.session_id, 'sS4');
+    assert.notEqual(stats.worst_session?.session_id, 'sS4');
+    assert.ok(stats.sessions.filter((n) => n.session_id !== 'sS4').every((n) => n.no_winner === false));
+  }
+});
+await t('computeGlobalStats: a session where no round counted adds no win and says no_winner', async () => {
+  fresh(statsTable);
+  const before = resultOf((await call('computeGlobalStats', sam, {})).data.performance);
+  fresh(withFallenNight);
+  const { data } = await call('computeGlobalStats', sam, {});
+  assert.deepEqual(resultOf(data.performance), before);
+  assert.equal(data.sessions.find((n) => n.session_id === 'sS4').no_winner, true);
+});
+await t('getGroupData: every session says how many rounds counted and whether it has no winner', async () => {
+  fresh(withFallenNight);
+  const one = (await call('getGroupData', sam, { scope: 'session', session_id: 'sS4' })).data.session;
+  assert.deepEqual([one.id, one.counted_rounds, one.no_winner], ['sS4', 0, true]);
+  const other = (await call('getGroupData', sam, { scope: 'session', session_id: 'sS2' })).data.session;
+  assert.deepEqual([other.counted_rounds, other.no_winner], [2, false]); // one of its three rounds fell
+  const group = (await call('getGroupData', sam, { scope: 'group', group_id: 'gS' })).data.sessions;
+  assert.deepEqual(Object.fromEntries(group.map((x) => [x.id, [x.counted_rounds, x.no_winner]])), {
+    sS1: [2, false], sS2: [2, false], sS3: [1, false], sS4: [0, true],
+  });
+  const lean = (await call('getGroupData', sam, { scope: 'group', group_id: 'gS', include_results: false })).data.sessions;
+  assert.equal(lean.find((x) => x.id === 'sS4').no_winner, true);
+  const player = (await call('getGroupData', sam, { scope: 'player', player_id: 'mVered' })).data.sessions;
+  assert.deepEqual([player.sS4.counted_rounds, player.sS4.no_winner, player.sS1.no_winner], [0, true, false]);
+});
+
+const notesAbout = (target, text) => db.TableTalkNote.filter((n) => n.target_player_id === target && n.note === text);
+await check('createNote', 'allowed', 'the same signed note sent twice within 10 seconds is stored once, and both answers are the first note', async () => {
+  fresh();
+  const body = { group_id: 'gA', target_player_id: 'mBob', note: 'Double tap', session_id: 'sA1' };
+  const first = await call('createNote', alice, body);
+  const second = await call('createNote', alice, body);
+  assert.deepEqual([first.status, second.status], [200, 200]);
+  assert.equal(second.data.note.id, first.data.note.id);
+  assert.deepEqual(Object.keys(second.data.note).sort(), Object.keys(first.data.note).sort());
+  assert.equal(notesAbout('mBob', 'Double tap').length, 1);
+});
+await check('createNote', 'allowed', 'the same anonymous note sent twice is stored once, still without an author', async () => {
+  fresh();
+  const body = { group_id: 'gA', target_player_id: 'mBob', note: 'Anonymous double tap', is_anonymous: true };
+  const first = await call('createNote', bob, body);
+  const second = await call('createNote', bob, body);
+  assert.equal(second.status, 200);
+  assert.equal(second.data.note.id, first.data.note.id);
+  const stored = notesAbout('mBob', 'Anonymous double tap');
+  assert.equal(stored.length, 1);
+  assert.deepEqual([stored[0].author_user_id, stored[0].author_name], [null, null]);
+});
+await check('createNote', 'allowed', 'two copies arriving together: one is kept, both answers name it', async () => {
+  fresh();
+  const body = { group_id: 'gA', target_player_id: 'mBob', note: 'Arrived together' };
+  const [a, b] = await Promise.all([call('createNote', alice, body), call('createNote', alice, body)]);
+  assert.deepEqual([a.status, b.status], [200, 200]);
+  assert.equal(a.data.note.id, b.data.note.id);
+  assert.equal(notesAbout('mBob', 'Arrived together').length, 1);
+});
+await check('createNote', 'allowed', 'not a duplicate: other text, another player, another author, signed vs anonymous, or more than 10 seconds later', async () => {
+  fresh();
+  const body = { group_id: 'gA', target_player_id: 'mBob', note: 'Same words' };
+  await call('createNote', alice, body);
+  await call('createNote', alice, { ...body, note: 'Other words' });
+  await call('createNote', alice, { ...body, target_player_id: 'mDan' });
+  await call('createNote', bob, body);                         // another author
+  await call('createNote', alice, { ...body, is_anonymous: true });
+  assert.equal(notesAbout('mBob', 'Same words').length, 3);    // Alice signed, Bob signed, anonymous
+  assert.equal(notesAbout('mDan', 'Same words').length, 1);
+  // An identical note from long ago does not stop a new one.
+  fresh(() => db.TableTalkNote.push({ id: 'nOld', group_id: 'gA', target_player_id: 'mBob', note: 'Said it before', is_anonymous: false, author_user_id: 'uAlice', author_name: 'Alice', created_date: at(50) }));
+  const again = await call('createNote', alice, { group_id: 'gA', target_player_id: 'mBob', note: 'Said it before' });
+  assert.notEqual(again.data.note.id, 'nOld');
+  assert.equal(notesAbout('mBob', 'Said it before').length, 2);
+  fresh();
 });
 
 // A write function counts as covered when a check ran for every kind of caller it lists.

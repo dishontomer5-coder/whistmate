@@ -12,7 +12,9 @@
 //                rounds of a session that is still open.
 //                wins, podiums, sessions_played, win_ratio — CLOSED sessions only. A session
 //                is won when it is closed with the player in first place; while it is open
-//                the top player is only leading.
+//                the top player is only leading. A session in which no round counted (every
+//                scored round was everyone-falls) has no result: no win, no podium, and it
+//                is not in sessions_played either.
 //   Strategy     contract_accuracy, zero_bid_success_rate, bid_aggressiveness.
 //   Rates        null when there is nothing to count (no rounds, no zero bids, no closed
 //                session) — never 0, which would read as "always fails".
@@ -105,6 +107,21 @@ export function rankSession(rows) {
 }
 
 /**
+ * Did at least one round of a session count? A round in which nobody made their contract
+ * is everyone-falls: cancelled, scored zero. A session whose every scored round fell has
+ * no result — nobody wins it, nobody gets a podium, nobody is leading it.
+ * "Made" is scoring.js's madeContract: took exactly the bid (a zero bid taking no trick
+ * included). A round counts when any of its players made it, so the session counts when
+ * any scored row did. A row that does not say its bid and tricks is taken as counted.
+ * @param {Array<{bid:number, tricks_won:number, points:number}>} rows RoundResult rows of ONE
+ *        session (unscored ones are ignored).
+ * @returns {boolean} false when there is no scored round at all, too.
+ */
+export function sessionHasResult(rows) {
+  return rows.some((r) => r.points != null && (r.bid == null || r.tricks_won == null || r.tricks_won === r.bid));
+}
+
+/**
  * Who answers for an everyone-falls round (The Destroyer): the player recorded as the
  * trump winner, or — when none is recorded — every player who bid the highest number.
  * A trump winner counts as recorded only when the round has a trump suit: without one,
@@ -194,11 +211,12 @@ function sessionTime(session) {
  *        wrong (unscored rows are ignored).
  * @param {Array<{id:string, name?:string, session_date?:string, status?:string, created_date?:string}>} sessions
  * @param {string} playerId
- * @returns {Array<{session_id:string, name:string|null, session_date:string|null, status:string|null, total:number, rank:number, players:number}>}
+ * @returns {Array<{session_id:string, name:string|null, session_date:string|null, status:string|null, total:number, rank:number, players:number, no_winner:boolean}>}
  *          total = the player's points that night; rank = their place among the `players`
  *          who scored in it (ties share a rank). status is 'open' or 'closed' (null when the
  *          session record is missing). In an open session the rank is where the player
- *          stands for now — not a result.
+ *          stands for now — not a result. no_winner = no round of the session counted
+ *          (sessionHasResult): the rank is then no result either, open or closed.
  */
 export function playerSessions(rows, sessions, playerId) {
   const sessionById = {};
@@ -222,6 +240,7 @@ export function playerSessions(rows, sessions, playerId) {
       total: mine.total,
       rank: mine.rank,
       players: ranking.size,
+      no_winner: !sessionHasResult(bySession[sessionId]),
     });
   }
   return entries.sort((a, b) => {
@@ -236,13 +255,14 @@ export function playerSessions(rows, sessions, playerId) {
  * Only CLOSED sessions count: a session is won when it is closed with the player in first
  * place. While it is open the top player is only leading, so an open session gives no
  * win, no podium and no best or worst night — and is not in the win-rate denominator.
+ * A closed session with no_winner (no round counted) gives none of these either.
  * @returns {{sessions_played:number, sessions_open:number, wins:number, podiums:number, win_ratio:number|null, best_session:object|null, worst_session:object|null}}
- *          sessions_played = closed sessions (what win_ratio divides by; null when 0).
+ *          sessions_played = closed sessions with a result (what win_ratio divides by; null when 0).
  *          best_session / worst_session = the closed entry with the highest / lowest total
  *          (the more recent one on a tie; the same entry when only one session is closed).
  */
 export function sessionRecord(entries) {
-  const closed = entries.filter((e) => e.status === 'closed');
+  const closed = entries.filter((e) => e.status === 'closed' && !e.no_winner);
   const wins = closed.filter((e) => e.rank === 1).length;
   let best = null;
   let worst = null;
@@ -265,7 +285,8 @@ export function sessionRecord(entries) {
 /**
  * Win/podium tally for a player from ready-made session rankings.
  * @param {Array<Map>} rankedSessions rankSession() of each CLOSED session the player was
- *        in — an open session has no winner yet, so leave it out (sessionRecord() does
+ *        in that has a result (sessionHasResult) — an open session has no winner yet, and
+ *        one where no round counted has none at all, so leave them out (sessionRecord() does
  *        that by itself when given playerSessions() entries).
  * @param {string} playerId
  * @returns win_ratio is null when the player is in none of the sessions.
