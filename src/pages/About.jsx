@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { APP_INFO } from '@/lib/app-info';
+import BackLink from '@/components/BackLink';
 
 // About, contact and privacy (P12-3). Public: reachable signed out, so anyone deciding
 // whether to sign up can see who runs the app and what it does with their data.
@@ -38,9 +38,8 @@ export default function About() {
 
   return (
     <div className="space-y-6">
-      <Link to="/home" className="flex items-center gap-1 min-h-11 -my-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </Link>
+      {/* Back to wherever About was opened from — a group page stays a group page. */}
+      <BackLink fallback="/home" className="-my-2" />
 
       <div>
         <h1 className="page-title">About {APP_INFO.name}</h1>
