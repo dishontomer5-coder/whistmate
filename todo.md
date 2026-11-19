@@ -33,7 +33,7 @@
 > Checks at `main` (Nov 18 2026): build GREEN, lint clean, scoring 38/38, stats 5/5,
 > **functions-access 89/89**, `rules:check` in sync. `main` = `origin/main`; branch
 > `p12-clonitt-readiness` is merged and can be deleted.
-> in_progress: P13-6b (fix round 2: implementers A structure, B round flow, C stats/backend).
+> in_progress: P13-6d (fix round 3: the concurrent-overwrite blocker and four majors).
 > ⚠️ DEPLOY ORDER that works (learned Nov 18 2026): (1) `functions deploy`, (2)
 > `site deploy --build --publish --yes`, (3) `git push origin main` — all CLI calls with
 > `--app-id 6a5be77702d0c74b5a13cfea`. The git sync applied the new ENTITY RULES about 30 seconds after
@@ -641,7 +641,16 @@
   total **0 blockers, 13 majors, 59 minors, 8 ideas** (round 1: 0 / 39 / 84 / 15). Rulings in
   `docs/review/round-2/RULINGS.md`: 11 majors fixed in fix round 2 (three implementers A/B/C), 2 not as
   stated (store icon — owner's; results feed in Activity — idea, reachability fixed).
-- [ ] 🔄 **P13-6b:** fix round 2 → verify → deploy → review round 3 (the last allowed round).
+- [x] **P13-6b** *(done Nov 19 2026)*: **fix round 2** (implementers A structure, B round flow, C stats/backend + a
+  polish pass) → **verified** by the QA tester (53 fixed, 1 partly, 0 regressed; record in
+  `docs/review/round-2/verification/`) → **deployed** (bundle `index-B8tlGwc_.js`; signed-out reads `[]`).
+- [x] **P13-6c** *(done Nov 19 2026)*: **review round 3** — the last allowed. Six fresh reviewers. Scorecard:
+  Newcomer **PUBLISH: yes** 0/0/8/1 · Scorekeeper **PUBLISH: yes** 0/0/8/1 · Returning player 0/1/8/1 ·
+  Visual designer 0/2/14/2 · Whist player **PUBLISH: yes** 0/0/6/1 · QA tester 1/1/6/0
+  (blocker/major/minor/idea); total **1 blocker, 4 majors, 50 minors, 6 ideas** (round 2: 0/13/59/8; round 1:
+  0/39/84/15). The blocker: two people editing the same round silently overwrite each other.
+  Rulings: `docs/review/round-3/RULINGS.md`.
+- [ ] 🔄 **P13-6d:** fix round 3 (the blocker + 4 majors + cheap minors) → independent verification → deploy → close.
 - [ ] **P13-6:** review round 2 with fresh reviewers; repeat P13-3 to P13-5 as round 2, and a round 3
   if needed, until a round ends with 0 open blockers and 0 open majors (at most three rounds).
 
