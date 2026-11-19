@@ -136,6 +136,10 @@ export function useRowsInView(getTargets, activeIndex) {
     const show = () => showRows(...targets.current());
     show();
     window.addEventListener(DOCK_RESIZE_EVENT, show);
-    return () => window.removeEventListener(DOCK_RESIZE_EVENT, show);
+    window.addEventListener('resize', show); // the phone was turned, or the window resized
+    return () => {
+      window.removeEventListener(DOCK_RESIZE_EVENT, show);
+      window.removeEventListener('resize', show);
+    };
   }, [activeIndex]);
 }
