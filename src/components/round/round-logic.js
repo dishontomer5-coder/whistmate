@@ -70,11 +70,12 @@ export function blockedBid(bidValues, index) {
 export function lockBlocker({ bids, advanced = false, trump = null, trumpOwnerId = null, hierarchy = null }) {
   const missing = bids.filter((v) => !isSet(v)).length;
   if (missing === bids.length) return 'Enter a bid for each player';
-  if (missing > 0) return `Enter the bids — ${missing} to go`;
+  if (missing > 0) return `Enter the bids — ${playersToGo(missing)}`;
   if (!isBidSumLegal(bids.map(Number))) return "The bids can't total 13 — change one";
   if (advanced) {
     // Advanced rules: every round records who won the trump, the suit and the card order.
-    if (!trumpOwnerId) return 'Mark who won the trump';
+    // Two players on the top bid: the suit settled it at the table, so the app asks.
+    if (!trumpOwnerId) return topBidders(bids).length > 1 ? TOP_BID_TIE_LINE : 'Mark who won the trump';
     if (!trump) return 'Pick the trump suit';
     if (!hierarchy) return 'Choose the card order';
     return null;
@@ -88,13 +89,89 @@ export function lockBlocker({ bids, advanced = false, trump = null, trumpOwnerId
 // --- tricks -----------------------------------------------------------------------
 
 // Why "Save round" is off — one plain line, or null. `tricks` are the four values in table order.
+// "To go" always counts players, and never stands beside a total that is already 13.
 export function saveBlocker({ tricks }) {
   const missing = tricks.filter((v) => !isSet(v)).length;
-  if (missing === tricks.length) return 'Enter the tricks each player took';
-  if (missing > 0) return `Enter the tricks — ${missing} to go`;
   const total = sum(tricks);
+  if (missing === tricks.length) return 'Enter the tricks each player took';
+  if (missing > 0 && total === TOTAL_TRICKS) {
+    return missing === 1
+      ? `All ${TOTAL_TRICKS} tricks are given out — enter 0 for the last player`
+      : `All ${TOTAL_TRICKS} tricks are given out — enter 0 for the other ${missing} players`;
+  }
+  if (missing > 0 && total > TOTAL_TRICKS) return `Tricks must total ${TOTAL_TRICKS} — already ${total}`;
+  if (missing > 0) return `Enter the tricks — ${playersToGo(missing)}`;
   if (total !== TOTAL_TRICKS) return `Tricks must total ${TOTAL_TRICKS} — now ${total}`;
   return null;
+}
+
+// Whether saveBlocker's line is an error (the numbers as they stand cannot be saved) rather
+// than something still to fill in.
+export function tricksAreWrong(tricks) {
+  const total = sum(tricks);
+  return total > TOTAL_TRICKS || (tricks.every(isSet) && total !== TOTAL_TRICKS);
+}
+
+const playersToGo = (n) => `${n} player${n === 1 ? '' : 's'} to go`;
+
+// --- the trump winner ------------------------------------------------------------------
+
+export const TOP_BID_TIE_LINE = 'Tie on the top bid — tap who won the auction';
+
+// The rows holding the highest bid, once all four bids are in ([] before that).
+export function topBidders(bids) {
+  if (!bids.every(isSet)) return [];
+  const top = Math.max(...bids.map(Number));
+  return bids.reduce((rows, b, i) => (Number(b) === top ? [...rows, i] : rows), []);
+}
+
+// The player to mark as trump winner before anyone taps a mark: in an advanced session the
+// one player holding the top bid. On a tie nobody — the suit decided it at the table, and
+// the app never sees the suits of the auction. -1 when nobody is pre-marked.
+export function defaultTrumpOwnerIndex(bids, advanced) {
+  if (!advanced) return -1;
+  const top = topBidders(bids);
+  return top.length === 1 ? top[0] : -1;
+}
+
+// A gentle note (never a block) when the marked trump winner bid less than the top bid:
+// the winner of the auction normally holds it. null when there is nothing to say.
+export function trumpOwnerHint(bids, ownerIndex, ownerName = '') {
+  if (ownerIndex < 0 || !bids.every(isSet)) return null;
+  const top = Math.max(...bids.map(Number));
+  const own = Number(bids[ownerIndex]);
+  if (own >= top) return null;
+  return `${ownerName || 'The trump winner'} bid ${own}, below the top bid of ${top} — is that the right trump winner?`;
+}
+
+// --- the order of the results sheet ----------------------------------------------------
+
+// The rows' indexes in the order the table bid: round the table from `start`, wrapping.
+// The results sheet follows it, so tricks are read out in the order people bid.
+// biddingOrder(4, 2) → [2, 3, 0, 1]
+export function biddingOrder(count, start = 0) {
+  const s = start >= 0 && start < count ? start : 0;
+  return Array.from({ length: count }, (_, i) => (s + i) % count);
+}
+
+// --- one row of the results preview ----------------------------------------------------
+
+// What a results row says once its tricks are in, as parts the screen can colour:
+//   { text, points, renege }   → "made" +19, and −100 for a renege
+//   text    "made" | "2 off" | "zero bid failed (3 tricks)" | "everyone fell"
+//   points  the contract points (before any renege), null when not known
+//   renege  true when the −100 applies to this row
+// The line reads "bid 3 · made +19 − 100 renege" or "zero bid failed (3 tricks) −30".
+export function outcomeParts({ bid, tricks, row, renege = false, everyoneFalls = false }) {
+  if (!row || row.points == null || !isSet(tricks)) return null;
+  const b = Number(bid);
+  const t = Number(tricks);
+  const contract = row.points + (renege ? RENEGE_PENALTY : 0);
+  let text;
+  if (everyoneFalls) text = 'everyone fell';
+  else if (b === 0 && t > 0) text = `zero bid failed (${t} trick${t === 1 ? '' : 's'})`;
+  else text = row.made ? 'made' : `${row.off} off`;
+  return { text, points: contract, renege: !!renege, zeroFailed: b === 0 && t > 0 && !everyoneFalls };
 }
 
 // What the round will score, before it is saved.

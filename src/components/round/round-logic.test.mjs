@@ -5,6 +5,7 @@ import process from 'node:process';
 import {
   nextEmptyIndex, rotateLeft, sameTableOrder, blockedBid, lockBlocker, saveBlocker, previewRound,
   nextRoundNumber, roundLimit, startBlocker, isRealDate, parseRoundLimit, sessionFormErrors,
+  tricksAreWrong, topBidders, defaultTrumpOwnerIndex, trumpOwnerHint, TOP_BID_TIE_LINE, biddingOrder, outcomeParts,
 } from './round-logic.js';
 import { scoreRound, contractPoints } from '../../lib/scoring.js';
 
@@ -95,7 +96,7 @@ test('changing a bid afterwards is blocked the same way', () => {
 
 test('Lock bids says what is missing — every reason', () => {
   assert.equal(lockBlocker({ bids: [_, _, _, _] }), 'Enter a bid for each player');
-  assert.equal(lockBlocker({ bids: [4, _, _, 3] }), 'Enter the bids — 2 to go');
+  assert.equal(lockBlocker({ bids: [4, _, _, 3] }), 'Enter the bids — 2 players to go');
   assert.equal(lockBlocker({ bids: [4, 3, 4, 2] }), "The bids can't total 13 — change one");
   assert.equal(lockBlocker({ bids: [4, 3, 4, 3] }), null);
   // a trump winner marked without a suit is not locked silently
@@ -105,19 +106,19 @@ test('Lock bids says what is missing — every reason', () => {
 });
 
 test('Lock bids in an advanced session: trump winner, suit and card order are all needed', () => {
-  const bids = [4, 3, 4, 3];
+  const bids = [5, 3, 4, 3];
   assert.equal(lockBlocker({ bids, advanced: true }), 'Mark who won the trump');
   assert.equal(lockBlocker({ bids, advanced: true, trumpOwnerId: 'p1' }), 'Pick the trump suit');
   assert.equal(lockBlocker({ bids, advanced: true, trumpOwnerId: 'p1', trump: 'notrump' }), 'Choose the card order');
   assert.equal(lockBlocker({ bids, advanced: true, trumpOwnerId: 'p1', trump: 'notrump', hierarchy: 'down_up' }), null);
-  assert.equal(lockBlocker({ bids: [4, 3, _, 3], advanced: true, trumpOwnerId: 'p1', trump: 'clubs', hierarchy: 'standard' }), 'Enter the bids — 1 to go');
+  assert.equal(lockBlocker({ bids: [4, 3, _, 3], advanced: true, trumpOwnerId: 'p1', trump: 'clubs', hierarchy: 'standard' }), 'Enter the bids — 1 player to go');
 });
 
 // ---- tricks ----------------------------------------------------------------------
 
 test('Save round says what is missing — every reason', () => {
   assert.equal(saveBlocker({ tricks: [_, _, _, _] }), 'Enter the tricks each player took');
-  assert.equal(saveBlocker({ tricks: [4, _, 3, _] }), 'Enter the tricks — 2 to go');
+  assert.equal(saveBlocker({ tricks: [4, _, 3, _] }), 'Enter the tricks — 2 players to go');
   assert.equal(saveBlocker({ tricks: [4, 3, 3, 2] }), 'Tricks must total 13 — now 12');
   assert.equal(saveBlocker({ tricks: [5, 4, 3, 2] }), 'Tricks must total 13 — now 14');
   assert.equal(saveBlocker({ tricks: [4, 3, 4, 2] }), null);
@@ -264,6 +265,67 @@ test('the form stops a name of 61 characters, a blank date and a bad limit — e
   assert.equal(sessionFormErrors({ ...ok, roundLimit: '0' }).roundLimit, 'A round limit is a whole number from 1 to 99 — or leave it empty');
   assert.equal(sessionFormErrors({ ...ok, roundLimit: '2' }).roundLimit, undefined);
   assert.deepEqual(Object.keys(sessionFormErrors({ name: 'x'.repeat(61), location: '', date: '', roundLimit: 'abc' })).sort(), ['date', 'name', 'roundLimit']);
+});
+
+// ---- review round 2 -----------------------------------------------------------------
+
+test('"to go" counts players and never stands beside a complete total (whist-player-6)', () => {
+  assert.equal(saveBlocker({ tricks: [13, _, _, _] }), 'All 13 tricks are given out — enter 0 for the other 3 players');
+  assert.equal(saveBlocker({ tricks: [6, 7, _, 0] }), 'All 13 tricks are given out — enter 0 for the last player');
+  assert.equal(saveBlocker({ tricks: [6, _, _, _] }), 'Enter the tricks — 3 players to go');
+  assert.equal(saveBlocker({ tricks: [6, 4, 2, _] }), 'Enter the tricks — 1 player to go');
+  assert.equal(saveBlocker({ tricks: [10, 5, _, _] }), 'Tricks must total 13 — already 15');
+});
+
+test('a wrong trick total is an error, a missing row is not (visual-designer-5)', () => {
+  assert.equal(tricksAreWrong([4, 3, 3, 2]), true);
+  assert.equal(tricksAreWrong([10, 5, _, _]), true);
+  assert.equal(tricksAreWrong([4, 3, _, _]), false);
+  assert.equal(tricksAreWrong([4, 3, 4, 2]), false);
+});
+
+test('a tie on the top bid marks nobody and asks (whist-player-1)', () => {
+  assert.deepEqual(topBidders([5, 5, 2, 2]), [0, 1]);
+  assert.deepEqual(topBidders([5, _, 2, 2]), []);
+  assert.equal(defaultTrumpOwnerIndex([5, 5, 2, 2], true), -1);
+  assert.equal(defaultTrumpOwnerIndex([2, 6, 5, 2], true), 1);
+  assert.equal(defaultTrumpOwnerIndex([2, 6, 5, 2], false), -1, 'ordinary sessions never pre-mark');
+  assert.equal(lockBlocker({ bids: [5, 5, 2, 2], advanced: true }), TOP_BID_TIE_LINE);
+  assert.equal(TOP_BID_TIE_LINE, 'Tie on the top bid — tap who won the auction');
+  assert.equal(lockBlocker({ bids: [2, 6, 5, 2], advanced: true }), 'Mark who won the trump');
+});
+
+test('a trump winner below the top bid gets a hint, never a block (whist-player-2)', () => {
+  assert.equal(trumpOwnerHint([7, 0, 6, 2], 1, 'Dan'), 'Dan bid 0, below the top bid of 7 — is that the right trump winner?');
+  assert.equal(trumpOwnerHint([7, 0, 6, 2], 0, 'Maya'), null);
+  assert.equal(trumpOwnerHint([5, 5, 2, 2], 1, 'Omer'), null, 'one of the tied top bidders is fine');
+  assert.equal(trumpOwnerHint([7, _, 6, 2], 1, 'Dan'), null);
+  assert.equal(lockBlocker({ bids: [7, 0, 6, 2], trump: 'clubs', trumpOwnerId: 'dan' }), null, 'not a blocker');
+});
+
+test('the results sheet follows the bidding order (scorekeeper-2)', () => {
+  assert.deepEqual(biddingOrder(4, 0), [0, 1, 2, 3]);
+  assert.deepEqual(biddingOrder(4, 1), [1, 2, 3, 0]);
+  assert.deepEqual(biddingOrder(4, 3), [3, 0, 1, 2]);
+  assert.deepEqual(biddingOrder(4, -1), [0, 1, 2, 3], 'no known first bidder: seat order');
+});
+
+test('a result line shows the renege and the failed zero as parts (whist-player-3, -4)', () => {
+  // Maya bid 3, took 3, reneged; the table is UP 14.
+  const bids = [4, 3, 2, 5];
+  const tricks = [4, 3, 1, 5];
+  const reneges = [false, true, false, false];
+  const p = previewRound({ bids, tricks, reneges, scoringMethod: 'classic' });
+  assert.deepEqual(outcomeParts({ bid: 3, tricks: 3, row: p.rows[1], renege: true }), { text: 'made', points: 19, renege: true, zeroFailed: false });
+  // Dan bid 0, took 3 (classic): −50 + 20.
+  const z = previewRound({ bids: [7, 0, 6, 2], tricks: [7, 3, 2, 1], scoringMethod: 'classic' });
+  assert.deepEqual(outcomeParts({ bid: 0, tricks: 3, row: z.rows[1] }), { text: 'zero bid failed (3 tricks)', points: -30, renege: false, zeroFailed: true });
+  assert.equal(outcomeParts({ bid: 0, tricks: 1, row: { made: false, off: 1, points: -50 } }).text, 'zero bid failed (1 trick)');
+  // Everyone fell, with a renege: the contract is 0, the renege still costs 100.
+  const ef = previewRound({ bids: [5, 4, 3, 3], tricks: [4, 5, 2, 2], reneges: [false, false, true, false], scoringMethod: 'classic' });
+  assert.equal(ef.everyoneFalls, true);
+  assert.deepEqual(outcomeParts({ bid: 3, tricks: 2, row: ef.rows[2], renege: true, everyoneFalls: true }), { text: 'everyone fell', points: 0, renege: true, zeroFailed: false });
+  assert.equal(outcomeParts({ bid: 3, tricks: null, row: { points: null } }), null);
 });
 
 if (failures.length) {

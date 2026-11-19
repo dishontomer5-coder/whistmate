@@ -6,11 +6,14 @@
 // read back when the scorer returns, with a one-line note saying so.
 //
 //   key      whistmate:round-draft:<round id>
-//   value    { v: 1, savedAt, stamp?, bids?, trump?, trumpOwner?, hierarchy?, tricks?, reneges?, editingBids? }
+//   value    { v: 1, savedAt, stamp?, bids?, trump?, trumpOwner?, hierarchy?, tricks?, reneges?, editingBids?, firstBidder? }
 //            bids / tricks: { [player_id]: 0..13 }   reneges: { [player_id]: true }
 //            stamp: when the round was created (its created_date) — a draft is only put
 //            back into the very round it was typed for, never into another one that
 //            happens to carry the same id.
+//            firstBidder: the player whose bid was entered first — where the bidding
+//            started, so the results sheet can follow the same order. The server does not
+//            keep it, so it stays in the draft until the round is saved.
 //   removed  when the round is locked, saved or discarded (nothing is left to keep), and
 //            ignored once it is 24 hours old.
 //
@@ -58,6 +61,7 @@ function cleanFlags(map) {
 //   while bidding:        { bids, trump, trumpOwner, hierarchy }
 //   while playing:        { tricks, reneges }
 //   while re-editing bids { tricks, reneges, editingBids: true, bids, trump, trumpOwner, hierarchy }
+// plus, in every phase, `firstBidder` (worth keeping on its own: the server does not have it).
 export function packDraft(fields = {}, now = Date.now()) {
   const draft = {};
   const bids = cleanCounts(fields.bids);
@@ -70,6 +74,7 @@ export function packDraft(fields = {}, now = Date.now()) {
   if (typeof fields.trumpOwner === 'string' && fields.trumpOwner) draft.trumpOwner = fields.trumpOwner;
   if (HIERARCHIES.includes(fields.hierarchy)) draft.hierarchy = fields.hierarchy;
   if (fields.editingBids === true) draft.editingBids = true;
+  if (typeof fields.firstBidder === 'string' && fields.firstBidder) draft.firstBidder = fields.firstBidder;
   if (Object.keys(draft).length === 0) return null;
   // The stamp alone is not worth keeping, so it is added after the "anything typed?" test.
   if (typeof fields.stamp === 'string' && fields.stamp) draft.stamp = fields.stamp;
@@ -125,6 +130,7 @@ export function applyDraft(draft, { status, stamp, playerIds = [], server = {} }
     trumpOwner: server.trumpOwner ?? null,
     hierarchy: server.hierarchy ?? null,
     editingBids: false,
+    firstBidder: draft.firstBidder && inRound.has(draft.firstBidder) ? draft.firstBidder : null,
   };
   const restored = { bids: 0, tricks: 0, reneges: 0, trump: false };
 
