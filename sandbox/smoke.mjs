@@ -331,7 +331,8 @@ await check('getGroupData player + stats + roster (Maya)', async () => {
   assert.equal(player.data.results.length, dansRounds);
   assert.equal(player.data.total_rows, dansRounds);
   assert.ok(player.data.results.every((r) => r.player_id === member('Dan').id && r.points != null));
-  assert.ok(player.data.results.every((r) => player.data.sessions[r.session_id]?.name), 'a round-history row without its session');
+  // A session may have no name (screens show its date), but every row must carry its session.
+  assert.ok(player.data.results.every((r) => player.data.sessions[r.session_id]?.id === r.session_id), 'a round-history row without its session');
   const stats = await fn('computePlayerStats', mayaToken, { player_id: member('Dan').id, group_id: thursday.id });
   assert.equal(stats.status, 200);
   assert.equal(stats.data.performance.rounds_played, dansRounds);
