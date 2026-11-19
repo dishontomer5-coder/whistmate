@@ -10,13 +10,14 @@ import ErrorState from '@/components/ErrorState';
 import { Name, UserText } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
+import BackLink from '@/components/BackLink';
+import ArchivedBanner from '@/components/ArchivedBanner';
+import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { buildStandings } from '@/lib/standings';
 import { SCORING_METHOD_LABEL } from '@/lib/scoring-help';
 import { formatScore, formatDate, scoreTone, sessionName, errorMessage } from '@/lib/format';
 import { clearDraft } from '@/lib/round-drafts';
 import RoundCard from '@/components/round/RoundCard';
-import { BackLink, ReadOnlyBanner } from '@/components/round/RoundChrome';
-import { usePageGroup } from '@/components/round/usePageGroup';
 import { FROM_SESSION, takeSessionTop } from '@/components/round/session-return';
 import { nextRoundNumber, roundLimit, sameTableOrder } from '@/components/round/round-logic';
 
@@ -30,6 +31,11 @@ import { nextRoundNumber, roundLimit, sameTableOrder } from '@/components/round/
 // Once it is closed the page leads with who won and the final standings.
 
 const inPlay = (round) => round.status === 'bidding' || round.status === 'playing';
+
+// A rule of the night in the session's header: a word in the line that opens its
+// explanation. 20px tall in the text, 44px to the thumb (the ::after reaches 12px above
+// and below, into the empty space around the line).
+const RULE_LINK = "relative underline decoration-dotted underline-offset-4 hover:text-foreground after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']";
 
 export default function SessionView() {
   const { id } = useParams();
@@ -50,7 +56,9 @@ export default function SessionView() {
   const [help, setHelp] = useState(null);
   const [confirm, confirmElement] = useConfirm();
 
-  const { isGroupAdmin, archived, roleKnown } = usePageGroup(session?.group_id);
+  // The caller's standing in the group this session belongs to — not in whichever group
+  // was open before. An archived group is read-only.
+  const { isAdmin, isArchived: archived, role } = usePageGroup(session?.group_id);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
@@ -104,7 +112,9 @@ export default function SessionView() {
   const otherRounds = rounds.filter((r) => r.id !== featured?.id);
   const nextNumber = nextRoundNumber(rounds);
   const limit = roundLimit(session, rounds);
-  const canEditScored = roleKnown && isGroupAdmin && !archived;
+  const canEditScored = isAdmin && !archived;
+  // A plain player is told once who can change a scored round.
+  const tellAdminOnly = role === 'player' && !archived;
   // "Same table": last round's four with the bidding moved on by one.
   const sameTable = !openRound && rounds[0] ? sameTableOrder(resultsByRound[rounds[0].id] || []) : [];
   const firstBidder = sameTable.length === 4
@@ -183,11 +193,6 @@ export default function SessionView() {
     }
   };
 
-  const goBack = () => {
-    // Back to wherever the scorer came from; the list of sessions when there is no history.
-    if (window.history.state?.idx > 0) navigate(-1);
-    else navigate('/history');
-  };
   const dismissNotice = () => navigate(location.pathname, { replace: true, state: null });
 
   const closeButton = (primary) => (
@@ -198,9 +203,9 @@ export default function SessionView() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="-my-2 flex items-center justify-between">
-        <BackLink label={window.history.state?.idx > 0 ? 'Back' : 'Sessions'} onClick={goBack} />
+        <BackLink fallback="/history" className="-ml-1 pl-1" />
         <div className="-mr-2 flex items-center">
           <ScoringHelpButton />
           <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground" disabled={refreshing} onClick={() => load(true)} aria-label="Refresh">
@@ -218,7 +223,7 @@ export default function SessionView() {
         </p>
       )}
 
-      {archived && <ReadOnlyBanner />}
+      {archived && <ArchivedBanner />}
 
       <div>
         {/* A long name without spaces wraps instead of widening the page. */}
@@ -229,12 +234,12 @@ export default function SessionView() {
           {` · ${isOpen ? 'Open' : 'Closed'}`}
         </p>
         {/* The rules of the night. Each one opens its explanation. */}
-        <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground" data-session-rules>
-          <button type="button" onClick={() => setHelp('miss')} className="min-h-11 underline decoration-dotted underline-offset-4 hover:text-foreground">
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground" data-session-rules>
+          <button type="button" onClick={() => setHelp('miss')} className={RULE_LINK}>
             {SCORING_METHOD_LABEL[session.scoring_method === 'progressive' ? 'progressive' : 'classic']} scoring
           </button>
           {session.advanced_rules_enabled && (
-            <button type="button" onClick={() => setHelp('trump')} className="min-h-11 underline decoration-dotted underline-offset-4 hover:text-foreground">
+            <button type="button" onClick={() => setHelp('trump')} className={RULE_LINK}>
               Advanced rules
             </button>
           )}
@@ -340,7 +345,7 @@ export default function SessionView() {
         <div className="space-y-3">
           <h2 className="section-title">{featured ? 'Earlier rounds' : 'Rounds'}</h2>
           {/* Said once, not on every card. */}
-          {roleKnown && !isGroupAdmin && !archived && otherRounds.some((r) => !inPlay(r)) && (
+          {tellAdminOnly && otherRounds.some((r) => !inPlay(r)) && (
             <p className="text-sm text-muted-foreground" data-admin-only-note>Only a group admin can change a scored round.</p>
           )}
           {otherRounds.length === 0 ? (
@@ -357,7 +362,7 @@ export default function SessionView() {
           )}
         </div>
       )}
-      {featured && !inPlay(featured) && otherRounds.length === 0 && roleKnown && !isGroupAdmin && !archived && (
+      {featured && !inPlay(featured) && otherRounds.length === 0 && tellAdminOnly && (
         <p className="text-sm text-muted-foreground" data-admin-only-note>Only a group admin can change a scored round.</p>
       )}
 

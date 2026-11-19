@@ -87,7 +87,7 @@ export default function RoundCard({ round, results = [], label, canEdit = false,
       className={cn('rounded-lg border border-border bg-card p-3', className)}>
       <div className="flex items-center justify-between gap-2">
         <h3 className="whitespace-nowrap font-heading font-bold text-foreground">
-          {label ? <span className="section-label mr-2 font-body">{label}</span> : null}
+          {label ? <><span className="section-label mr-1.5 font-body">{label}</span>{' '}</> : null}
           Round {round.round_number}
         </h3>
         <div className="flex flex-wrap items-center justify-end gap-2">

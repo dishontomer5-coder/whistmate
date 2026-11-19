@@ -75,7 +75,7 @@ export default function BidKeys({
           <span className="text-negative"> · {blocked} is blocked — the bids can't total 13</span>
         ) : !anyBidEntered ? (
           // Bidding starts with a different player every hand: say that any row can go first.
-          <span> · someone else bids first? Tap their row</span>
+          <span> · or tap whoever bids first</span>
         ) : allIn ? (
           <span> · tap a player to change their bid</span>
         ) : null}

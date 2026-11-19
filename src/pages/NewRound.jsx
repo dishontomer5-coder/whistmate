@@ -9,12 +9,13 @@ import ErrorState from '@/components/ErrorState';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Name } from '@/components/UserText';
 import { ScoringHelpButton } from '@/components/ScoringHelp';
+import BackLink from '@/components/BackLink';
+import ArchivedBanner from '@/components/ArchivedBanner';
+import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { errorMessage } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
-import { BackLink, ReadOnlyBanner } from '@/components/round/RoundChrome';
-import { usePageGroup } from '@/components/round/usePageGroup';
-import { FROM_SESSION, returnToSession } from '@/components/round/session-return';
+import { FROM_SESSION } from '@/components/round/session-return';
 import { sameTableOrder, startBlocker, nextRoundNumber } from '@/components/round/round-logic';
 
 // Pick the table: exactly four players, then start the round.
@@ -38,7 +39,8 @@ export default function NewRound() {
   const [sameTable, setSameTable] = useState([]); // last round's four, moved on by one
   const [submitting, setSubmitting] = useState(false);
 
-  const { isGroupAdmin, archived, roleKnown } = usePageGroup(session?.group_id);
+  // The group of the session on screen: is it archived, may the caller add players to it.
+  const { isAdmin, isArchived: archived, role } = usePageGroup(session?.group_id);
   const roundState = location.state?.fromSession ? FROM_SESSION : undefined;
 
   const load = useCallback(async () => {
@@ -72,7 +74,6 @@ export default function NewRound() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   useEffect(() => { load(); }, [load]);
@@ -101,8 +102,6 @@ export default function NewRound() {
     }
   };
 
-  const back = () => returnToSession({ navigate, location, sessionId });
-
   if (loading) return <LoadingSpinner showLogo />;
   if (!session) {
     return notFound ? (
@@ -115,7 +114,7 @@ export default function NewRound() {
 
   const header = (
     <div className="flex items-center justify-between gap-2">
-      <BackLink label="Session" onClick={back} />
+      <BackLink fallback={`/session/${sessionId}`} className="-ml-1 pl-1" />
       <ScoringHelpButton className="-mr-2" />
     </div>
   );
@@ -127,7 +126,7 @@ export default function NewRound() {
         {header}
         <h1 className="page-title">Pick the table</h1>
         {archived
-          ? <ReadOnlyBanner />
+          ? <ArchivedBanner />
           : <p className="text-sm text-muted-foreground">This session is closed — no more rounds can be added to it.</p>}
       </div>
     );
@@ -189,9 +188,9 @@ export default function NewRound() {
       {members.length < 4 && (
         <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground" data-few-players>
           This group has {members.length === 1 ? '1 player' : `${members.length} players`} — a round needs 4.{' '}
-          {roleKnown && isGroupAdmin ? (
-            <Link to="/admin" className="font-medium text-primary underline underline-offset-2">Add players</Link>
-          ) : roleKnown ? (
+          {isAdmin ? (
+            <Link to="/admin" className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-2">Add players</Link>
+          ) : role ? (
             <>Ask a group admin to add players or to share the invite link.</>
           ) : null}
         </p>

@@ -14,9 +14,10 @@ import ErrorState from '@/components/ErrorState';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { UserText, dirAuto } from '@/components/UserText';
 import { ScoringHelpButton } from '@/components/ScoringHelp';
+import BackLink from '@/components/BackLink';
+import ArchivedBanner from '@/components/ArchivedBanner';
 import { cn } from '@/lib/utils';
 import ActionDock, { DockStatus } from '@/components/round/ActionDock';
-import { BackLink, ReadOnlyBanner } from '@/components/round/RoundChrome';
 import { sessionFormErrors, parseRoundLimit, SESSION_DATE_MIN, SESSION_DATE_MAX } from '@/components/round/round-logic';
 
 const METHODS = ['classic', 'progressive'];
@@ -93,7 +94,7 @@ export default function NewSession() {
     }
   };
 
-  const back = <BackLink label="Back" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/'))} />;
+  const back = <BackLink fallback="/history" className="-ml-1 pl-1" />;
 
   if (groupsLoading) return <LoadingSpinner showLogo />;
 
@@ -103,7 +104,7 @@ export default function NewSession() {
       <div className="space-y-4">
         {back}
         <h1 className="page-title">New session</h1>
-        {activeGroup?.status === 'archived' ? <ReadOnlyBanner /> : (
+        {activeGroup?.status === 'archived' ? <ArchivedBanner /> : (
           <div className="space-y-3 rounded-lg border border-primary/40 bg-primary/10 p-4" data-open-session>
             <p className="text-sm text-foreground">
               A session is already open — here it is:{' '}

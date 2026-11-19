@@ -10,6 +10,9 @@ import TableBadge from '@/components/TableBadge';
 import { Name } from '@/components/UserText';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { ScoringHelp, ScoringHelpButton } from '@/components/ScoringHelp';
+import BackLink from '@/components/BackLink';
+import ArchivedBanner from '@/components/ArchivedBanner';
+import { usePageGroup } from '@/lib/ActiveGroupContext';
 import { tableState, highestBidderIndex } from '@/lib/scoring';
 import { errorMessage } from '@/lib/format';
 import { readDraft, writeDraft, clearDraft, pruneDrafts, applyDraft, describeRestored } from '@/lib/round-drafts';
@@ -18,9 +21,8 @@ import ActionDock, { DockStatus } from '@/components/round/ActionDock';
 import BidRows from '@/components/round/BidRows';
 import BidKeys from '@/components/round/BidKeys';
 import TrickRows, { TrickKeys } from '@/components/round/TrickRows';
-import { BackLink, PhaseBanner, ReadOnlyBanner, RestoredNote } from '@/components/round/RoundChrome';
+import { PhaseBanner, RestoredNote } from '@/components/round/RoundChrome';
 import { EveryoneFellBadge, ResultLines, TrumpLine } from '@/components/round/RoundCard';
-import { usePageGroup } from '@/components/round/usePageGroup';
 import { returnToSession } from '@/components/round/session-return';
 import { nextEmptyIndex, blockedBid, lockBlocker, saveBlocker, previewRound } from '@/components/round/round-logic';
 
@@ -100,7 +102,9 @@ export default function RoundView() {
   const [help, setHelp] = useState(null); // the section of "How scoring works" that is open
   const [confirm, confirmElement] = useConfirm();
 
-  const { isGroupAdmin, archived, roleKnown } = usePageGroup(round?.group_id);
+  // The caller's standing in the group this round belongs to — not in whichever group was
+  // open before. An archived group is read-only.
+  const { isAdmin, isArchived: archived, role } = usePageGroup(round?.group_id);
 
   const applyEntry = (entry) => {
     setBids(entry.bids); setTricks(entry.tricks); setReneges(entry.reneges);
@@ -194,7 +198,7 @@ export default function RoundView() {
     : { field: 'bid', index: Math.min(Math.max(bidFocus.index, 0), Math.max(players.length - 1, 0)) };
 
   const scored = status === 'complete' || status === 'cancelled';
-  const canChangeScored = roleKnown && isGroupAdmin && !archived;
+  const canChangeScored = isAdmin && !archived;
   const view = archived && !scored ? 'readonly'
     : status === 'bidding' ? 'bidding'
     : status === 'playing' ? (editBids ? 'editBids' : 'results')
@@ -390,7 +394,7 @@ export default function RoundView() {
   // On the entry screens it takes 36px of the page (its controls still take taps over 44px).
   const topLine = (extra, { compact = false, title = null } = {}) => (
     <div className={cn('flex items-center justify-between gap-2', compact && '-my-1')}>
-      <BackLink label="Session" onClick={() => goToSession()} />
+      <BackLink fallback={`/session/${round.session_id}`} className="-ml-1 pl-1" />
       {title}
       <div className="-mr-2 flex items-center">
         {extra}
@@ -551,7 +555,7 @@ export default function RoundView() {
     body = (
       <div className="space-y-4">
         {topLine(null)}
-        <ReadOnlyBanner />
+        <ArchivedBanner />
         <h1 className="page-title">Round {round.round_number}</h1>
         <p className="text-sm text-muted-foreground">This round was never finished, so it has no scores.</p>
         <ul className="space-y-1.5">
@@ -568,7 +572,7 @@ export default function RoundView() {
     body = (
       <div className="space-y-4">
         {topLine(null)}
-        {archived && <ReadOnlyBanner />}
+        {archived && <ArchivedBanner />}
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <h1 className="page-title">Round {round.round_number}</h1>
@@ -590,7 +594,7 @@ export default function RoundView() {
               <Trash2 /> Delete round
             </Button>
           </div>
-        ) : roleKnown && !archived ? (
+        ) : role === 'player' && !archived ? (
           <p className="text-sm text-muted-foreground" data-admin-only-note>
             Only a group admin can change a scored round.
           </p>

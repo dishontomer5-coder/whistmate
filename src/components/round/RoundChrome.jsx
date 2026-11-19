@@ -1,8 +1,8 @@
-import { ArrowLeft, Gavel, ClipboardCheck, RotateCcw } from 'lucide-react';
+import { Gavel, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// The frame the round screens share: the back link, the coloured band that names the
-// step, the read-only banner of an archived group and the "restored" note.
+// The frame the round screens share: the coloured band that names the step and the
+// "restored" note. (The back link and the archived banner are the app-wide ones.)
 
 // The two steps of a round look alike (four rows and a pad), so each has its own colour
 // and icon: gold and a gavel while bidding, green and a clipboard for the results.
@@ -20,16 +20,6 @@ export const PHASE = {
   },
 };
 
-// "← Session": the in-page way back. The label says where it goes.
-export function BackLink({ label, onClick, className }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={cn('-ml-1 flex min-h-11 items-center gap-1 pl-1 pr-2 text-sm text-muted-foreground hover:text-foreground', className)}>
-      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {label}
-    </button>
-  );
-}
-
 // The band that names the step. The title is never cut: on a narrow phone the badge
 // drops to its own line instead.
 export function PhaseBanner({ phase, title, subtitle, roundNumber, badge }) {
@@ -45,16 +35,6 @@ export function PhaseBanner({ phase, title, subtitle, roundNumber, badge }) {
       </span>
       {badge}
     </div>
-  );
-}
-
-// An archived group is read-only: the screens offer no write action and say why.
-export function ReadOnlyBanner({ className }) {
-  return (
-    <p role="status" data-read-only-banner
-      className={cn('rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-center text-sm font-medium text-yellow-500', className)}>
-      This group is archived — read-only.
-    </p>
   );
 }
 
