@@ -19,6 +19,40 @@ async function hintedMemberRow(base44, user, groupId) {
   return null;
 }
 
+// Leaving on your own: the caller's membership cache is rewritten from their rows without
+// the row they just left. getMyGroups reads a cached entry whose row is no longer the
+// caller's as "an admin took you out" and says so once — which must not happen to someone
+// who left by themselves. The left row is excluded by id, in case the query still returns
+// it for a moment (read-after-write lag); other rows the query misses for the same reason
+// are kept through the usual by-id re-read of the cache.
+async function rewriteOwnCache(base44, user, leftMemberId) {
+  const rows = (await base44.asServiceRole.entities.GroupMember.filter({ user_id: user.id }))
+    .filter((m) => m.id !== leftMemberId);
+  const ids = new Set(rows.map((m) => m.id));
+  const tried = new Set();
+  for (const cached of (Array.isArray(user.groups) ? user.groups : [])) {
+    if (!cached || !cached.member_id || cached.member_id === leftMemberId || ids.has(cached.member_id) || tried.has(cached.member_id)) continue;
+    if (tried.size >= MAX_HINTS) break;
+    tried.add(cached.member_id);
+    const row = await base44.asServiceRole.entities.GroupMember.get(cached.member_id).catch(() => null);
+    if (row && row.user_id === user.id) { rows.push(row); ids.add(row.id); }
+  }
+  const groupIds = [...new Set(rows.map((m) => m.group_id))];
+  const groups = await Promise.all(groupIds.map((gid) => base44.asServiceRole.entities.Group.get(gid).catch(() => null)));
+  const groupMap = {};
+  groups.forEach((g) => { if (g && g.status !== 'deleted') groupMap[g.id] = g; });
+  await base44.auth.updateMe({
+    groups: rows.filter((m) => groupMap[m.group_id]).map((m) => ({
+      member_id: m.id,
+      group_id: m.group_id,
+      role: m.role,
+      player_name: m.player_name,
+      group_name: groupMap[m.group_id].name || 'Unknown',
+      group: groupMap[m.group_id],
+    })),
+  });
+}
+
 const PAGE = 500; // the entity store hands out at most 500 rows per filter()
 // Every row matching a query, not just the first page: cursor pagination, as in
 // getGroupData. The $lte cursor + seen-set copes with rows sharing a created_date.
@@ -115,10 +149,12 @@ Deno.serve(async (req) => {
         claim_token: null,
         role: 'player'
       });
+      if (isSelf) await rewriteOwnCache(base44, user, member_id).catch(() => null); // the leave stands either way
       return Response.json({ success: true, converted_to_ghost: true, member: updated });
     }
 
     await base44.asServiceRole.entities.GroupMember.delete(member_id);
+    if (isSelf) await rewriteOwnCache(base44, user, member_id).catch(() => null); // the leave stands either way
 
     return Response.json({ success: true });
   } catch (error) {

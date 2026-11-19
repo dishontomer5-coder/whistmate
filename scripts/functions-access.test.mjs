@@ -24,6 +24,12 @@ let seq = 0;
 let writeCalls = 0;             // create/update/delete calls (and auth.updateMe) made by the current request
 let getCalls = [];              // 'Entity:id' for every get() made by the current request
 
+// Every row the platform hands out has an updated_date; a fixture row written without one
+// reads as never updated since it was created. Updates stamp a time later than any fixture's.
+let updateSeq = 0;
+const nextUpdateStamp = () => new Date(Date.UTC(2026, 11, 1) + (++updateSeq)).toISOString();
+const stamped = (row) => ({ ...row, updated_date: row.updated_date ?? row.created_date });
+
 // One page of rows, the way the platform hands them out: 50 unless a limit is given (the
 // SDK's documented default), never more than 500 (the cap measured in P12-5).
 const DEFAULT_PAGE = 50;
@@ -34,7 +40,7 @@ const page = (rows, sort, limit, skip) => {
   return rows
     .sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0) * (desc ? -1 : 1))
     .slice(skip, skip + Math.min(limit, MAX_PAGE))
-    .map((row) => ({ ...row }));
+    .map(stamped);
 };
 
 const matches = (row, query) => Object.entries(query).every(([key, want]) => {
@@ -61,11 +67,12 @@ const entity = (name) => ({
     getCalls.push(`${name}:${id}`);
     const row = db[name].find((r) => r.id === id);
     if (!row) throw new Error(`${name} ${id} not found`);
-    return { ...row };
+    return stamped(row);
   },
   async create(data) {
     writeCalls++;
-    const row = { id: `${name}-new-${++seq}`, created_date: new Date(Date.UTC(2026, 10, 1, 0, 0, seq)).toISOString(), ...data };
+    const created = new Date(Date.UTC(2026, 10, 1, 0, 0, ++seq)).toISOString();
+    const row = { id: `${name}-new-${seq}`, created_date: created, updated_date: created, ...data };
     db[name].push(row);
     return { ...row };
   },
@@ -73,7 +80,7 @@ const entity = (name) => ({
     writeCalls++;
     // One created_date for the whole batch, like the real bulkCreate.
     const created = new Date(Date.UTC(2026, 10, 1, 0, 0, seq + 1)).toISOString();
-    const rows = list.map((data) => ({ id: `${name}-new-${++seq}`, created_date: created, ...data }));
+    const rows = list.map((data) => ({ id: `${name}-new-${++seq}`, created_date: created, updated_date: created, ...data }));
     db[name].push(...rows);
     return rows.map((row) => ({ ...row }));
   },
@@ -81,7 +88,8 @@ const entity = (name) => ({
     writeCalls++;
     const row = db[name].find((r) => r.id === id);
     if (!row) throw new Error(`${name} ${id} not found`);
-    Object.assign(row, data);
+    // Like the platform: every update moves updated_date on, even two in the same instant.
+    Object.assign(row, data, { updated_date: nextUpdateStamp() });
     return { ...row };
   },
   async delete(id) {
@@ -2182,6 +2190,122 @@ await check('createNote', 'allowed', 'not a duplicate: other text, another playe
   assert.notEqual(again.data.note.id, 'nOld');
   assert.equal(notesAbout('mBob', 'Said it before').length, 2);
   fresh();
+});
+
+// =========================================================================================
+// Review round 3: no silent overwrite of a round (qa-tester-1, scorekeeper-1), and a player
+// an admin took out of a group is told once (qa-tester-2).
+// =========================================================================================
+section = 'R3 round versions and removal notice';
+
+const ROUND_CHANGED = 'This round was changed on another phone — reload to see it';
+const loadedStamp = (gameId) => stamped(row('Game', gameId)).updated_date; // what a screen loaded
+const EDIT_A = { game_id: 'rA1-1', bids: { mAlice: 5, mBob: 4, mGhost: 3, mDan: 3 }, tricks: { mAlice: 5, mBob: 4, mGhost: 2, mDan: 2 } };
+const EDIT_B = { game_id: 'rA1-1', bids: { mAlice: 3, mBob: 3, mGhost: 4, mDan: 4 }, tricks: { mAlice: 3, mBob: 3, mGhost: 4, mDan: 3 } };
+const BIDS_A = { game_id: 'rA2-2', bids: { mAlice: 2, mFrank: 2, mGhost: 2, mDan: 2 } };
+const BIDS_B = { game_id: 'rA2-2', bids: { mAlice: 4, mFrank: 4, mGhost: 4, mDan: 4 } };
+
+await t('the stand-in store moves updated_date on with every update, like the platform', async () => {
+  fresh();
+  const first = loadedStamp('rA1-1');
+  await call('updateRound', alice, EDIT_A);
+  const second = loadedStamp('rA1-1');
+  await call('updateRound', alice, EDIT_A); // the same values again still count as a change
+  assert.ok(first < second && second < loadedStamp('rA1-1'));
+});
+await check('updateRound', 'allowed', 'a save made from a stale copy (another admin saved since) -> 409, nothing written', async () => {
+  fresh();
+  const mine = loadedStamp('rA1-1');                    // Alice opens the editor
+  const theirs = await call('updateRound', hana, { ...EDIT_A, expected_updated_date: mine }); // Hana saves first
+  assert.equal(theirs.status, 200, theirs.data.error);
+  const snap = freeze();
+  const res = await call('updateRound', alice, { ...EDIT_B, expected_updated_date: mine });
+  assert.deepEqual([res.status, res.data.error, res.data.code], [409, ROUND_CHANGED, 'round_changed']);
+  assert.deepEqual(changes(snap), []);
+  assert.equal(res.writes, 0, 'a write was attempted');
+  assert.deepEqual([row('RoundResult', 'rA1-1-r0').bid, row('RoundResult', 'rA1-1-r0').points], [5, 35]); // Hana's save stands
+});
+await check('updateRound', 'allowed', 'a save made from the current copy goes through, and answers the new updated_date', async () => {
+  fresh();
+  const res = await call('updateRound', alice, { ...EDIT_B, expected_updated_date: loadedStamp('rA1-1') });
+  assert.equal(res.status, 200, res.data.error);
+  assert.equal(row('RoundResult', 'rA1-1-r0').bid, 3);
+  assert.equal(res.data.round.updated_date, loadedStamp('rA1-1'));
+  const again = await call('updateRound', alice, { ...EDIT_A, expected_updated_date: res.data.round.updated_date });
+  assert.equal(again.status, 200, again.data.error);
+});
+await check('updateRound', 'allowed', 'a client that sends no expected_updated_date saves as before', async () => {
+  fresh();
+  await call('updateRound', hana, EDIT_A);
+  const res = await call('updateRound', alice, EDIT_B);
+  assert.equal(res.status, 200, res.data.error);
+  assert.equal(row('RoundResult', 'rA1-1-r0').bid, 3);
+});
+await check('submitBids', 'allowed', 'a second phone locking bids from a stale copy (the bids were locked since) -> 409, nothing written', async () => {
+  fresh();
+  const loaded = loadedStamp('rA2-2');                  // both phones open the round in bidding
+  const first = await call('submitBids', alice, { ...BIDS_A, expected_updated_date: loaded });
+  assert.equal(first.status, 200, first.data.error);
+  const snap = freeze();
+  const res = await call('submitBids', bob, { ...BIDS_B, expected_updated_date: loaded });
+  assert.deepEqual([res.status, res.data.error, res.data.code], [409, ROUND_CHANGED, 'round_changed']);
+  assert.deepEqual(changes(snap), []);
+  assert.equal(res.writes, 0, 'a write was attempted');
+  assert.deepEqual(db.RoundResult.filter((r) => r.game_id === 'rA2-2').map((r) => r.bid), [2, 2, 2, 2]);
+});
+await check('submitBids', 'allowed', 're-locking (Edit bids) from a stale copy -> 409; from the copy the last lock answered -> saved', async () => {
+  fresh(lockBids);
+  const loaded = loadedStamp('rA2-2');
+  const other = await call('submitBids', frank, { ...BIDS_A, expected_updated_date: loaded });
+  assert.equal(other.status, 200, other.data.error);
+  const stale = await call('submitBids', alice, { ...BIDS_B, expected_updated_date: loaded });
+  assert.deepEqual([stale.status, stale.data.error], [409, ROUND_CHANGED]);
+  assert.deepEqual(db.RoundResult.filter((r) => r.game_id === 'rA2-2').map((r) => r.bid), [2, 2, 2, 2]);
+  const current = await call('submitBids', frank, { ...BIDS_B, expected_updated_date: other.data.round.updated_date });
+  assert.equal(current.status, 200, current.data.error);
+  assert.deepEqual(db.RoundResult.filter((r) => r.game_id === 'rA2-2').map((r) => r.bid), [4, 4, 4, 4]);
+});
+await check('submitBids', 'allowed', 'a client that sends no expected_updated_date locks as before', async () => {
+  fresh(lockBids);
+  const res = await call('submitBids', alice, BIDS_A);
+  assert.equal(res.status, 200, res.data.error);
+  assert.deepEqual(db.RoundResult.filter((r) => r.game_id === 'rA2-2').map((r) => r.bid), [2, 2, 2, 2]);
+});
+
+// A player's cache, as getMyGroups last wrote it: one entry per group.
+const cachedAs = (user, ...entries) => ({ ...user, groups: entries.map(([group_id, member_id, group_name]) => ({ group_id, member_id, group_name, role: 'player' })) });
+const yaelCached = cachedAs(yael, ['gA', 'mYael', 'Group A']);
+await check('getMyGroups', 'allowed', 'a player whose account an admin detached is told once which group they were taken out of', async () => {
+  fresh();
+  await call('unclaimMember', alice, { group_id: 'gA', member_id: 'mYael' });
+  const first = await call('getMyGroups', yaelCached, {});
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.data.removed_from, [{ group_id: 'gA', group_name: 'Group A' }]);
+  assert.deepEqual(first.data.groups, []);
+  assert.deepEqual(first.me.groups, []);                // the cache is rewritten...
+  const second = await call('getMyGroups', first.me, {});
+  assert.deepEqual(second.data.removed_from, []);       // ...so it is said once
+});
+await check('getMyGroups', 'allowed', 'a player an admin removed (row deleted) is told, and keeps their other groups', async () => {
+  fresh(() => db.GroupMember.push({ id: 'mYaelB', group_id: 'gB', user_id: 'uYael', role: 'player', player_name: 'Yael', claimed: true, claim_token: null, created_date: at(30) }));
+  await call('removeMember', alice, { group_id: 'gA', member_id: 'mYael' });
+  const res = await call('getMyGroups', cachedAs(yael, ['gA', 'mYael', 'Group A'], ['gB', 'mYaelB', 'Group B']), {});
+  assert.deepEqual(res.data.removed_from, [{ group_id: 'gA', group_name: 'Group A' }]);
+  assert.deepEqual(res.data.groups.map((g) => g.group_id), ['gB']);
+});
+await check('getMyGroups', 'allowed', 'nothing is reported for a member still in, a lagging member, or a player who left on their own', async () => {
+  fresh();
+  assert.deepEqual((await call('getMyGroups', cachedAs(alice, ['gA', 'mAlice', 'Group A']), {})).data.removed_from, []);
+  assert.deepEqual((await call('getMyGroups', frank, {})).data.removed_from, []);  // his query lags; the row is his
+  assert.deepEqual((await call('getMyGroups', hana, {})).data.removed_from, []);
+  const left = await call('removeMember', yaelCached, { group_id: 'gA', member_id: 'mYael' }); // no history: row deleted
+  assert.equal(left.status, 200);
+  assert.deepEqual(left.me.groups, []);
+  assert.deepEqual((await call('getMyGroups', left.me, {})).data.removed_from, []);
+  // With history the row stays, as an unclaimed player — still not "removed by an admin".
+  const bobLeaves = await call('removeMember', cachedAs(bob, ['gA', 'mBob', 'Group A']), { group_id: 'gA', member_id: 'mBob' });
+  assert.equal(bobLeaves.data.converted_to_ghost, true);
+  assert.deepEqual((await call('getMyGroups', bobLeaves.me, {})).data.removed_from, []);
 });
 
 // A write function counts as covered when a check ran for every kind of caller it lists.
