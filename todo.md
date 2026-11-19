@@ -11,10 +11,10 @@
 > mark in Logo.jsx/header/404, animated loader in LoadingSpinner, favicon + apple-touch icon, store icon at
 > https://whist-mate-pro.base44.app/icon-512.png. Owner did: manifest icons, real-phone pass, Hebrew
 > question, deleted `whistmate-role-test`. ONLY LEFT: submit the Clonitt listing (P12-10) — Clonitt was
-> NOT accepting submissions on Nov 19; check `requirements` first. ⚠️ The base44 CLI must be logged in as
+> NOT accepting submissions on Nov 19; check `requirements` first. Listing now: repo_url https://github.com/dishontomer5-coder/whistmate, license MIT, open_source true, icon_url https://whist-mate-pro.base44.app/icon-512.png. ⚠️ The base44 CLI must be logged in as
 > dishontomer5@gmail.com (not the work account) to deploy. Open minors/ideas: each round's RULINGS.md.
 > in_progress: none.
-> CANONICAL REPO = **dishontomer5-coder/whistmate** (private; the owner's personal GitHub), local clone
+> CANONICAL REPO = **dishontomer5-coder/whistmate** (PUBLIC since Nov 19 2026, MIT; the owner's personal GitHub), local clone
 > **~/Personal/whistmate**, `origin` → it. The old `tomerdi-blip` remote survives as `old-blip` with push
 > disabled — never push there. The owner allows pushing and deploying on this repo only. Two-way-synced
 > to the Base44 app "WhistMate" (app id `6a5be77702d0c74b5a13cfea`), live at
