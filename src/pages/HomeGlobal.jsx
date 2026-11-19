@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useActiveGroup } from '@/lib/ActiveGroupContext';
+import { Mark } from '@/components/Logo';
 import { Plus, KeyRound, Users, Globe, LogIn, ChevronRight, Trophy, Target, Spade, CheckCircle2, X, Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -146,9 +147,7 @@ export default function HomeGlobal() {
     const returnTo = pendingReturnTo(location.search);
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4">
-        <div className="w-28 h-28 rounded-3xl bg-primary text-primary-foreground flex items-center justify-center text-6xl font-bold mb-6 ring-1 ring-primary/30 shadow-[0_0_60px_-15px] shadow-primary/40">
-          ♠
-        </div>
+        <Mark className="mb-6 h-36 w-36" />
         <h1 className="font-heading text-3xl font-bold text-foreground">WhistMate</h1>
         <p className="font-heading text-xs text-primary uppercase tracking-[0.12em] mt-2">Israeli Whist · Companion & Scorekeeper</p>
 
