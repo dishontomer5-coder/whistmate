@@ -4,7 +4,7 @@ import * as stats from './whist-stats.js';
 
 const {
   playerMetrics, rankSession, winPodiumTally, rate, topBidders, awardFigures, awardLeaders, heldAwards,
-  playerSessions, sessionRecord,
+  playerSessions, sessionRecord, sessionHasResult,
 } = stats;
 
 let pass = 0, fail = 0;
@@ -143,9 +143,9 @@ const nightsWith = (s3Status) => [
 t('playerSessions: one entry per night the player scored in, newest first, with total, rank and players', () => {
   const nights = playerSessions(NIGHT_ROWS, nightsWith('open'), 'a');
   assert.deepEqual(nights, [
-    { session_id: 's3', name: 'Tonight', session_date: '2026-05-21', status: 'open', total: 50, rank: 1, players: 4 },
-    { session_id: 's2', name: 'Rematch', session_date: '2026-05-14', status: 'closed', total: -20, rank: 4, players: 4 },
-    { session_id: 's1', name: 'Opener', session_date: '2026-05-07', status: 'closed', total: 30, rank: 1, players: 4 },
+    { session_id: 's3', name: 'Tonight', session_date: '2026-05-21', status: 'open', total: 50, rank: 1, players: 4, no_winner: false },
+    { session_id: 's2', name: 'Rematch', session_date: '2026-05-14', status: 'closed', total: -20, rank: 4, players: 4, no_winner: false },
+    { session_id: 's1', name: 'Opener', session_date: '2026-05-07', status: 'closed', total: 30, rank: 1, players: 4, no_winner: false },
   ]);
   // Tied players share a place: b and c are both 2nd tonight.
   assert.deepEqual(playerSessions(NIGHT_ROWS, nightsWith('open'), 'c').map((n) => n.rank), [2, 2, 3]);
@@ -193,8 +193,8 @@ t('sessionRecord: only an open session -> no wins and no win rate (null, not 0)'
 
 t('sessionRecord: best and worst night come from closed sessions only', () => {
   const open = sessionRecord(playerSessions(NIGHT_ROWS, nightsWith('open'), 'a'));
-  assert.deepEqual(open.best_session, { session_id: 's1', name: 'Opener', session_date: '2026-05-07', status: 'closed', total: 30, rank: 1, players: 4 });
-  assert.deepEqual(open.worst_session, { session_id: 's2', name: 'Rematch', session_date: '2026-05-14', status: 'closed', total: -20, rank: 4, players: 4 });
+  assert.deepEqual(open.best_session, { session_id: 's1', name: 'Opener', session_date: '2026-05-07', status: 'closed', total: 30, rank: 1, players: 4, no_winner: false });
+  assert.deepEqual(open.worst_session, { session_id: 's2', name: 'Rematch', session_date: '2026-05-14', status: 'closed', total: -20, rank: 4, players: 4, no_winner: false });
   // Tonight's +50 becomes the best night only when the session is closed.
   const closed = sessionRecord(playerSessions(NIGHT_ROWS, nightsWith('closed'), 'a'));
   assert.equal(closed.best_session.session_id, 's3');
@@ -218,6 +218,42 @@ t('two players level on top of a closed session: both are #1, both have a win, t
   // The same night while it is open: level in front, and nobody has a win.
   const open = [{ ...closed[0], status: 'open' }];
   assert.deepEqual(['a', 'b'].map((p) => sessionRecord(playerSessions(rows, open, p)).wins), [0, 0]);
+});
+
+// --- a session in which no round counted has no winner (qa-tester-1) --------------------------
+// One round, everyone fell: bids 4,4,4,2 and tricks 3,3,3,4 — nobody took their bid, so the
+// round scored 0 for all (a renege would still cost 100).
+const fellRow = (session_id, player_id, bid, tricks_won, points = 0, extra = {}) => ({ session_id, game_id: `${session_id}-g1`, player_id, bid, tricks_won, points, ...extra });
+const FELL_NIGHT = [fellRow('s9', 'a', 4, 3), fellRow('s9', 'b', 4, 3), fellRow('s9', 'c', 4, 3), fellRow('s9', 'd', 2, 4)];
+const fellSession = (status = 'closed') => ({ id: 's9', name: 'Nobody made it', session_date: '2026-06-01', status, created_date: '2026-06-01T18:00:00Z' });
+
+t('sessionHasResult: false when every scored round fell or nothing is scored; true once anyone made a contract', () => {
+  assert.equal(sessionHasResult(FELL_NIGHT), false);
+  assert.equal(sessionHasResult([]), false);
+  assert.equal(sessionHasResult([fellRow('s9', 'a', 3, null, null)]), false);          // a round in play only
+  assert.equal(sessionHasResult([...FELL_NIGHT, fellRow('s9', 'a', 0, 0, 50)]), true); // a zero bid made counts
+  assert.equal(sessionHasResult([...FELL_NIGHT, fellRow('s9', 'b', 3, 3, 19)]), true);
+  // A renege inside an everyone-falls round still costs 100, and the round still did not count.
+  assert.equal(sessionHasResult([fellRow('s9', 'a', 4, 3, -100, { reneged: true }), ...FELL_NIGHT.slice(1)]), false);
+});
+
+t('a closed session where no round counted: no winner, no podium, not a session played', () => {
+  const nights = playerSessions(FELL_NIGHT, [fellSession()], 'a');
+  assert.equal(nights.length, 1);
+  assert.equal(nights[0].no_winner, true);
+  for (const p of ['a', 'b', 'c', 'd']) {
+    const record = sessionRecord(playerSessions(FELL_NIGHT, [fellSession()], p));
+    assert.deepEqual(
+      [record.wins, record.podiums, record.sessions_played, record.win_ratio, record.best_session, record.worst_session],
+      [0, 0, 0, null, null, null], p,
+    );
+  }
+  // Added to a real history, it changes nothing: a still wins s1 only, out of the same closed nights.
+  const before = sessionRecord(playerSessions(NIGHT_ROWS, nightsWith('closed'), 'a'));
+  const after = sessionRecord(playerSessions([...NIGHT_ROWS, ...FELL_NIGHT], [...nightsWith('closed'), fellSession()], 'a'));
+  assert.deepEqual([after.wins, after.podiums, after.sessions_played, after.win_ratio], [before.wins, before.podiums, before.sessions_played, before.win_ratio]);
+  // The other nights say they had a result.
+  assert.ok(playerSessions(NIGHT_ROWS, nightsWith('closed'), 'a').every((n) => n.no_winner === false));
 });
 
 // --- The Destroyer: everyone-falls rounds as the top bidder -----------------------------------

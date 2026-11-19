@@ -33,6 +33,32 @@ async function readOnlyGroup(base44, groupId) {
 
 const MAX_NOTE_LEN = 500;
 
+// A note is posted once (qa-tester-2): the same note sent again within this window — a
+// double tap, a retry — gives back the first one instead of a second copy.
+const DUPLICATE_WINDOW_MS = 10_000;
+const when = (row) => new Date(row.created_date || 0).getTime() || 0;
+const earlier = (a, b) => when(a) - when(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+// The first copy of `mine`: the earliest note about the same player in the same group with
+// the same text, posted the same way, no more than DUPLICATE_WINDOW_MS before it. "The same
+// way" is the same author for a signed note; an anonymous note stores no author, so any
+// identical anonymous note counts — the two cannot be told apart anyway. The window is
+// measured between the stored created_dates, so the server's clock does not matter.
+async function firstCopy(base44, mine) {
+  // Newest first; a window of ten seconds holds far fewer notes about one player than a page.
+  const recent = await base44.asServiceRole.entities.TableTalkNote.filter(
+    { group_id: mine.group_id, target_player_id: mine.target_player_id }, '-created_date', 50,
+  );
+  const copies = recent.filter((n) => (
+    n.note === mine.note
+    && !!n.is_anonymous === !!mine.is_anonymous
+    && (mine.is_anonymous || n.author_user_id === mine.author_user_id)
+    && earlier(n, mine) <= 0
+    && when(mine) - when(n) <= DUPLICATE_WINDOW_MS
+  ));
+  return copies.sort(earlier)[0] || mine;
+}
+
 // Scouting-note create path (P9-7). TableTalkNote create RLS is platform-admin
 // only; all notes flow through here. Author fields are derived SERVER-SIDE
 // (never trusted from the client), and anonymous notes store NO author identity
@@ -106,6 +132,14 @@ Deno.serve(async (req) => {
       ...gameFields
     });
 
+    // Two requests can arrive together, so the check runs after the write: each request
+    // looks for an earlier copy, and every copy but the first removes itself. Both
+    // requests then answer with the same, first note.
+    const first = await firstCopy(base44, created);
+    if (first.id !== created.id) {
+      await base44.asServiceRole.entities.TableTalkNote.delete(created.id).catch(() => null);
+      return Response.json({ note: first });
+    }
     return Response.json({ note: created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
