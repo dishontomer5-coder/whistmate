@@ -4,7 +4,7 @@
 > plan.md). Numbered `P<phase>-<n>` tasks; done-lines are changelog entries; exactly one `🔄`
 > in-progress marker and one `▶ RESUME HERE` bookmark across the file.
 >
-> ▶ RESUME HERE (Nov 19 2026, 04:45): **Phase 13, fix round 1 (P13-4) — wave 2 is HALF DONE and was
+> ▶ RESUME HERE (Nov 19 2026, 08:00): **Phase 13, fix round 1 (P13-4) — wave 2 is HALF DONE and was
 > interrupted by the account's usage limit for the third time (resets 08:50 Asia/Jerusalem).** The
 > three implementers' work is SAVED, mostly uncommitted, in their worktrees — do not delete them:
 > `.claude/worktrees/agent-a75d148a03a271a5a` (A, structure and navigation — ~27 files changed),
