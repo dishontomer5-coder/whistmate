@@ -1,0 +1,2708 @@
+[
+  {
+    "cluster": "C01",
+    "title": "Sign-in and sign-up never return to where the person was going (invite link, deep links)",
+    "members": [
+      "newcomer-1",
+      "qa-tester-1",
+      "qa-tester-2"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Signed out on /join?code=NHUA1B -> 'Sign In to Join' -> '/login?from_url=http%3A%2F%2Flocalhost%3A4607%2Fjoin%3Fcode%3DNHUA1B'. Path A (log in as newbie): 'OK tapped [5] button \"Log in\" -> now at /home ... ## NO GROUPS YET'. Path B ('Create one' -> /register, the query string is already gone; new e-mail, any 6 digits): 'OK tapped [2] button \"Verify\" -> now at /home' with 'NO GROUPS YET'. Deep link signed out: 'OK loaded /round/579ae075098281d89c967fb0 -> redirected to /home' (the landing page, not the login form); localStorage base44_from_url held the round address and was not used.",
+    "cause": [
+      {
+        "file": "src/pages/Login.jsx",
+        "line": 23,
+        "what": "After a password login the page is always set to '/home'; nothing reads the from_url parameter."
+      },
+      {
+        "file": "src/pages/Login.jsx",
+        "line": 32,
+        "what": "Google sign-in is started with the fixed return address '/home'."
+      },
+      {
+        "file": "src/pages/Login.jsx",
+        "line": 43,
+        "what": "The 'Create one' link goes to plain /register, dropping the from_url query."
+      },
+      {
+        "file": "src/pages/Register.jsx",
+        "line": 48,
+        "what": "After the verification code the page is always set to '/home' (same at line 70 for Google)."
+      },
+      {
+        "file": "src/pages/Join.jsx",
+        "line": 34,
+        "what": "Sends the signed-out visitor to login through the SDK, which adds ?from_url=<invite link> - the only place the invite is carried."
+      },
+      {
+        "file": "src/lib/authReturnTo.js",
+        "line": 12,
+        "what": "The existing safe-redirect helper reads a parameter called returnTo (not from_url) and is not called by Login or Register at all."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 52,
+        "what": "A signed-out visitor on any group page (/session, /round, /player, /admin) is redirected to /home instead of /login, with no return address."
+      },
+      {
+        "file": "src/lib/app-params.js",
+        "line": 45,
+        "what": "base44_from_url in localStorage is overwritten with the current address on every page load, so it cannot be relied on as the return address."
+      }
+    ],
+    "notes": "One fix covers all three findings: Login and Register must read the return address (validate it with safeReturnTo) and go there after sign-in, and the Login -> Register link must keep it. qa-tester-2 adds the landing-page redirect in Layout.jsx:52."
+  },
+  {
+    "cluster": "C02",
+    "title": "The invite page (/join) is bare: no group name, only 'Sign In'; signed in it is a dialog over an empty screen",
+    "members": [
+      "newcomer-5",
+      "visual-designer-24"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Signed out: '# YOU'RE INVITED / Sign in to join the group with code NHUA1B and track your whist nights. / [1] button \"Sign In to Join\"' - one control, no group name. Signed in (newbie): 'OVERLAY dialog \"JOIN A GROUP\" is open' over a blank page; screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/001-join-signed-in.png shows the band-shaped dialog on black with nothing else on screen.",
+    "cause": [
+      {
+        "file": "src/pages/Join.jsx",
+        "line": 29,
+        "what": "Signed-out block: fixed copy that shows only the code, and (line 34) a single 'Sign In to Join' button; no link to create an account."
+      },
+      {
+        "file": "src/pages/Join.jsx",
+        "line": 42,
+        "what": "Signed-in block renders an empty full-height div and the JoinGroupDialog; there is no page content behind the dialog."
+      },
+      {
+        "file": "base44/functions/previewGroupByCode/entry.ts",
+        "line": 30,
+        "what": "The function that returns the group name for a code answers 401 when signed out, so the page cannot name the group before sign-in without a public variant."
+      }
+    ],
+    "notes": "visual-designer-24's row-width detail (336 vs 340 px) is the same thing as newcomer-17 - see the dialog cluster. Showing the group name to a signed-out visitor needs a decision: the code is currently the only trust boundary. NEW (not in any report): a person who is already a member and opens the invite link gets 'You are already a member of this group.' inside the code dialog with only Cancel / Continue - no way into the group (JoinGroupDialog.jsx:46-48)."
+  },
+  {
+    "cluster": "C03",
+    "title": "A new group gives no lead to adding players; Members is the last block in Admin, below the Danger Zone",
+    "members": [
+      "newcomer-2",
+      "visual-designer-23"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "New account -> Create Group -> group home reads 'SESSIONS | START NEW SESSION | Standings | No Rounds Yet | Play a session to see standings. | No Sessions Yet | ...' - nothing about players. Start Session was accepted with one member. First hint three taps later on Pick the Table: 'This group has fewer than 4 players - add members in Admin first.' (plain text) with 'Start Round (0/4)'. Admin listing order: '## GROUP SETTINGS ... INVITE CODE ... Archive / Delete ... Add / Rename ...'.",
+    "cause": [
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 97,
+        "what": "An active group with no open session always shows 'Start New Session'; the member count is never looked at (empty states at 133-135 talk only about sessions)."
+      },
+      {
+        "file": "src/pages/NewRound.jsx",
+        "line": 113,
+        "what": "The only hint about needing four players, as plain text with no link, on the third screen."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 150,
+        "what": "The Danger Zone is rendered inside the settings block, so it comes before the member list."
+      },
+      {
+        "file": "src/pages/Admin.jsx",
+        "line": 71,
+        "what": "MemberList is rendered after GroupSettings (settings, invite code, danger zone, then members)."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 272,
+        "what": "Every member card ends with a red 'Remove' of the same weight as its neighbours."
+      }
+    ],
+    "notes": "startSession has no minimum-member check either (base44/functions/startSession/entry.ts), which is why a one-player session can be created."
+  },
+  {
+    "cluster": "C04",
+    "title": "Scores and table terms are not explained where they are shown (points, UP/DOWN, renege, everyone falls, hierarchy, trump mark)",
+    "members": [
+      "newcomer-3",
+      "newcomer-7",
+      "whist-player-7",
+      "returning-player-17"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Session page after a saved round: 'Round 4 | UP | Hearts | ... Maya | bid 3 · won 3 | +19 | Dan(reneged) | bid 2 · won 2 | -86 | נועה♥ Hearts | bid 5 · won 4 | -10' - the only controls in the round cards are the admin's 'Edit round' links; UP, the suit, the points and '(reneged)' are plain text. Bidding hint: 'Bid for נועה · 4 blocked (would make Σ=13)'. Trump column is a faint dot whose meaning exists only as an aria-label ('Mark as trump winner').",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 149,
+        "what": "Round card: round number, UP/DOWN badge, suit, 'bid n · won n' and points are static spans (lines 149-185); nothing opens an explanation."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 239,
+        "what": "The UP/DOWN badge on the bidding step is a plain span."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 21,
+        "what": "The trump marker shows '·' until tapped; its meaning is only in aria-label (line 30)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 190,
+        "what": "The two hierarchy buttons have no heading."
+      },
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 84,
+        "what": "The only scoring text on the form names the two penalty schemes; it does not say what a made bid or a zero bid earns."
+      },
+      {
+        "file": "src/components/HamburgerMenu.jsx",
+        "line": 41,
+        "what": "The rules assistant is reachable only from the menu ('Ask About the Game'); no score links to it."
+      },
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 5,
+        "what": "The profile tiles already have a tap-to-explain pattern (InfoLabel popover) that the game screens do not use."
+      }
+    ],
+    "notes": "The trump winner shown only as a suit after the name is SessionView.jsx:171-175 (title attribute only). Rounds with no suit recorded simply show nothing (trump is optional outside Advanced sessions - rulebook section 2)."
+  },
+  {
+    "cluster": "C05",
+    "title": "'Progressive' is described as escalating, but misses of 1-4 tricks cost a flat 5 each (half of Classic)",
+    "members": [
+      "scorekeeper-15"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser + code",
+    "observed": "In a Progressive session a one-trick miss scored -5: 'אמא | bid 2 · won 1 | -5'. Form text: 'Classic = −10 per missed trick. Progressive = escalating penalty by miss size.'",
+    "cause": [
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 84,
+        "what": "The description says only 'escalating penalty by miss size'."
+      },
+      {
+        "file": "src/lib/scoring.js",
+        "line": 83,
+        "what": "progressiveRate: 5 per trick for a miss of 1-4, 10 at exactly 5, 15 at 6, 20 from 7 - so it only escalates from a miss of 5."
+      }
+    ],
+    "notes": "The numbers are right (they match docs/whist-rules.md:136-146); only the one-line description misleads. newcomer-3 noticed the same."
+  },
+  {
+    "cluster": "C06",
+    "title": "RENEGE: one tap on a small unexplained pill costs a player 100 points, with no confirmation",
+    "members": [
+      "newcomer-4",
+      "scorekeeper-7"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Results step, tapped RENEGE on Dan: 'LISTING unchanged, but the page itself changed' (colour only), no dialog event. Save Round -> 'Dan(reneged) | bid 2 · won 2 | -86' (14 - 100). Pill measured 57x19 px inside the 358x62 px row button. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/b-001-renege-on.png.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 372,
+        "what": "The renege control is a span with role=button inside the player row; one tap flips it (line 374), it carries no text about the cost and no pressed state."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 376,
+        "what": "Its size comes from text-[10px] px-2 py-0.5."
+      },
+      {
+        "file": "base44/functions/saveRoundResults/entry.ts",
+        "line": 137,
+        "what": "A reneged player gets -100 on top of the contract points, with no further check."
+      }
+    ],
+    "notes": "scorekeeper-7's other half (no preview of the points before saving) is the same request as the two ideas in the next cluster."
+  },
+  {
+    "cluster": "C07",
+    "title": "Idea: show made / missed, the points and an everyone-falls warning before Save Round",
+    "members": [
+      "visual-designer-28",
+      "whist-player-20"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "The results rows show 'bid n' and the typed number in white whatever the outcome (RoundView.jsx:367-381).",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 319,
+        "what": "The results step already holds every bid and typed trick count, and the session's scoring_method is loaded (line 125)."
+      },
+      {
+        "file": "src/lib/scoring.js",
+        "line": 144,
+        "what": "scoreRound() is pure and already imported by the frontend file; it returns per-player points and the everyoneFalls flag."
+      }
+    ],
+    "notes": "The data is all there: no backend change needed."
+  },
+  {
+    "cluster": "C08",
+    "title": "Wins, win rate and podiums count the session that is still open",
+    "members": [
+      "newcomer-6",
+      "scorekeeper-6",
+      "returning-player-3",
+      "whist-player-1"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser + arithmetic from the API",
+    "observed": "Fresh seed, group home: 'Maya 133 rounds · 9 wins', 'נועה 106 rounds · 4 wins', 'Dan 113 rounds · 2 wins' (15 wins, 14 closed sessions + 1 open). Recomputed from getGroupData: winners of the 14 closed sessions are Maya 9, נועה 3, Dan 2; the open 'Midweek special' is led by נועה (+90). Open session's own standings: 'נועה | 4 rounds · 1 win'. API computePlayerStats for נועה: wins 4, sessions_played 11, win_ratio 0.36; Dan: podiums 7 of 12 sessions (6 closed top-3 finishes + third place in the open one).",
+    "cause": [
+      {
+        "file": "src/lib/standings.js",
+        "line": 28,
+        "what": "buildStandings ranks every session that has scored rows and gives a win to rank 1 (lines 28-34); session status is never looked at."
+      },
+      {
+        "file": "base44/functions/computePlayerStats/entry.ts",
+        "line": 102,
+        "what": "Wins, podiums and sessions_played are counted over every session with scored rows (lines 102-127); no Session status is read."
+      },
+      {
+        "file": "base44/functions/computeGlobalStats/entry.ts",
+        "line": 76,
+        "what": "The all-groups profile does the same (lines 76-100)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 41,
+        "what": "The session screen reuses buildStandings for one session, so its leader always shows '1 win' (printed by Leaderboard.jsx:54)."
+      }
+    ],
+    "notes": "The rulebook (docs/whist-rules.md:187) and the tile's own tooltip (StatGrid.jsx:54) say a win is a finished session. RoundResult rows carry no session status: Home.jsx already has the sessions list to filter by, the two backend functions must read Session.status. Inside a single session the '· n wins' text is meaningless even when closed - consider dropping it there. See also the ties cluster: two tied leaders both get a win."
+  },
+  {
+    "cluster": "C09",
+    "title": "A started round cannot be discarded or re-seated, and it silently removes Close Session",
+    "members": [
+      "scorekeeper-1",
+      "whist-player-2",
+      "qa-tester-5"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Round in play, every control on the page: 'Session ; Edit bids ; <4 player rows> ; RENEGE x4 ; Save Round'. Session page: 'RESUME ROUND 5 ; Open round → ; Edit round x4' and no 'Close Session'; a text search for close session|discard|cancel|delete returned false. Then a direct call to deleteRound as Dan (plain player) for the in-play round answered {\"deleted\":true,...,\"results_deleted\":4}, and the session page showed 'START ROUND 5 ; ... ; Close Session' again.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 203,
+        "what": "The bidding step (203-315) and the results step (318-406) have no discard / change-players control."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 456,
+        "what": "Delete Round exists only on the scored-round summary and only for group admins."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 134,
+        "what": "Close Session is rendered only when no round is in bidding/playing; nothing explains its absence."
+      },
+      {
+        "file": "base44/functions/closeSession/entry.ts",
+        "line": 73,
+        "what": "The server refuses to close with a round in play ('Finish or cancel the current round...') - a cancel the screens do not offer."
+      },
+      {
+        "file": "base44/functions/deleteRound/entry.ts",
+        "line": 49,
+        "what": "The server already lets ANY member delete a round that is still in bidding or playing (comment at 34-37; the admin check at 64 applies to scored rounds only)."
+      }
+    ],
+    "notes": "Frontend-only fix: a 'Discard round' button on the two in-play steps that calls deleteRound. qa-tester-5 says 'only a group admin can delete' - true of the buttons, not of the server."
+  },
+  {
+    "cluster": "C10",
+    "title": "Round entry does not fit: Lock Bids lands exactly behind the tab bar once a trump winner is marked; short phones need scrolling",
+    "members": [
+      "scorekeeper-2",
+      "visual-designer-1"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "390x844, four bids, no trump: {lockTop:668.6, lockBottom:704.6, navTop:782.5, scrollMax:0}. After tapping one trump slot: {lockTop:782.59, lockBottom:818.59, navTop:782.5, scrollMax:71} - the same numbers the designer reported. Results step at 375x667: Save Round at y 677-713, tab bar from 606, scrollMax 142. At 320x568: number pad starts at y 574 (below the 568 px screen), scrollMax 242.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 288,
+        "what": "The trump panel (suit buttons, plus hierarchy in Advanced sessions) is inserted between the number pad and the Lock Bids button, pushing the button down."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 309,
+        "what": "Lock Bids / Save Round (401) are ordinary blocks at the end of the page flow."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 130,
+        "what": "The tab bar is fixed to the bottom of the screen, so anything in the last ~62 px of the viewport is covered until the page is scrolled."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 251,
+        "what": "Four 62 px player rows plus a two-row pad plus the button need about 720 px below the header."
+      }
+    ],
+    "notes": "The page can still be scrolled (main has pb-24, Layout.jsx:125); the problem is that nothing shows there is a button below. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/b-003-bidding-trump-open.png."
+  },
+  {
+    "cluster": "C11",
+    "title": "At 320 px: step title cut to 'R…', number pad below the fold, action rows past the gutter, History line wraps badly",
+    "members": [
+      "newcomer-15",
+      "visual-designer-15",
+      "whist-player-18",
+      "qa-tester-22"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (round screen measured; groups list and History from code + reviewer screenshots)",
+    "observed": "320x568, results step: h1 'RESULTS' clientWidth 33 px for 82 px of text (ellipsis), keys 32x32 px, pad top at y=574 on a 568 px screen, scrollMax 242.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 63,
+        "what": "The phase title has 'truncate' and shares one row with a step label that may not shrink (line 64) and the counter badge, so the title is what gives way."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 73,
+        "what": "Seven keys per row with fixed gaps: 32 px keys at 320 px."
+      },
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 21,
+        "what": "Date, place, round count and 'Advanced' sit in one non-wrapping flex row; the items wrap inside themselves and the pin icon shrinks."
+      },
+      {
+        "file": "src/pages/HomeGlobal.jsx",
+        "line": 120,
+        "what": "Create Group / Join Group row (flex-1 buttons with icons) is wider than the content column at 320 px."
+      }
+    ],
+    "notes": "The pad-below-the-fold part overlaps the previous cluster."
+  },
+  {
+    "cluster": "C12",
+    "title": "Advanced rules: Lock Bids stays disabled with no reason, the card-order choice has no heading, and it is not shown during play",
+    "members": [
+      "newcomer-9",
+      "scorekeeper-9",
+      "whist-player-10"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run (three reviewers saw the same thing; the code is unambiguous). Reviewer output: after choosing a suit '[33] button \"Lock Bids\" disabled', enabled only after choosing Standard or Down-Up; results header 'Table UP · trump ♥ Hearts · won by Maya' with no card order.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 214,
+        "what": "In an Advanced session Lock Bids needs both a suit and a hierarchy."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 292,
+        "what": "The only reason ever printed under the button is the total-13 case; a missing suit or hierarchy prints nothing."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 190,
+        "what": "The hierarchy buttons are rendered with no heading."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 13,
+        "what": "Label 'Down-Up (A,2,3…K)' does not say which end is high (rulebook: Ace high, then 2, King lowest - docs/whist-rules.md:111)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 347,
+        "what": "The results-step header prints table state, suit and winner but not the hierarchy (the scored summary does, line 434)."
+      }
+    ],
+    "notes": "The hierarchy is required even for No-Trump (same condition)."
+  },
+  {
+    "cluster": "C13",
+    "title": "'Edit bids' wipes the tricks (and renege marks) already typed, although the notice says they are untouched",
+    "members": [
+      "scorekeeper-3"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Results step with two trick counts typed: '7 / 13 tricks | ... יוסי | bid 4 | RENEGE | 4 | Maya | bid 3 | RENEGE | 3'. Edit bids shows 'Fixing the locked bids for this round. Saving re-derives up/down and the trump record; tricks already typed in are untouched.' -> Cancel -> '0 / 13 tricks', all four '—', cursor still on 'Tricks for Dan'; the RENEGE I had switched on for Dan was off as well.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 301,
+        "what": "Cancel in the bid editor calls load()."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 229,
+        "what": "Save Bids also calls load() after submitBids."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 131,
+        "what": "load() replaces the tricks and reneges state with the server's values, which are empty for an unscored round."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 246,
+        "what": "The notice that promises the tricks are untouched."
+      }
+    ],
+    "notes": "The trick cursor (activeTrickIdx) is not reset either, so the next number goes to whichever row was active before."
+  },
+  {
+    "cluster": "C14",
+    "title": "Unlocked bids and unsaved tricks vanish without warning when the round screen is left or reloaded",
+    "members": [
+      "scorekeeper-5",
+      "whist-player-8",
+      "qa-tester-17"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Bidding: '1. יוסי 4 · ; 2. Maya 3 · ; 3. Dan — · ; 4. נועה — ·' -> tapped the Sessions tab (no dialog event) -> Back -> '1. יוסי — · ; 2. Maya — · ; 3. Dan — · ; 4. נועה — ·'. Results: '7 / 13 tricks' -> reload -> '0 / 13 tricks'.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 103,
+        "what": "Bids, trump, trump owner, hierarchy, tricks and reneges exist only as component state (103-112) until Lock Bids / Save Round."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 131,
+        "what": "On every mount the state is re-seeded from the server; there is no saved draft and no leave/unload guard."
+      }
+    ],
+    "notes": "Locked bids survive (they are on the server). whist-player-8's second half (Save Bids wipes tricks) is the previous cluster."
+  },
+  {
+    "cluster": "C15",
+    "title": "Bidding order: the app assumes row 1 bids first, the cursor jumps to the first empty row, and 'Same players' repeats last round's order; no dealer",
+    "members": [
+      "scorekeeper-4",
+      "whist-player-6"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Pick the Table -> 'Same players as last round' gave '1 יוסי, 2 Maya, 3 Dan, 4 נועה', the exact order of the round before (the seeded rounds 1-4 rotate the first player). Bidding: tapped row 3 (Dan) and entered 3 -> 'Bid for יוסי' (row 1), then 'Bid for Maya' (row 2), then 'Bid for נועה · 4 blocked (would make Σ=13)' (row 4).",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 283,
+        "what": "After a bid the pad moves to the first row without a bid, counting from the top, not to the next seat."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 394,
+        "what": "Same rule for tricks."
+      },
+      {
+        "file": "src/pages/NewRound.jsx",
+        "line": 38,
+        "what": "'Same players as last round' copies the previous round's bid order unchanged (38-41, used at 86)."
+      },
+      {
+        "file": "src/pages/NewRound.jsx",
+        "line": 82,
+        "what": "'Tap order is the bidding order' - the order is fixed before the deal; there is no dealer or first-bidder field (startRound/entry.ts:126-131 stores only bid_order)."
+      }
+    ],
+    "notes": "The total-13 block follows whichever bid is entered last (RoundView.jsx:207-211), so the real order CAN be followed by tapping rows - nothing says so. whist-player-6's point that trump is entered after the numbers is how the app is meant to work: it records final bids after the table's auction (docs/whist-rules.md:75-80)."
+  },
+  {
+    "cluster": "C16",
+    "title": "Idea: one tap to start a round with an unchanged table",
+    "members": [
+      "scorekeeper-19"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "Today: START ROUND n -> 'Same players as last round' -> 'Start Round (4/4)'.",
+    "cause": [
+      {
+        "file": "src/pages/NewRound.jsx",
+        "line": 34,
+        "what": "The previous table is already worked out here from the session's rounds and results."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 33,
+        "what": "The session screen loads the same rounds and results, so it has what a 'same table' button would need to call startRound directly."
+      }
+    ],
+    "notes": "Data is available. Decide the rotation question (previous cluster) first, or the shortcut repeats the wrong order faster."
+  },
+  {
+    "cluster": "C17",
+    "title": "A page from one group is shown under another group's header, with that group's admin buttons and 'Player Not Found'",
+    "members": [
+      "returning-player-1",
+      "qa-tester-3"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "As Maya with Thursday Whist open (eos_activeGroupId = 0932e6ff...), opened /session/09cb71fa831cc9ce692b9ac1 (Family Table): header '[1] | THURSDAY WHIST | [2]' above '# Whist Night / Oct 28, 2026 · Home · Closed · Progressive', seven 'Edit round' links and the Admin tab (Maya is a plain player in Family Table). Tapped the first player: '## Player Not Found' and '! http 404 POST .../computePlayerStats - {\"error\":\"Player not found\"}'.",
+    "cause": [
+      {
+        "file": "src/lib/ActiveGroupContext.jsx",
+        "line": 27,
+        "what": "The 'current group' is whatever id is stored in localStorage (eos_activeGroupId); it is never derived from the page being shown."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 105,
+        "what": "The header prints the stored group's name."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 33,
+        "what": "The session is loaded by its id alone (the server checks membership of the session's real group), and isAdmin (line 16) comes from the stored group - hence the 'Edit round' links."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 95,
+        "what": "Same isAdmin source for Edit Round / Delete Round (456)."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 50,
+        "what": "Sends the stored group's id together with the player id; computePlayerStats/entry.ts:43 answers 404 when they do not match."
+      }
+    ],
+    "notes": "returning-player-1 reached it with the browser Back button, qa-tester-3 with a direct link; same mechanism (I reproduced the direct link). The server refuses the writes (403), so this is confusion, not a leak. Activity.jsx:61-64 already switches the group before navigating - the session, round and player pages should do the same from the loaded record's group_id."
+  },
+  {
+    "cluster": "C18",
+    "title": "After leaving a group, the browser Back button is stuck on Your Groups",
+    "members": [
+      "returning-player-2"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Thursday Whist -> History -> session 'Rematch' -> header arrow -> /home. Then Back four times: each time '/home | YOUR GROUPS' (history length stayed 13).",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 57,
+        "what": "The header arrow clears the stored group before going to /home."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 52,
+        "what": "Any group page opened with no stored group is replaced by /home - so every history entry of the group just left bounces straight back."
+      }
+    ],
+    "notes": "Same root as the previous cluster: the group lives in storage, not in the address."
+  },
+  {
+    "cluster": "C19",
+    "title": "Group tabs: label and icon do not match the content ('Sessions' = standings and awards, trophy = the session list)",
+    "members": [
+      "returning-player-4",
+      "visual-designer-19",
+      "returning-player-24"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Tab bar read from the page: '/ : lucide-spade : Sessions, /history : lucide-trophy : History, /profile : lucide-user : Profile'. '/' shows '# SESSIONS', the active session card, '## Standings', 'Awards', 'Recent'; /history is only the list of session cards.",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 19,
+        "what": "Tab definitions: Spade/'Sessions' -> '/', Trophy/'History' -> '/history', User/'Profile' (19-21); top level: Home icon/'Groups', GlobalProfileIcon/'Profile' (13-15)."
+      },
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 72,
+        "what": "The page titled 'Sessions' holds Standings (104-113), Awards (116) and three recent sessions (119-131)."
+      },
+      {
+        "file": "src/components/AwardsShowcase.jsx",
+        "line": 8,
+        "what": "The Coward uses the Crown icon."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 145,
+        "what": "The unread badge is a 16 px high pill with 9 px text on top of the Activity icon."
+      }
+    ],
+    "notes": "returning-player-24 is the idea form of the same finding (a structure where each label says what is inside); no data question."
+  },
+  {
+    "cluster": "C20",
+    "title": "On phones the header arrow leaves the group, has no label, and sits above a second back arrow",
+    "members": [
+      "returning-player-5",
+      "scorekeeper-8",
+      "visual-designer-16"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Every group page lists '[1] button (no label) icon=arrow-left' and, below it, '[3] button \"Session\"' / 'Sessions' / 'Back' / 'Back to Games'. 'OK tapped button (no label; icon=arrow-left) -> now at /home'. Measured 16x16 px at (16,22); the second arrow 'Session' 70x20 px at (16,85).",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 97,
+        "what": "The header button calls handleBackToGroups; its only label is a span hidden below 400 px (line 102) and there is no aria-label; the icon is 16 px (line 101)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 80,
+        "what": "Second arrow on the session page ('Sessions')."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 569,
+        "what": "Second arrow on the round page ('Session'); likewise NewRound.jsx:77, PlayerProfile.jsx:95 ('Back'), NewSession.jsx:53 ('Back'), Admin.jsx:58 ('Back to Games')."
+      }
+    ],
+    "notes": "At 390 px the label is hidden too (the breakpoint is 399 px). There is no other way from a group to the group list (HamburgerMenu.jsx has no such entry)."
+  },
+  {
+    "cluster": "C21",
+    "title": "In-page Back links are fixed destinations: player -> History, session -> group home, About -> Your Groups",
+    "members": [
+      "returning-player-6",
+      "newcomer-13",
+      "returning-player-18",
+      "returning-player-13"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (player page; the session and About links from code)",
+    "observed": "Player page reached from Activity and from a session's standings both list '[3] link \"Back\" → /history'.",
+    "cause": [
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 95,
+        "what": "Back is a fixed link to /history (also in the error and not-found states, lines 73 and 84)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 80,
+        "what": "'← Sessions' always navigates to '/'."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 66,
+        "what": "The Sessions tab is lit for every /session and /round page, including one opened from History."
+      },
+      {
+        "file": "src/pages/About.jsx",
+        "line": 41,
+        "what": "Back is a fixed link to /home."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 10,
+        "what": "/account and /about are in the 'global' list, so opening them from inside a group swaps the header and tab bar to the all-groups frame; Account.jsx has no back control."
+      }
+    ],
+    "notes": "RulesChat.jsx:60 uses navigate(-1) - the behaviour the other pages lack. newcomer-13's second half (two stacked arrows) is the previous cluster."
+  },
+  {
+    "cluster": "C22",
+    "title": "'My best night' and 'who won' cannot be found: History and closed sessions do not name a winner, a profile has no best/worst",
+    "members": [
+      "returning-player-7",
+      "visual-designer-27",
+      "whist-player-21"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "History / Recent cards read 'Last Thursday CLOSED Nov 12, 2026 אצל נועה 10 rounds', 'Rematch CLOSED Nov 5, 2026 Omer's rooftop 12 rounds' - name, date, place, count and a status badge only. Profile sections: PERFORMANCE, STRATEGY, AWARDS, SCORE OVER TIME; no best or worst session.",
+    "cause": [
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 13,
+        "what": "The card prints name, Open/Closed, date, location, round count and 'Advanced' (13-36); it receives no results."
+      },
+      {
+        "file": "src/pages/History.jsx",
+        "line": 28,
+        "what": "History asks the server to leave the results out (include_results: false), so winners are not even loaded there."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 90,
+        "what": "A closed session's header says 'Closed' and nothing about who won."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 165,
+        "what": "Round rows follow the seating order and the viewer's own row is not marked."
+      },
+      {
+        "file": "src/components/ScoreChart.jsx",
+        "line": 48,
+        "what": "The chart tooltip says only 'Game n', although each timeline point carries session_id, date and round_number (computePlayerStats/entry.ts:138)."
+      }
+    ],
+    "notes": "Data for the two ideas exists: the group read with results (Home.jsx:39) is enough to rank each session; a per-player best/worst session can be derived from the same rows."
+  },
+  {
+    "cluster": "C23",
+    "title": "Closing a session: button at the very bottom, browser confirm box, no closing summary, no way to reopen",
+    "members": [
+      "scorekeeper-13",
+      "newcomer-19"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run to completion. Seen on the way: Close Session is the last control of the session page, and the reviewers' tool output shows the native box: 'dialog confirm \"Close this session? No more rounds can be added.\"'.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 134,
+        "what": "The button is rendered after the whole list of rounds."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 52,
+        "what": "Confirmation is window.confirm()."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 56,
+        "what": "After closing, the page just reloads; the only change is the word 'Closed' in the subtitle (line 93)."
+      },
+      {
+        "file": "base44/functions/closeSession/entry.ts",
+        "line": 77,
+        "what": "Closing sets status 'closed'; there is no function or screen that sets it back to 'open'."
+      }
+    ],
+    "notes": "A winner line needs nothing new: the standings are already on the page (SessionView.jsx:41)."
+  },
+  {
+    "cluster": "C24",
+    "title": "Round history: only on a second 'me' page, cut at 50 rows without saying so, and no row names its session",
+    "members": [
+      "returning-player-8",
+      "whist-player-19"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Rachel's page: header 'RACHEL | 79 rounds played', exactly 50 round links, the last one 'Round 3 | Sep 17, 2026 · bid 1 · won 2 | -10', then 'Leave a Note'. Rows read 'Round 10 | Nov 12, 2026 · bid 5 · won 2 | -15'. The round page they open reads 'Session | Round 8 | UP | Trump ♦ Diamonds · won by Omer | ...' - no session name or date. Dan's Profile tab (/profile) has no ROUND HISTORY section at all.",
+    "cause": [
+      {
+        "file": "src/pages/Profile.jsx",
+        "line": 118,
+        "what": "The Profile tab renders the stat grid, chart, player select and notes feed; it has no round history and no note button."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 117,
+        "what": "Round history exists only on /player/:id and is cut with slice(0, 50); nothing prints a count or a 'more' control."
+      },
+      {
+        "file": "base44/functions/getGroupData/entry.ts",
+        "line": 134,
+        "what": "The server also cuts the player's rows at PLAYER_HISTORY_LIMIT = 50 (line 16) and returns no total."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 125,
+        "what": "A row prints the round number (line 123) and the round's own created date; the session is not fetched (the 'player' scope returns results and rounds only)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 424,
+        "what": "The scored-round page is headed 'Round n' with no session name or date."
+      }
+    ],
+    "notes": "Rounds do carry session_id, so the session name needs one more lookup in the 'player' scope. For a non-admin the round cards on a session page are not links (SessionView.jsx:188 is admin-only), so the round page is reachable only from this list."
+  },
+  {
+    "cluster": "C25",
+    "title": "Notes are buried: a note tapped in Activity opens the top of a long player page; the note box sits below 50 round rows",
+    "members": [
+      "returning-player-9"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Activity -> 'Anonymous left a note about Rachel' -> '/player/9ebb704c792d1c8842158178', 'VIEW phone 390x844 · scrolled 0/4262px'. Measured on that page: 'Leave a Note' at y=4813, 'TABLE TALK' heading at y=4873, 50 round rows above them, document height 5106 px.",
+    "cause": [
+      {
+        "file": "src/pages/Activity.jsx",
+        "line": 63,
+        "what": "Tapping a note navigates to the player page with no anchor."
+      },
+      {
+        "file": "src/components/ScrollToTop.jsx",
+        "line": 29,
+        "what": "Every forward navigation scrolls to the top (a #hash would be honoured, lines 21-26, but none is passed)."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 139,
+        "what": "The note button and the notes feed (149) come after the stats, the chart and the 50-row round history."
+      },
+      {
+        "file": "src/pages/Profile.jsx",
+        "line": 139,
+        "what": "The viewer's own Profile tab shows the feed only; on /player/<own id> the button is offered with no self check ('Leave a public note about Dan')."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C26",
+    "title": "Profile tiles: the explanation bubble covers the number it explains; 5/3/3 tiles leave holes in the two-column grid",
+    "members": [
+      "returning-player-20",
+      "visual-designer-17"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Tapped TOTAL SCORE on /profile: popover rectangle [left 0, top 225, right 224, bottom 298] over the value's rectangle [28, 227, 177, 259] - the number is hidden and the bubble starts at x=0. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/003-profile-popover.png.",
+    "cause": [
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 14,
+        "what": "The popover opens below the small label with default placement - exactly where the value is printed - and is 224 px wide (w-56)."
+      },
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 50,
+        "what": "Two-column grids hold 5, 3 and 3 tiles (lines 50, 61, 70)."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 67,
+        "what": "The Profile tab is lit on every /player page, including other people's."
+      }
+    ],
+    "notes": "visual-designer-17 also lists the 50 round rows burying Table Talk (previous two clusters), the blank player select (next cluster) and 'Games played' (naming cluster)."
+  },
+  {
+    "cluster": "C27",
+    "title": "'View another player' is a blank box at the bottom of the profile",
+    "members": [
+      "returning-player-21"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "The select trigger on /profile: {text: \"\", aria-label: null, width: 358}.",
+    "cause": [
+      {
+        "file": "src/pages/Profile.jsx",
+        "line": 128,
+        "what": "The select is given the fixed value 'none', which matches no option, so neither the placeholder ('Select a player to view') nor a name is shown."
+      },
+      {
+        "file": "src/pages/Profile.jsx",
+        "line": 132,
+        "what": "The list includes the viewer ('(You)'), which opens the other page about themselves."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C28",
+    "title": "One note, two dates (Activity prints the day it was written next to the session's name); round rows dated differently from their session",
+    "members": [
+      "returning-player-10"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed-with-correction",
+    "method": "reproduced in browser + seed analysis",
+    "observed": "As Dan, left a note about Rachel linked to 'Last Thursday · Nov 12, 2026'. On Rachel's page: 'D | Dan | Last Thursday · Nov 12, 2026 | ...'; in Activity: 'Dan left a note about Rachel | Thursday Whist · Last Thursday · Nov 19, 2026'. Round rows on this instance: 'Round 3 | Nov 19, 2026', 'Round 2 | Nov 19, 2026', 'Round 1 | Nov 18, 2026' for the session dated Nov 19.",
+    "cause": [
+      {
+        "file": "src/pages/Activity.jsx",
+        "line": 135,
+        "what": "Prints group · session name · the note's created date - so a written-on date reads as the session's date."
+      },
+      {
+        "file": "src/components/TableTalkCard.jsx",
+        "line": 28,
+        "what": "On a profile the same note prints the session's own date (game_date, stored by createNote/entry.ts:90)."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 125,
+        "what": "A round row prints the round's created date, not the session's date."
+      },
+      {
+        "file": "sandbox/seed.mjs",
+        "line": 392,
+        "what": "The seed starts today's open session 75 minutes before the server's start time but labels it with today's date (line 393)."
+      }
+    ],
+    "notes": "CORRECTION: the note half is real. The 'rounds of a Nov 19 session listed as Nov 18' half is made by the sandbox seed, not by the app: the reviewer's server (and mine) was started within 75 minutes after local midnight, so the seeded rounds were stamped the previous evening. In the real app a round can carry a different date from its session only when play runs past midnight (then the round shows the later day), or when someone back-dates the session."
+  },
+  {
+    "cluster": "C29",
+    "title": "Activity: my own note raises the 'new' badge; Activity exists only outside a group and lists notes only",
+    "members": [
+      "returning-player-11"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Opened Activity (badge cleared), left a note as Dan, went back to /home: bottom bar 'Groups 1 Activity Profile'; the new item is 'Dan left a note about Rachel'. First visit showed '9+' for a feed that includes Dan's own July note.",
+    "cause": [
+      {
+        "file": "base44/functions/getActivityFeed/entry.ts",
+        "line": 83,
+        "what": "The unseen count is every note newer than the last visit; notes written by the caller are not left out."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 14,
+        "what": "Activity is a tab of the all-groups bar only; the in-group bar (18-23) has none, and the count is fetched once per sign-in (34-39)."
+      },
+      {
+        "file": "base44/functions/getActivityFeed/entry.ts",
+        "line": 76,
+        "what": "The feed is built from TableTalkNote rows only."
+      }
+    ],
+    "notes": "Non-anonymous notes store author_user_id, so the caller's own can be excluded; anonymous ones store no author by design and cannot."
+  },
+  {
+    "cluster": "C30",
+    "title": "Account and identity: sign-up never asks a name, My Account shows 'User' with nothing to edit; three pages called Profile/Account; no way to leave a group",
+    "members": [
+      "newcomer-10",
+      "returning-player-12",
+      "qa-tester-24"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "New e-mail account -> /account: 'MY ACCOUNT | T | User | triage.new@example.com | Sign Out'.",
+    "cause": [
+      {
+        "file": "src/pages/Register.jsx",
+        "line": 31,
+        "what": "Registration sends e-mail and password only."
+      },
+      {
+        "file": "src/pages/Account.jsx",
+        "line": 43,
+        "what": "Shows full_name or the literal 'User'; the page has a Sign Out button and nothing else (59-65)."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 15,
+        "what": "'Profile' at the top level is /profile/global ('Global Stats'); inside a group (line 21) it is /profile; 'My Account' is a third page in the menu (HamburgerMenu.jsx:35)."
+      },
+      {
+        "file": "base44/functions/removeMember/entry.ts",
+        "line": 60,
+        "what": "The server already allows a member to remove themselves (leave), except the last admin."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 216,
+        "what": "The only screen that calls removeMember hides the buttons on the viewer's own row, and only admins see the screen."
+      }
+    ],
+    "notes": "qa-tester-24 is an idea: leaving a group needs only a button (the function exists). Changing a name or password needs the Base44 auth API; nothing in src/ calls it today."
+  },
+  {
+    "cluster": "C31",
+    "title": "After claiming a player nothing confirms who you are now, and the joiner is told no way to undo it",
+    "members": [
+      "newcomer-8"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "As newbie: chose 'יוסי' -> 'Join Group' -> 'now at /' showing the ordinary group home; row '#5 י יוסי 71 rounds ...' has no 'you' mark and no message appeared.",
+    "cause": [
+      {
+        "file": "src/pages/Join.jsx",
+        "line": 50,
+        "what": "After joining, the app just navigates to the group home (HomeGlobal.jsx:45 does the same)."
+      },
+      {
+        "file": "src/components/groups/JoinGroupDialog.jsx",
+        "line": 219,
+        "what": "Join Group acts at once; there is no confirmation step naming the player being claimed."
+      },
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 38,
+        "what": "Standings rows do not mark the viewer, although the viewer's member id is available (ActiveGroupContext.jsx:87)."
+      }
+    ],
+    "notes": "The remedy exists only on the admin side ('Unclaim', MemberList.jsx:248)."
+  },
+  {
+    "cluster": "C32",
+    "title": "Password reset: success is not confirmed, and a used link leads nowhere",
+    "members": [
+      "newcomer-11"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run. Reviewer output: 'OK tapped [3] button \"Reset password\" → now at /login ... # Welcome back / Log in to your account'.",
+    "cause": [
+      {
+        "file": "src/pages/ResetPassword.jsx",
+        "line": 29,
+        "what": "On success the page is set to /login with no message."
+      },
+      {
+        "file": "src/pages/ResetPassword.jsx",
+        "line": 62,
+        "what": "A failed reset (used or expired link) shows the error above the same two fields with no link; the 'Request a new link' footer exists only when the token is missing altogether (37-54)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C33",
+    "title": "Names drift: WHIST / WhistMate / Israeli Whist; 'games' for rounds and for sessions; three names for a note",
+    "members": [
+      "newcomer-14",
+      "returning-player-14",
+      "whist-player-13"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (strings seen on screen) + code",
+    "observed": "Seen: header 'WHIST' at 390 px; '[3] link \"Back to Games\" → /' on Admin; chart axis 'Games played' under '113 rounds played'; 'Leave a Note' button opening a dialog titled 'SCOUTING NOTE' under the section 'TABLE TALK'.",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 82,
+        "what": "Below 400 px the header wordmark is 'Whist' instead of 'WhistMate'."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 61,
+        "what": "The share text says 'on Israeli Whist'."
+      },
+      {
+        "file": "src/pages/Admin.jsx",
+        "line": 60,
+        "what": "'Back to Games' (also line 41) for the page titled Sessions."
+      },
+      {
+        "file": "src/components/ScoreChart.jsx",
+        "line": 31,
+        "what": "'Games played' axis; 'Game n' tooltip (48); 'Play at least 2 games' (10) - each counts rounds."
+      },
+      {
+        "file": "src/components/WriteNoteDialog.jsx",
+        "line": 89,
+        "what": "'Scouting Note' (dialog) vs 'Leave a Note' (PlayerProfile.jsx:145) vs 'Table Talk' (TableTalkFeed.jsx:39) vs 'scouting note' (Activity.jsx:107)."
+      },
+      {
+        "file": "docs/whist-rules.md",
+        "line": 50,
+        "what": "The rulebook itself says 'WhistMate calls a round a \"game\"' (and lines 262-263), which the assistant repeats."
+      }
+    ],
+    "notes": "whist-player-13's game-limit half is in the game-limit cluster."
+  },
+  {
+    "cluster": "C34",
+    "title": "Developer wording on the game screens (Σ=13, 're-derives', 'Table UP · trump No-Trump', 'Network Error')",
+    "members": [
+      "scorekeeper-16",
+      "whist-player-12"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (strings seen on screen) + code",
+    "observed": "Seen: 'Bid for נועה · 4 blocked (would make Σ=13)'; 'Fixing the locked bids for this round. Saving re-derives up/down and the trump record; tricks already typed in are untouched.'; 'Table UP · trump ♠ Spades · won by יוסי'; 'No Rounds Yet / Play a session to see standings.' inside a brand-new session.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 273,
+        "what": "'{n} blocked (would make Σ=13)'."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 246,
+        "what": "'Saving re-derives up/down and the trump record'."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 348,
+        "what": "'Table UP · trump … · won by …'."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 179,
+        "what": "'bid n · won n' (the awards and rulebook say 'took')."
+      },
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 28,
+        "what": "'Play a session to see standings.' is also shown inside a session."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 332,
+        "what": "A failed save prints the raw error message (e.g. 'Network Error')."
+      }
+    ],
+    "notes": "The '▲ this session' legend both reviewers mention is its own cluster."
+  },
+  {
+    "cluster": "C35",
+    "title": "Members: 'Remove' does three different things and explains none; 'Unclaimed', 'ghost', 'soft-deletes' wording",
+    "members": [
+      "newcomer-12",
+      "qa-tester-8"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run. Reviewer output: '! http 400 POST .../removeMember — {\"error\":\"\\\"Rachel\\\" has game history and cannot be removed. Ghost members with history stay on the roster.\"}'. I did see the Confirm / Cancel pair appear with no explanatory text.",
+    "cause": [
+      {
+        "file": "base44/functions/removeMember/entry.ts",
+        "line": 106,
+        "what": "A member with rounds is never deleted: a claimed one is detached from the account and kept (returns converted_to_ghost, line 118); an unclaimed one gets the 'Ghost members with history stay on the roster' error (109)."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 260,
+        "what": "The confirmation is two bare buttons (Confirm / Cancel) with no sentence about which of the three outcomes will happen; Remove is offered on every row."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 200,
+        "what": "'Claimed' / 'Unclaimed' labels with no explanation; the Add dialog says 'hasn't created an account yet' (GhostMemberDialog.jsx:50)."
+      },
+      {
+        "file": "base44/functions/addGhostMember/entry.ts",
+        "line": 66,
+        "what": "'Only group admins can add ghost members' reaches the screen."
+      },
+      {
+        "file": "src/components/admin/GroupDangerZone.jsx",
+        "line": 80,
+        "what": "'Soft-deletes the group.'"
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C36",
+    "title": "No game-limit option when starting a session, although the server and the rulebook have one",
+    "members": [
+      "scorekeeper-14"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "The New Session form lists Session name, Date, Location, Classic / Progressive, Advanced rules, Start Session - no limit field (seen in the browser).",
+    "cause": [
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 32,
+        "what": "The form never sends game_limit."
+      },
+      {
+        "file": "base44/functions/startSession/entry.ts",
+        "line": 47,
+        "what": "startSession accepts game_limit (1-99) and stores it (line 94)."
+      },
+      {
+        "file": "base44/functions/startRound/entry.ts",
+        "line": 115,
+        "what": "startRound refuses a new round once the limit of completed rounds is reached."
+      },
+      {
+        "file": "docs/whist-rules.md",
+        "line": 164,
+        "what": "The rulebook, and so the assistant, mentions 'a session's optional game limit'."
+      }
+    ],
+    "notes": "Only the form field is missing. Nothing in src/ reads session.game_limit either, so a limit set today would only show as a refusal from startRound."
+  },
+  {
+    "cluster": "C37",
+    "title": "Awards: a profile shows a number under every award whether or not the player holds it; The Destroyer names one of several tied players and the name flips",
+    "members": [
+      "returning-player-15",
+      "whist-player-5"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed-with-correction",
+    "method": "reproduced in browser + arithmetic from the API",
+    "observed": "Fresh seed, group home: 'The Destroyer | Most \"everyone falls\" rounds | נועה | 3 rounds'. Counted from the data: 4 everyone-falls rounds; Dan 3, נועה 3, the other five players 2 each. I then saved ONE ordinary round (no everyone-falls) and the home read 'The Destroyer | ... | Dan | 3 rounds'. Family Table: one such round, all four players on 1, 'אמא' named. Dan's profile: 'AWARDS | THE GREEDY | -600 | THE COWARD | -140 | THE DESTROYER | 3' (he holds only The Greedy on the group home).",
+    "cause": [
+      {
+        "file": "src/lib/standings.js",
+        "line": 63,
+        "what": "Each of the four players in an everyone-falls round gets +1, so ties are built in."
+      },
+      {
+        "file": "src/lib/standings.js",
+        "line": 67,
+        "what": "The 'leader' is simply the first row after sorting; equal values are not detected, so the winner of a tie is whoever comes first in the result rows (newest round first)."
+      },
+      {
+        "file": "src/components/AwardsShowcase.jsx",
+        "line": 34,
+        "what": "The card can show one name only."
+      },
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 71,
+        "what": "The profile's 'Awards' tiles are the player's own three totals (71-73), not the awards they hold; GlobalProfile.jsx:112 shows the same grid summed across groups."
+      }
+    ],
+    "notes": "CORRECTION to whist-player-5: (1) it is not always a tie - a tie is certain only when the same four always sit together; in Thursday Whist two of seven players share the top. (2) The name does not change between visits by itself: it changes whenever a round is saved or edited, because that changes which tied player is met first. On the real platform the four rows of a round share one created date, so the order may be less stable than in the sandbox. The arithmetic itself (3 and 3) is right."
+  },
+  {
+    "cluster": "C38",
+    "title": "The small ▲ number in the standings: 'this session' is whichever session last had a scored round, open or closed",
+    "members": [
+      "returning-player-16",
+      "qa-tester-21"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser + code",
+    "observed": "Thursday Whist with the open session: '## Standings | overall score · ▲ this session', deltas +35 / +90 / +23 / -40 = the open session's totals. The same legend is printed when nothing is open (reviewers' Old Crew and Family Table output).",
+    "cause": [
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 48,
+        "what": "The delta session is the most recent session by date that has at least one scored round - open or closed (47-49)."
+      },
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 109,
+        "what": "The legend text is fixed: 'overall score · ▲ this session'."
+      }
+    ],
+    "notes": "qa-tester-21's second case (a newer open session, yet the arrows still show the closed one) follows from line 48: an open session with no scored round yet, or one whose date sorts earlier (see the blank-date cluster), loses to the older session."
+  },
+  {
+    "cluster": "C39",
+    "title": "0-BID SUCCESS shows 0% for a player who never bid zero",
+    "members": [
+      "newcomer-16",
+      "returning-player-19",
+      "whist-player-14"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "API data + code",
+    "observed": "computePlayerStats for Omer returned {zero_bids: 0, zero_bid_success: 0, zero_bid_success_rate: 0}; the tile renders that as '0%' and '0/0 zero-bids' (Dan's real failure, 0/1, renders the same '0%').",
+    "cause": [
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 63,
+        "what": "The tile always formats the rate as a percentage."
+      },
+      {
+        "file": "base44/functions/computePlayerStats/entry.ts",
+        "line": 156,
+        "what": "The rate is 0 when there were no zero bids (same in src/lib/whist-stats.js:50)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C40",
+    "title": "Hebrew free text (notes, session names, locations) is laid out left-to-right",
+    "members": [
+      "returning-player-22",
+      "visual-designer-10",
+      "whist-player-4"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "The seeded Hebrew note's paragraph: {dirAttr: null, direction: 'ltr', textAlign: 'left', htmlDir: '', lang: 'en'}. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/002-activity.png: the all-Hebrew note is left-aligned with its full stop on the wrong side, and in the mixed note the '7' is drawn in front of the Hebrew sentence. The first card's date is cut to 'N…' by the YOU badge.",
+    "cause": [
+      {
+        "file": "index.html",
+        "line": 2,
+        "what": "The document is lang=en with no dir, and nothing in src/ sets dir, <bdi> or unicode-bidi anywhere."
+      },
+      {
+        "file": "src/components/TableTalkCard.jsx",
+        "line": 75,
+        "what": "Note text paragraph without dir=\"auto\" (same in Activity.jsx:146)."
+      },
+      {
+        "file": "src/components/WriteNoteDialog.jsx",
+        "line": 101,
+        "what": "The note textarea has no dir=\"auto\"; same for the session name and location inputs (NewSession.jsx:61, 69)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 89,
+        "what": "Session title and the 'date · place · Open' line print user text inside an LTR line (also SessionCard.jsx:14, 29)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C41",
+    "title": "A Hebrew name inside an English line is reordered: 'Bid for 4 · נועה blocked', and row labels read 'יוסי .1'",
+    "members": [
+      "whist-player-3"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Logical text: 'Bid for נועה · 4 blocked (would make Σ=13)'. On screen (/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/b-002-bidding-hebrew-hint.png): 'Bid for 4 · נועה blocked (would make Σ=13)'. The same screenshot shows the player rows as 'יוסי .1' and 'נועה .4' next to '2. Maya' and '3. Dan'.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 272,
+        "what": "The name is a plain span followed by ' · {n} blocked'; with no isolation the digits after a Hebrew name join its right-to-left run."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 258,
+        "what": "'{i + 1}. {name}' in one span: for a Hebrew name the number and full stop are drawn after it."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 389,
+        "what": "Same pattern in 'Tricks for {name}', 'Trump won by {name}' (174) and '· won by {name}' (350)."
+      }
+    ],
+    "notes": "The row-label reordering was not in the reviewer's report. Wrapping the name in <bdi> fixes each place."
+  },
+  {
+    "cluster": "C42",
+    "title": "Tap targets are under 44 px (keypad 42, main buttons 36 high, RENEGE 19 high, header arrow 16)",
+    "members": [
+      "visual-designer-2",
+      "scorekeeper-11"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Re-measured on the results step at 390 px: '16x16 @16,22 button' (header arrow), '36x36 Menu', '70x20 Session', '65x16 Edit bids', '57x19 RENEGE', '42x42' keys with 6 px gaps, '358x36 Save Round'. At 320 px the keys are 32x32. All equal to the reviewers' figures.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 73,
+        "what": "Seven square keys per row with a 6 px gap: 42 px at 390, 32 px at 320."
+      },
+      {
+        "file": "src/components/ui/button.jsx",
+        "line": 24,
+        "what": "The default button height is 36 px (h-9) - Lock Bids, Save Round, Start Round, Save Settings and the dialog buttons all use it."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 376,
+        "what": "RENEGE: 10 px text with 2 px vertical padding."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 31,
+        "what": "Trump marker 36x36 (w-9 h-9)."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 101,
+        "what": "Header arrow: a 16 px icon with no padding."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 193,
+        "what": "Rename pencil 14 px; note delete (TableTalkCard.jsx:69) 14 px icon; dialog close X 16 px (dialog.jsx:41)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C43",
+    "title": "Colour meanings collide: UP is red and DOWN green beside ↑ green / ↓ red; gold is used for positive, zero and negative numbers",
+    "members": [
+      "visual-designer-3"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Computed on the session page: UP {bg rgba(244,63,94,0.2), color rgb(251,113,133)}, DOWN {bg rgba(16,185,129,0.2), color rgb(52,211,153)} - the reviewer's values. Group home award values 'Dan -600', 'אבי -255' are printed in the gold class; the same -600 on Dan's profile is red.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 153,
+        "what": "Table badge: up = rose, down = emerald (same on the bidding banner, RoundView.jsx:240)."
+      },
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 64,
+        "what": "Session delta: positive = emerald with an up arrow, negative = rose with a down arrow."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 180,
+        "what": "Points are gold when >= 0, so a zero is gold (same in RoundView.jsx:450 and PlayerProfile.jsx:128)."
+      },
+      {
+        "file": "src/components/AwardsShowcase.jsx",
+        "line": 35,
+        "what": "Award values (negative numbers) are printed in gold; StatGrid.jsx:71 prints the same values in red."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 426,
+        "what": "UP/DOWN on the scored-round page is plain grey text; the suit in the session list is grey (SessionView.jsx:156)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C44",
+    "title": "Suit symbols: picker order differs from the rulebook's ranking, and red suits lose their colour in places",
+    "members": [
+      "whist-player-17"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Picker seen in my screenshot as '♠ ♥ ♦ ♣ NT'.",
+    "cause": [
+      {
+        "file": "src/lib/scoring.js",
+        "line": 22,
+        "what": "SUITS is ordered spades, hearts, diamonds, clubs, notrump, while the auction ranking (line 199) is clubs < diamonds < hearts < spades < no-trump."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 182,
+        "what": "A selected suit takes the gold button colours and loses its red."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 349,
+        "what": "The results header prints the suit as plain grey text; SessionView.jsx:156 likewise."
+      }
+    ],
+    "notes": "The white suits in the assistant's answers are plain chat text (RulesChat.jsx)."
+  },
+  {
+    "cluster": "C45",
+    "title": "Red text is too dim on navy (about 3.0-3.9:1)",
+    "members": [
+      "visual-designer-4"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Re-measured with my own script on the session page: '3.30:1 #e03e3e on #1f2b47 16px/700 — -40' and '3.46:1 #e03e3e on #182749 14px/700 — -10'; RENEGE switched on: '3.13:1 #e03e3e on #382a41 10px/500'. The first two equal the reviewer's figures; RENEGE was 2.96:1 in the report (it depends on whether the row is the active one).",
+    "cause": [
+      {
+        "file": "src/index.css",
+        "line": 22,
+        "what": "--destructive is hsl(0 72% 56%) = #E03E3E, and that one red is used as a text colour on every dark surface (text-destructive)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 180,
+        "what": "Negative scores (also Leaderboard.jsx:60, RoundView.jsx:450)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 400,
+        "what": "Inline errors; Login.jsx:68 error box; MemberList.jsx:276 'Remove'; HamburgerMenu.jsx:58 'Sign Out'; GroupDangerZone.jsx:47."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C46",
+    "title": "Group Admin breaks sideways: 364 px wide at 320 px, and Remove -> Confirm / Cancel pushes Cancel off a 390 px screen",
+    "members": [
+      "visual-designer-5",
+      "qa-tester-12"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed-with-correction",
+    "method": "reproduced in browser",
+    "observed": "390 px at rest: scrollWidth 390. After tapping Remove on Dan: {scrollW: 406, Confirm 266-337, Cancel 341-406}. 320 px at rest: {scrollW: 364, Remove 266-364, nav 0-364}. All equal to the reports. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/b-004-admin-remove-confirm.png.",
+    "cause": [
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 217,
+        "what": "The action row is a single flex line that cannot wrap."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 259,
+        "what": "Confirm + Cancel replace 'Remove' and are wider than it (same for Unclaim, line 235), so the row outgrows the card at 390 px; at 320 px 'Make Admin · Unclaim · Remove' already does."
+      }
+    ],
+    "notes": "CORRECTION: visual-designer-5 adds that three touch taps on the visible part of Cancel did nothing. Not reproduced - one tap on Cancel closed the confirmation here ('OK tapped button \"Cancel\"', width back to 390). Treat that remark as a test-browser effect; the overflow itself is real."
+  },
+  {
+    "cluster": "C47",
+    "title": "Destructive actions are confirmed in four different ways, and Archive, Regenerate Code and app-level Make Admin not at all",
+    "members": [
+      "visual-designer-6",
+      "qa-tester-9"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "One tap on Regenerate Code: invite code 'NHUA1B' -> 'LH983P'. One tap on Archive: header 'THURSDAY WHISTARCHIVED', button 'Unarchive'. Event log afterwards: 'nothing recorded since start — no console errors, exceptions, failed requests or dialogs'.",
+    "cause": [
+      {
+        "file": "src/components/admin/GroupDangerZone.jsx",
+        "line": 64,
+        "what": "Archive calls setGroupStatus on the first tap."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 142,
+        "what": "Regenerate Code calls regenerateInviteCode on the first tap, with no word that the old code and link stop working."
+      },
+      {
+        "file": "src/pages/AppAdminDashboard.jsx",
+        "line": 68,
+        "what": "Make Admin / Remove updates the user's role at once."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 411,
+        "what": "Delete Round uses the browser's confirm(); Close Session too (SessionView.jsx:52)."
+      },
+      {
+        "file": "src/components/admin/GroupDangerZone.jsx",
+        "line": 94,
+        "what": "Delete Group uses an inline type-the-name box; member Remove / Unclaim use inline Confirm / Cancel (MemberList.jsx:234-270); note delete has its own inline row (TableTalkCard.jsx:77)."
+      }
+    ],
+    "notes": "src/components/ui/alert-dialog.jsx is in the project and unused - a ready base for one pattern. Archiving is allowed while a session is open (see the archived-group cluster)."
+  },
+  {
+    "cluster": "C48",
+    "title": "The store icon (painted jester, 'Whist' ribbon) and the app (flat yellow spade tile, 'WHISTMATE') do not look like one product",
+    "members": [
+      "visual-designer-7"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "icon file from the brief viewed + app seen in browser (the sandbox serves a stand-in icon, so the store side cannot be reproduced there)",
+    "observed": "Icon file (.../scratchpad/shots2/app-icon-512x512.png): a shaded jester in a red and gold hat holding four aces, serif 'Whist' on a parchment ribbon, navy damask. App: flat yellow rounded tile with a navy spade; header 'WHIST' at 390 px, 'WHISTMATE' on the landing and sign-in pages.",
+    "cause": [
+      {
+        "file": "src/components/Logo.jsx",
+        "line": 1,
+        "what": "The in-app mark is deliberately a 'brand-neutral whist monogram - a spade badge, no external image asset'."
+      },
+      {
+        "file": "src/pages/HomeGlobal.jsx",
+        "line": 52,
+        "what": "The landing page draws its own copy of the same tile."
+      },
+      {
+        "file": "src/index.css",
+        "line": 7,
+        "what": "The palette comment shows only the icon's navy was carried into the app."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 82,
+        "what": "The short wordmark 'Whist' below 400 px."
+      }
+    ],
+    "notes": "Not a code defect: a branding decision for the lead (which of the two marks is the product). index.html:5 sets the favicon to Base44's own logo URL; whether hosting replaces it in production was not checked."
+  },
+  {
+    "cluster": "C49",
+    "title": "Dialogs on phones are a square edge-to-edge band with touching buttons; claim rows 4 px narrower than 'I'm a new player'",
+    "members": [
+      "visual-designer-8",
+      "newcomer-17"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Join dialog at 390 px (/private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/001-join-signed-in.png): full-width square band, Continue directly on top of Cancel. Step 2 rectangles: 'אבי x25-361', 'יוסי x25-361', 'I'm a new player x25-365', 'Join Group y513-549', 'Back y549-585' (0 px between), 'Close 16x16'.",
+    "cause": [
+      {
+        "file": "src/components/ui/dialog.jsx",
+        "line": 34,
+        "what": "The dialog is full width with rounded corners only from the sm breakpoint up, and uses the page's own background colour."
+      },
+      {
+        "file": "src/components/ui/dialog.jsx",
+        "line": 64,
+        "what": "The footer stacks the buttons in a column with no gap below sm."
+      },
+      {
+        "file": "src/components/groups/JoinGroupDialog.jsx",
+        "line": 155,
+        "what": "The scrolling list of claimable players has 4 px right padding (pr-1), so its rows are 336 px against 340 px."
+      },
+      {
+        "file": "src/components/groups/JoinGroupDialog.jsx",
+        "line": 119,
+        "what": "The 'uppercase' class on the code field also upper-cases its placeholder."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C50",
+    "title": "The 'page not found' screen is a white generic template",
+    "members": [
+      "visual-designer-9"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "/this-page-does-not-exist: background rgb(248, 250, 252); '404 | Page Not Found | The page \"this-page-does-not-exist\" could not be found in this application. | Go Home'.",
+    "cause": [
+      {
+        "file": "src/lib/PageNotFound.jsx",
+        "line": 23,
+        "what": "The platform's stock template in slate / white, outside the app's layout; it also carries an 'Admin Note' about asking the AI to implement the page (43-57)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C51",
+    "title": "Type: many sizes with real information at 9-11 px, and three page-title styles",
+    "members": [
+      "visual-designer-11"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-measured as a whole. The 10 px items are visible in my screenshots (tab labels, 'Round 5 · step 1 of 2', badges, session delta).",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 150,
+        "what": "Tab labels at 10 px; the unread badge at 9 px (line 145)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 64,
+        "what": "'Round n · step n of 2' at 10 px and 70% opacity; RENEGE at 10 px (376)."
+      },
+      {
+        "file": "src/components/StatGrid.jsx",
+        "line": 10,
+        "what": "Stat labels at 10 px; award descriptions at 11 px (AwardsShowcase.jsx:30); session delta at 10 px (Leaderboard.jsx:64)."
+      },
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 72,
+        "what": "Title style 1: 24 px uppercase tracked; style 2: SessionView.jsx:89 (24 px sentence case); style 3: RoundView.jsx:424 (20 px); plus 18 px uppercase in the phase banner (63)."
+      }
+    ],
+    "notes": "A design audit rather than a defect list; the sizes are literal Tailwind classes, so a scale can be applied by search."
+  },
+  {
+    "cluster": "C52",
+    "title": "Gold is used for everything at once (logo, buttons, selected options, scores, badges, links, status)",
+    "members": [
+      "visual-designer-12"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-measured. Visible in my screenshots: gold scores, gold selected row border, gold tab, gold primary button on one screen.",
+    "cause": [
+      {
+        "file": "src/index.css",
+        "line": 14,
+        "what": "--primary and --accent (line 20) are the same yellow, so hover and highlighted-option states are solid gold too."
+      },
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 78,
+        "what": "A selected option uses the same solid gold as the primary button below it (same in GroupSettings.jsx:107)."
+      },
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 16,
+        "what": "The gold-at-20% tint is used for OPEN, and likewise for PLAYING (SessionView.jsx:158), YOU (Activity.jsx:139) and avatars."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C53",
+    "title": "Form controls: near-invisible input outline, two input heights, three label styles, invisible off-switch, black date icon",
+    "members": [
+      "visual-designer-13"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-measured.",
+    "cause": [
+      {
+        "file": "src/index.css",
+        "line": 25,
+        "what": "--input (hsl 222 40% 22%) is the border colour of fields and the track of an off switch - almost the card colour."
+      },
+      {
+        "file": "src/components/ui/input.jsx",
+        "line": 10,
+        "what": "Fields are 36 px high by default; the sign-in pages override to 48 px (Login.jsx:86)."
+      },
+      {
+        "file": "src/components/ui/switch.jsx",
+        "line": 16,
+        "what": "The thumb uses the page background colour on the --input track when off."
+      },
+      {
+        "file": "src/index.css",
+        "line": 6,
+        "what": "No color-scheme is declared, so the native date picker icon stays black on navy."
+      },
+      {
+        "file": "src/components/groups/JoinGroupDialog.jsx",
+        "line": 123,
+        "what": "Errors are bare red text here but a tinted box on Login (Login.jsx:68)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C54",
+    "title": "Buttons: three heights and casings; a touched 'Regenerate Code' stays white-on-gold; Save Settings gives no confirmation",
+    "members": [
+      "visual-designer-14"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "After one tap on Regenerate Code: {bg: 'rgb(253, 216, 53)', color: 'rgb(242, 244, 247)', hover: true}. A valid Save Settings: 'LISTING unchanged' - no message, no label change.",
+    "cause": [
+      {
+        "file": "src/components/ui/button.jsx",
+        "line": 20,
+        "what": "The ghost style turns the background to --accent (the brand yellow) on hover; phones keep the hover state after a tap."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 142,
+        "what": "This button adds 'hover:text-foreground', so the label goes near-white on that yellow."
+      },
+      {
+        "file": "src/components/ui/button.jsx",
+        "line": 24,
+        "what": "36 px default height against 48 px on the sign-in pages (Login.jsx:112) and about 60 px on the big links (Home.jsx:98)."
+      },
+      {
+        "file": "src/components/ui/button.jsx",
+        "line": 8,
+        "what": "The keyboard focus ring is 1 px in the same yellow as the button."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 43,
+        "what": "A successful save only refreshes the group; nothing is shown."
+      }
+    ],
+    "notes": "The missing save confirmation is also part of qa-tester-6 (admin feedback cluster)."
+  },
+  {
+    "cluster": "C55",
+    "title": "One player, three avatar styles; a Hebrew yod initial looks like an empty circle",
+    "members": [
+      "visual-designer-18"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (contrast re-measured) + code",
+    "observed": "Standings avatars re-measured: '4.26:1 #60a5fa on #253c6a 14px/700 — M', '4.34:1 #fb7185 on #4a2f4c 14px/700 — י' - the reviewer's figures.",
+    "cause": [
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 15,
+        "what": "Standings pick one of six tints from a hash of the name (also Activity.jsx:21, TableTalkCard.jsx:15)."
+      },
+      {
+        "file": "src/pages/NewRound.jsx",
+        "line": 101,
+        "what": "The table picker uses grey."
+      },
+      {
+        "file": "src/pages/PlayerProfile.jsx",
+        "line": 98,
+        "what": "The profile uses the gold tint (Profile.jsx:101 too)."
+      },
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 48,
+        "what": "The mark is the first character of the name."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C56",
+    "title": "Two card styles and three badge styles on one screen",
+    "members": [
+      "visual-designer-20"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-measured.",
+    "cause": [
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 41,
+        "what": "Standings rows: filled, no border, 12 px padding (stat tiles the same, StatGrid.jsx:22)."
+      },
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 11,
+        "what": "Session cards: card colour with a border and 16 px padding; award cards 12 px (AwardsShowcase.jsx:24)."
+      },
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 15,
+        "what": "Badge style 1: 10 px uppercase pill; style 2: 12 px sentence-case pill (MemberList.jsx:183); style 3: plain text (RoundView.jsx:426, SessionCard.jsx:35)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C57",
+    "title": "Empty and error states come in several looks; a new session shows two at once; a missing session offers 'Try Again'",
+    "members": [
+      "visual-designer-21"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (new session, missing player) + code",
+    "observed": "A brand-new session: 'Standings | ♠ | No Rounds Yet | Play a session to see standings. | Rounds | ♠ | No rounds yet'. A player of another group: '♠ | Player Not Found | Back'.",
+    "cause": [
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 28,
+        "what": "Empty standings block; SessionView.jsx:124 adds a second, near-identical block under 'Rounds'."
+      },
+      {
+        "file": "src/pages/Activity.jsx",
+        "line": 105,
+        "what": "The only emoji illustration (💬), also in TableTalkFeed.jsx:46."
+      },
+      {
+        "file": "src/pages/HomeGlobal.jsx",
+        "line": 130,
+        "what": "A different empty layout (icon in a circle, uppercase title), also in NoGroupState.jsx."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 69,
+        "what": "A session that does not exist gets the load-error box with 'Try Again'."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C58",
+    "title": "Sign-in screens have no breathing room on short screens",
+    "members": [
+      "visual-designer-22"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "/login at 320x568: {scrollY: 0, docH: 734, tileTop: 0, tile: [112, 112]} - the reviewer's figures.",
+    "cause": [
+      {
+        "file": "src/components/AuthLayout.jsx",
+        "line": 6,
+        "what": "The page is vertically centred with side padding only; when the content is taller than the screen it starts at the very top edge."
+      },
+      {
+        "file": "src/components/Logo.jsx",
+        "line": 7,
+        "what": "The 112 px logo tile, wordmark, title and subtitle take about 300 px before the first field."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C59",
+    "title": "Desktop: a 640 px phone column with the tab bar stretched across the window; the rules page alone is full width",
+    "members": [
+      "visual-designer-25"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run at desktop size.",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 125,
+        "what": "Content is capped at max-w-2xl (672 px), header and tab contents too (74, 131)."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 130,
+        "what": "The tab bar itself is fixed across the full window."
+      },
+      {
+        "file": "src/App.jsx",
+        "line": 57,
+        "what": "The rules chat is routed outside the Layout shell and has no width cap of its own."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 79,
+        "what": "Square keys grow with the column (about 82 px on desktop)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C60",
+    "title": "Idea: a little more 'card table' in the look",
+    "members": [
+      "visual-designer-26"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "The phase banners (RoundView.jsx:42-55) are the only screen-specific styling.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 42,
+        "what": "The gold / emerald phase definitions are the existing hook for more character."
+      }
+    ],
+    "notes": "Purely visual; no data needed."
+  },
+  {
+    "cluster": "C61",
+    "title": "Trump control is a faint dot; a winner marked without a suit is dropped silently",
+    "members": [
+      "scorekeeper-10"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Marked the first player's trump slot ('?'), chose no suit, Lock Bids (enabled) -> results header 'Table UP' with no trump; Edit bids showed all four slots as '·/Mark as trump winner'.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 25,
+        "what": "The idle marker is '·' in muted colour at 40% opacity under a 10 px 'trump' label (252)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 215,
+        "what": "Lock Bids only objects to a suit without an owner, not to an owner without a suit."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 226,
+        "what": "The owner is sent only when a suit was chosen, so it is discarded (and line 135 restores an owner only when a suit exists)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C62",
+    "title": "The trump record accepts a winner who did not bid highest, and pre-fills the first of several tied bidders",
+    "members": [
+      "whist-player-9"
+    ],
+    "highest_severity": "minor",
+    "verdict": "by-design",
+    "method": "reproduced in browser + code + rulebook",
+    "observed": "Bids 4 / 2 / 3 / 5; marked the player who bid 4 and chose ♠ -> saved without comment: 'Table UP · trump ♠ Spades · won by יוסי'.",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 16,
+        "what": "Comment: the app cannot derive who won the auction, because equal bids are settled by suit in an auction it never sees - so the winner is whoever the table marks."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 155,
+        "what": "The top bidder is pre-selected only in Advanced sessions, and only as a default."
+      },
+      {
+        "file": "src/lib/scoring.js",
+        "line": 201,
+        "what": "highestBidderIndex is documented as 'only a default... never treat its output as the auction result' (ties go to the earliest seat)."
+      },
+      {
+        "file": "docs/whist-rules.md",
+        "line": 75,
+        "what": "Rulebook: the app records final bids, 'cannot work out who won the auction on its own', and asks the table to 'mark the winner directly'."
+      }
+    ],
+    "notes": "Intended. The lead may still want a soft warning when the marked player's final bid is lower than another's - the bids are on screen, so it would be a few lines in RoundView."
+  },
+  {
+    "cluster": "C63",
+    "title": "Fixing a saved round is a detour: two 'Edit round' taps, keyboard fields instead of the pad, no return to the session",
+    "members": [
+      "scorekeeper-12"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Seen on the way: session cards carry an 'Edit round' link that opens the read-only round page with 'Edit Round' and 'Delete Round' buttons.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 190,
+        "what": "'Edit round' is a link to the round page, not to the editor."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 458,
+        "what": "The editor opens from a second button there."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 538,
+        "what": "The editor uses eight number inputs rather than the tap pad; Save Changes is below the four cards (559)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 501,
+        "what": "After saving, the app stays on the round page."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C64",
+    "title": "A plain player cannot fix a wrongly scored round and is not told who can",
+    "members": [
+      "qa-tester-19"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "As Dan (plain player) the scored round page listed only 'Session' and the result rows.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 188,
+        "what": "The 'Edit round' link is rendered for group admins only."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 456,
+        "what": "Edit / Delete are rendered for admins only; nothing is shown to anyone else."
+      }
+    ],
+    "notes": "The server rule (only a group admin edits a scored round) is deliberate; the missing sentence is the finding."
+  },
+  {
+    "cluster": "C65",
+    "title": "Cancelled ('everyone falls') rounds still count as rounds played and lower the average and contract accuracy",
+    "members": [
+      "whist-player-11"
+    ],
+    "highest_severity": "minor",
+    "verdict": "by-design",
+    "method": "API arithmetic + code + rulebook",
+    "observed": "Family Table, Maya, from the API: rounds_played 20, contract_accuracy 0.55 (11 of 20), avg_score 5.5 (110 / 20). Without her one cancelled round it would be 11 of 19 = 58% and 5.79. So the reviewer's arithmetic is right: cancelled rounds are counted.",
+    "cause": [
+      {
+        "file": "base44/functions/saveRoundResults/entry.ts",
+        "line": 36,
+        "what": "Comment: an everyone-falls round is 'cancelled (excluded from game_limit) but points still persist (0, or -100 for a renege)'."
+      },
+      {
+        "file": "base44/functions/computePlayerStats/entry.ts",
+        "line": 79,
+        "what": "Stats take every row with points set - 'points set on complete/cancelled rounds'."
+      },
+      {
+        "file": "src/lib/standings.js",
+        "line": 10,
+        "what": "Standings count every row whose points are not null, so a cancelled round (0 points) is a round played."
+      },
+      {
+        "file": "docs/whist-rules.md",
+        "line": 164,
+        "what": "The rulebook excludes a cancelled round only from the session's game limit."
+      }
+    ],
+    "notes": "Intended by the code as written; whether a cancelled round should count toward rounds / average / accuracy is the lead's call. If changed, standings.js, whist-stats.js and both stats functions must change together (they mirror each other)."
+  },
+  {
+    "cluster": "C66",
+    "title": "The real assistant answered a Hebrew question in English",
+    "members": [
+      "whist-player-15"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence (the real-assistant transcript; the sandbox assistant is simulated, so it cannot be re-run here)",
+    "observed": "Transcript .../scratchpad/review/rules-assistant-live.txt: 'Q: מה קורה אם כולם נופלים?' / 'A: \"Everyone Falls\" — the round is cancelled, everyone's contract points are zeroed, ...'.",
+    "cause": [
+      {
+        "file": "base44/functions/askRules/entry.ts",
+        "line": 244,
+        "what": "The system prompt (244-252) says nothing about the language of the answer, and line 248 tells the model to 'use the rulebook's wording', which is English."
+      }
+    ],
+    "notes": "Only the prompt needs a line; the rulebook can stay English."
+  },
+  {
+    "cluster": "C67",
+    "title": "The assistant's refusal is 'IDK bro' and a dead end; one answer left out the other progressive tiers",
+    "members": [
+      "whist-player-16"
+    ],
+    "highest_severity": "minor",
+    "verdict": "by-design",
+    "method": "code + reviewer evidence (real-assistant transcript)",
+    "observed": "Transcript: 'Q: How do I delete my account?' / 'A: IDK bro 🤷 — that's not in the WhistMate rulebook.'",
+    "cause": [
+      {
+        "file": "base44/functions/askRules/entry.ts",
+        "line": 242,
+        "what": "The refusal line is a constant, and the prompt orders the model to reply 'EXACTLY this and nothing else' for anything off-topic, naming accounts explicitly (249-251)."
+      },
+      {
+        "file": "base44/functions/askRules/entry.ts",
+        "line": 248,
+        "what": "'Keep answers short and plain' - which is how a miss-by-5 question gets only the miss-by-5 tier, although the rulebook has all four (docs/whist-rules.md:216-220)."
+      },
+      {
+        "file": "src/pages/RulesChat.jsx",
+        "line": 45,
+        "what": "The chat falls back to the same line when no answer comes."
+      }
+    ],
+    "notes": "Intended (docs/whist-rules.md:21 calls it 'the \"IDK\" refusal'). Tone and a pointer to About / My Account are the lead's decision. The tier omission is one real-model answer and cannot be re-run in the sandbox."
+  },
+  {
+    "cluster": "C68",
+    "title": "Every new session is named 'Whist Night', and the session card shows 'Advanced' but not the scoring method",
+    "members": [
+      "newcomer-18"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Seen: the New Session name field is pre-filled 'Whist Night'; cards read 'Midweek special OPEN Nov 19, 2026 אצל מאיה 4 rounds'.",
+    "cause": [
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 15,
+        "what": "The name field starts as 'Whist Night' (the server default is the same, startSession/entry.ts:86)."
+      },
+      {
+        "file": "src/components/SessionCard.jsx",
+        "line": 35,
+        "what": "The card prints 'Advanced' when set and never the scoring method (the session page does, SessionView.jsx:95)."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C69",
+    "title": "Idea: fill in the fourth player's tricks automatically and dim impossible numbers",
+    "members": [
+      "scorekeeper-17"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "The pad accepts any number; the counter can read '14 / 13 tricks' (RoundView.jsx:400 prints the reason only once all four are in).",
+    "cause": [
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 320,
+        "what": "The running total and the list of unset players are already computed."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 391,
+        "what": "The number pad already has a 'disabled' list (used for bids, line 280) that the tricks pad does not pass."
+      }
+    ],
+    "notes": "Data available; frontend only."
+  },
+  {
+    "cluster": "C70",
+    "title": "Idea: show what the last round did to each player without scrolling",
+    "members": [
+      "scorekeeper-18"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "The session page shows totals, then the round cards below (newest first).",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 39,
+        "what": "Per-round results are already grouped (resultsByRound) and rounds are sorted newest first (40), so the last round's points per player are at hand for the standings rows."
+      }
+    ],
+    "notes": "Data available; Leaderboard.jsx already has a small delta slot (63-69)."
+  },
+  {
+    "cluster": "C71",
+    "title": "Idea: compare two players side by side",
+    "members": [
+      "returning-player-23"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "Two separate pages with the same tiles.",
+    "cause": [
+      {
+        "file": "base44/functions/computePlayerStats/entry.ts",
+        "line": 141,
+        "what": "One call returns one player's full stats; a comparison is two calls and the existing StatGrid data shape."
+      }
+    ],
+    "notes": "Data available."
+  },
+  {
+    "cluster": "C72",
+    "title": "Idea: a 'podium' of three means little at a table of four",
+    "members": [
+      "returning-player-25"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "Tooltip 'Sessions finished in the top 3.' (StatGrid.jsx:55).",
+    "cause": [
+      {
+        "file": "base44/functions/computePlayerStats/entry.ts",
+        "line": 126,
+        "what": "A podium is rank <= 3 whatever the number of players; the per-session totals (line 117) already hold how many players sat that session."
+      }
+    ],
+    "notes": "Data available (player count per session). Note the open-session and tie clusters also touch this number."
+  },
+  {
+    "cluster": "C73",
+    "title": "New Session ignores the group's default scoring and Advanced setting after a reload or direct open",
+    "members": [
+      "qa-tester-4"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Family Table (default Progressive): START NEW SESSION -> buttons '[\"Classic:-\",\"Progressive:SELECTED\"]'. Reload -> '[\"Classic:SELECTED\",\"Progressive:-\"]'. Start Session -> '# Whist Night / ... · Open · Classic'.",
+    "cause": [
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 19,
+        "what": "The scoring method and the Advanced switch (22) take their starting value from the group once, on first render; on a reload or direct open the groups are still loading then, so both start as Classic / off and are never updated."
+      },
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 37,
+        "what": "The form always sends its own value, so the server's fallback to the group default (startSession/entry.ts:92-93) never applies."
+      },
+      {
+        "file": "src/lib/ActiveGroupContext.jsx",
+        "line": 13,
+        "what": "Groups load asynchronously; Layout.jsx:52 lets the page render while they do."
+      }
+    ],
+    "notes": "The rules are frozen for the session and there is no edit or delete for a session, so a wrong method cannot be undone."
+  },
+  {
+    "cluster": "C74",
+    "title": "Admin errors appear far from the control that caused them, and a successful save shows nothing",
+    "members": [
+      "qa-tester-6"
+    ],
+    "highest_severity": "major",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Renamed the last member to 'Dan': '! http 409 ... renameMember — {\"error\":\"A member named \\\"Dan\\\" already exists in this group\"}'; the message was drawn at y=-144 while the open editor was at y=650 (viewport 844). Saved settings with an empty name: '! http 400 ... {\"error\":\"Group name cannot be empty\"}'; message at y=907, Save Settings button at y=584, viewport 844. Screenshot /private/tmp/claude-501/-Users-tomerdi-Personal-whistmate/67190dd3-7d53-45e6-8aae-1869c3f324ce/scratchpad/review/r1/triage-shots/b-005-rename-dup.png.",
+    "cause": [
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 152,
+        "what": "One error line at the top of the member list serves rename, remove, unclaim and role changes for every row."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 148,
+        "what": "One error line after the Invite Code card serves Save Settings and Regenerate Code."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 43,
+        "what": "Success only refreshes the group; no message."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C75",
+    "title": "Two players can have the same name in different letter case",
+    "members": [
+      "qa-tester-7"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run.",
+    "cause": [
+      {
+        "file": "base44/functions/joinGroupByCode/entry.ts",
+        "line": 148,
+        "what": "The duplicate check is an exact-match query on player_name."
+      },
+      {
+        "file": "base44/functions/addGhostMember/entry.ts",
+        "line": 73,
+        "what": "Same exact-match check when an admin adds a player."
+      },
+      {
+        "file": "base44/functions/renameMember/entry.ts",
+        "line": 98,
+        "what": "Rename, by contrast, compares lower-cased names - so 'dan' can be added but not renamed to."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C76",
+    "title": "Starting a session while one is open throws the form away and jumps to the open session without a word",
+    "members": [
+      "qa-tester-10"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "With 'Tie test' open in Family Table: /session/new, typed a name, Start Session -> 'now at /session/b1457bd91645bfa7e8af7189' (the open one), no message; '! http 409 ... {\"error\":\"A session is already open in this group\",\"open_session_id\":...}'.",
+    "cause": [
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 45,
+        "what": "On the 409 the form navigates to the open session and returns before showing the message."
+      }
+    ],
+    "notes": "The group home hides the Start button while a session is open (Home.jsx:87), but /session/new stays reachable by address or Back."
+  },
+  {
+    "cluster": "C77",
+    "title": "After a round is deleted the Start Round button shows the wrong number",
+    "members": [
+      "qa-tester-11"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Deleted round 2 of 4: list 'Round 4, Round 3, Round 1', button 'START ROUND 4'; the round it created was headed 'BIDDING | Round 5 · step 1 of 2'.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 109,
+        "what": "The button label is the number of rounds + 1."
+      },
+      {
+        "file": "base44/functions/startRound/entry.ts",
+        "line": 124,
+        "what": "The server numbers a new round after the highest existing number - on purpose, so numbers never repeat."
+      }
+    ],
+    "notes": "The gap in the list (4, 3, 1) is intended; only the label is wrong."
+  },
+  {
+    "cluster": "C78",
+    "title": "Session name, location and date accept anything; a blank date is saved as the day before (shortly after midnight)",
+    "members": [
+      "qa-tester-13"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "At 01:12 local time (23:12 UTC, 18 Nov) on Thursday 19 Nov: cleared the Date field (form default was 2026-11-19), Start Session -> '# Whist Night / Nov 18, 2026 · Open · Classic'; the stored row has session_date '2026-11-18', created_date '2026-11-18T23:12:25.582Z'.",
+    "cause": [
+      {
+        "file": "base44/functions/startSession/entry.ts",
+        "line": 88,
+        "what": "When no date arrives the server uses new Date().toISOString().slice(0, 10) - the UTC day, which in Israel is still yesterday until 02:00 (03:00 in summer)."
+      },
+      {
+        "file": "base44/functions/startSession/entry.ts",
+        "line": 86,
+        "what": "Name and location (89) are trimmed but have no length limit, and the date is not checked for a sane range."
+      },
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 65,
+        "what": "The date field can be emptied and the form still submits; the name and location inputs have no maxLength (61, 69)."
+      },
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 89,
+        "what": "The title has no wrapping or truncation, so a long unbroken name widens the page."
+      }
+    ],
+    "notes": "TIME ZONE: yes, this is the time-zone effect of the server default - the same trap src/lib/format.js:12-14 describes and avoids on the client. SANDBOX CLOCK: not the cause. The sandbox simulates the clock only while it seeds (sandbox/backend.mjs:527-549); a request is stamped with the real clock, and 23:12 UTC on the 18th is the true time. It reproduces only between local midnight and 02:00/03:00, which is when the QA tester and I happened to be working. Fix on both sides: the form should refuse or refill a blank date, and the server should not guess a day from UTC. NEW (not in any report, computed in the page, not tested with a real device setting): date-only values are parsed as UTC midnight by formatDate (src/lib/format.js:25), so west of UTC every session date is shown one day early - new Date('2026-11-19') formatted for America/New_York gives 'Nov 18, 2026'."
+  },
+  {
+    "cluster": "C79",
+    "title": "An archived group still offers every write action; they fail only at the last step",
+    "members": [
+      "qa-tester-14"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Seen: after Archive the header shows ARCHIVED and Admin still offers every control. Reviewer output: '! http 403 ... startRound — {\"error\":\"This group is archived — it is read-only\"}'.",
+    "cause": [
+      {
+        "file": "src/pages/SessionView.jsx",
+        "line": 100,
+        "what": "Start / Resume Round, 'Edit round' and Close Session are drawn from the session's state alone; the group's archived status is not consulted (nor in NewRound.jsx or RoundView.jsx)."
+      },
+      {
+        "file": "src/pages/Home.jsx",
+        "line": 87,
+        "what": "The read-only banner is shown only when there is no open session."
+      },
+      {
+        "file": "src/components/TableTalkCard.jsx",
+        "line": 37,
+        "what": "A failed note delete is only logged to the console."
+      },
+      {
+        "file": "base44/functions/closeSession/entry.ts",
+        "line": 63,
+        "what": "Closing is refused in an archived group, so a session left open at archive time stays open."
+      }
+    ],
+    "notes": "Only PlayerProfile.jsx:136 and Home.jsx:92 react to 'archived' today. Archiving with a session open should either be refused or close it."
+  },
+  {
+    "cluster": "C80",
+    "title": "After deleting a group the admin stays on /admin and sees 'ADMINS ONLY' for a different group",
+    "members": [
+      "qa-tester-15"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "Maya: Admin -> Delete -> typed 'Thursday Whist' -> Delete Group -> '/admin :: FAMILY TABLE :: Back to Games | ADMINS ONLY | Only group admins can manage settings and members. ...'.",
+    "cause": [
+      {
+        "file": "src/pages/Admin.jsx",
+        "line": 24,
+        "what": "Whatever changed (saved, archived or deleted) the page only refreshes the group list; it neither leaves nor says anything."
+      },
+      {
+        "file": "src/lib/ActiveGroupContext.jsx",
+        "line": 32,
+        "what": "With the deleted group gone from the list, the first remaining group silently becomes the current one."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C81",
+    "title": "The App Admin dashboard frame is drawn for signed-out visitors and ordinary users",
+    "members": [
+      "qa-tester-16"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "As Dan: 'Back to Home | APP ADMIN DASHBOARD | App admin only | Clean Orphaned Data | ... | Clean Orphans | No groups found. | APP ADMINS | Invite App Admin | Dan Levi | dan@example.com' with '! http 403 ... listAllGroupsWithStats — {\"error\":\"App admin only\"}'.",
+    "cause": [
+      {
+        "file": "src/pages/AppAdminDashboard.jsx",
+        "line": 136,
+        "what": "The page renders its whole frame for anyone; it has no role check before drawing."
+      },
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 10,
+        "what": "/app-admin is on the 'global' list, so the group-page redirect does not apply to it."
+      }
+    ],
+    "notes": "Nothing leaks - every call is refused by the server."
+  },
+  {
+    "cluster": "C82",
+    "title": "Admin list keeps a member's e-mail after Unclaim; deleting a note that is already gone fails silently",
+    "members": [
+      "qa-tester-18"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "code + reviewer evidence",
+    "observed": "Not re-run.",
+    "cause": [
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 122,
+        "what": "The row is merged with the server's member record, which has no e-mail field (unclaimMember/entry.ts:107-114), so the old e-mail stays until a reload (same merge after Remove, line 80)."
+      },
+      {
+        "file": "src/components/TableTalkCard.jsx",
+        "line": 37,
+        "what": "Any delete error, including 404 'Note not found', is only logged; the note stays on screen."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C83",
+    "title": "Controls with no accessible name; toggles that expose no state",
+    "members": [
+      "qa-tester-23"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser (control listings) + code",
+    "observed": "Listings: '[1] button (no label) icon=arrow-left', '[11] button (no label) icon=copy', 'button (no label; icon=check)', '[8] switch (no label) near=\"ADVANCED RULES BY DEFAULT…\"', '[4] input (no label) near=\"GROUP NAME\"'.",
+    "cause": [
+      {
+        "file": "src/components/Layout.jsx",
+        "line": 97,
+        "what": "Header arrow: its text is hidden below 400 px and there is no aria-label."
+      },
+      {
+        "file": "src/components/admin/GroupSettings.jsx",
+        "line": 134,
+        "what": "Copy-code button is an icon only; labels are not tied to their inputs (93-94)."
+      },
+      {
+        "file": "src/components/admin/MemberList.jsx",
+        "line": 170,
+        "what": "Rename confirm / cancel are icon-only buttons (170-175)."
+      },
+      {
+        "file": "src/pages/NewSession.jsx",
+        "line": 93,
+        "what": "Switches are rendered without a label reference (also GroupSettings.jsx:120, WriteNoteDialog.jsx:142)."
+      },
+      {
+        "file": "src/pages/RoundView.jsx",
+        "line": 373,
+        "what": "RENEGE is a span with role=button and no aria-pressed."
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "cluster": "C84",
+    "title": "Tied players are given different ranks - and two tied leaders are both credited with a win",
+    "members": [
+      "qa-tester-20"
+    ],
+    "highest_severity": "minor",
+    "verdict": "confirmed",
+    "method": "reproduced in browser",
+    "observed": "One round in a new session with two players on +35 and two on -5: '#1 | Maya | 1 round · 1 win · +35 avg | +35 | #2 | נועה | 1 round · 1 win · +35 avg | +35 | #3 | אמא | ... | -5 | #4 | סבא משה | ... | -5'.",
+    "cause": [
+      {
+        "file": "src/components/Leaderboard.jsx",
+        "line": 45,
+        "what": "The rank shown is simply the row's position after sorting (line 25); equal totals are not detected."
+      },
+      {
+        "file": "src/lib/whist-stats.js",
+        "line": 76,
+        "what": "The ranking used for wins and podiums DOES share ranks on a tie (1, 1, 3, 3), so both leaders get a win (standings.js:33; computePlayerStats/entry.ts:123 does the same)."
+      }
+    ],
+    "notes": "CHECKED AS ASKED: there are two rankings in the code and they disagree. The list shows #1 and #2 for equal totals while the win counter treats both as first. Decide one rule (shared rank is what the stats already do) and use rankSession's result for the label too."
+  },
+  {
+    "cluster": "C85",
+    "title": "Idea: Save Round does not notice that the bids were changed by someone else",
+    "members": [
+      "qa-tester-25"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "saveRoundResults receives only tricks and reneges (RoundView.jsx:329).",
+    "cause": [
+      {
+        "file": "base44/functions/saveRoundResults/entry.ts",
+        "line": 95,
+        "what": "The function reads the stored bids at that moment and scores against them; the request does not say which bids the scorer was looking at."
+      }
+    ],
+    "notes": "The data exists on both sides: the client holds the bids it displayed and the round's updated_date, either of which could be sent for the server to compare. Realtime is simulated in the sandbox, so the two-screen case could not be judged there."
+  },
+  {
+    "cluster": "C86",
+    "title": "Idea: Create Group has no server-side guard against a duplicate request",
+    "members": [
+      "qa-tester-26"
+    ],
+    "highest_severity": "idea",
+    "verdict": "confirmed",
+    "method": "code only (idea, not reproduced)",
+    "observed": "The dialog disables its button while submitting (CreateGroupDialog.jsx:71); the function has no check.",
+    "cause": [
+      {
+        "file": "base44/functions/createGroup/entry.ts",
+        "line": 54,
+        "what": "The only uniqueness the function enforces is the invite code; nothing compares the name or a request id with a group the caller has just created."
+      }
+    ],
+    "notes": "No data to key on today (no request id is sent). A finger cannot trigger it, per the tester."
+  }
+]
